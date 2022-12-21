@@ -4,9 +4,15 @@ Created on Wed Jun 22 07:55:58 2022
 ver 1.1.0
 @author: wiesn
 """
+from __future__ import annotations
+from io import StringIO
+from pathlib import Path
+
 import sys
+from typing import Literal, TypeAlias, TypeVar
 import numpy as np
 import math
+from numpy.typing import NDArray
 
 # import scipy.io
 from datetime import datetime
@@ -43,82 +49,90 @@ PRIMES = (
 )
 # fmt: on
 
-
-#####
-# Matrix Functions:
-# Outer product of two vectors
-def Outer(p1, p2):
-    return np.outer(np.array(p1), np.array(p2)).flatten()
+DTYPE: TypeAlias = np.complex64
 
 
-# Normalization of a vector
-def Normalize(p):
-    p2 = np.dot(p, np.conj(p))
-    p2 = math.sqrt(np.real(p2))
-    return p / p2
+class MtxFn:
+    """Matrix functions."""
 
+    @staticmethod
+    def outer(p_1: NDArray[DTYPE], p_2: NDArray[DTYPE]) -> NDArray[DTYPE]:
+        """Outer product of two vectors."""
+        return np.outer(np.array(p_1), np.array(p_2)).flatten()
 
-# Build a projection from a vector
-def Project(p1):
-    return np.outer(np.array(p1), np.conj(np.array(p1)))
+    @staticmethod
+    def normalize(p: NDArray[DTYPE]) -> NDArray[DTYPE]:
+        """Normalization of a vector."""
+        p_2 = np.dot(p, np.conj(p))
+        p_2 = math.sqrt(np.real(p_2))
+        return p / p_2
 
+    @staticmethod
+    def project(p_1: NDArray[DTYPE]) -> NDArray[DTYPE]:
+        """Build a projection from a vector."""
+        return np.outer(np.array(p_1), np.conj(np.array(p_1)))
 
-# Scalar product of two matrices
-def Product(t1, t2):
-    k = np.trace(np.matmul(t1, t2))
-    return np.real(k)
+    @staticmethod
+    def product(mtx1: NDArray[DTYPE], mtx2: NDArray[DTYPE]):
+        """Scalar product of two matrices/"""
+        k = np.trace(np.matmul(mtx1, mtx2))
+        return np.real(k)
 
+    @staticmethod
+    def generate(size: int | tuple[int, ...]) -> NDArray[np.complex64]:
+        """Generate a random vector with Haar measure."""
+        k_1 = np.random.normal(0, 1, size).astype(np.complex64)
+        k_2 = np.random.normal(0, 1, size).astype(np.complex64)
+        k_3 = k_1 + complex(0, 1) * k_2
+        return k_3
 
-# Generate a random vector with Haar measure
-def Generate(d):
-    k1 = np.random.normal(0, 1, d)
-    k2 = np.random.normal(0, 1, d)
-    k3 = k1 + complex(0, 1) * k2
-    return k3
+    @staticmethod
+    def ident_mtx(size: int) -> NDArray[np.complex64]:
+        """Return identity matrix"""
+        p_1 = np.zeros((int(size), int(size)), dtype=np.complex64)
+        np.fill_diagonal(p_1, 1)
+        return p_1
 
+    @staticmethod
+    def kronecker(p_1: NDArray[DTYPE], p_2: NDArray[DTYPE]) -> NDArray[DTYPE]:
+        """Kronecker Product."""
+        ddd1 = len(p_1)
+        ddd2 = len(p_2)
+        p_3 = np.reshape(
+            np.swapaxes(np.tensordot(p_1, p_2, 0), 1, 2),
+            (ddd1 * ddd2, ddd1 * ddd2),
+        )
+        return p_3
 
-# Identity Matrix
-def IdMatrix(d):
-    p1 = np.zeros((int(d), int(d)), dtype=complex)
-    for i1 in range(d):
-        p1[i1, i1] = 1
-    return p1
+    @staticmethod
+    def expand2FS(  # pylint: disable=invalid-name
+        p_1: NDArray[DTYPE], n: int, j1: int
+    ) -> NDArray[DTYPE]:
+        """Expand an operator to n qubits."""
+        return MtxFn.kronecker(
+            MtxFn.kronecker(MtxFn.ident_mtx(2**j1), p_1),
+            MtxFn.ident_mtx(2 ** (n - j1 - 1)),
+        )
 
+    @staticmethod
+    def expand_d_FS(  # pylint: disable=invalid-name
+        p_1: NDArray[DTYPE],
+        d: int,
+        n: int,
+        j_1: int,
+    ) -> NDArray[DTYPE]:
+        """Expand an operator to n qubits."""
+        return MtxFn.kronecker(
+            MtxFn.kronecker(MtxFn.ident_mtx(int(d**j_1)), p_1),
+            MtxFn.ident_mtx(int(d ** (n - j_1 - 1))),
+        )
 
-# Kronecker Product
-def Kronecker(p1, p2):
-    ddd1 = len(p1)
-    ddd2 = len(p2)
-    p3 = np.reshape(
-        np.swapaxes(np.tensordot(p1, p2, 0), 1, 2), (ddd1 * ddd2, ddd1 * ddd2)
-    )
-    # p3=np.zeros((ddd1*ddd2,ddd1*ddd2),dtype=complex)
-    # for i1 in range(ddd1):
-    #     for i2 in range(ddd2):
-    #         for i3 in range(ddd1):
-    #             for i4 in range(ddd2):
-    #                 p3[ddd2*i1+i2,ddd2*i3+i4]=p1[i1,i3]*p2[i2,i4]
-    return p3
-
-
-# Expand an operator to n qubits
-def Expand2FS(p1, n, j1):
-    return Kronecker(Kronecker(IdMatrix(2**j1), p1), IdMatrix(2 ** (n - j1 - 1)))
-
-
-# Expand an operator to n quDits
-def ExpanddFS(p1, d, n, j1):
-    return Kronecker(
-        Kronecker(IdMatrix(int(d**j1)), p1), IdMatrix(int(d ** (n - j1 - 1)))
-    )
-
-
-# sandwich an operator with a unitarry
-def Rotate(rho2, U):
-
-    rho2a = np.matmul(rho2, np.conj(U).T)
-    rho2a = np.matmul(U, rho2a)
-    return rho2a
+    @staticmethod
+    def rotate(rho2: NDArray[DTYPE], U: NDArray[DTYPE]) -> NDArray[DTYPE]:
+        """Sandwich an operator with a unitary."""
+        rho2a = np.matmul(rho2, np.conj(U).T)
+        rho2a = np.matmul(U, rho2a)
+        return rho2a
 
 
 # MTX file read and write
@@ -128,176 +142,202 @@ def Rotate(rho2, U):
 # [4]: 'general' 'symmetric' 'skew-symmetric' 'hermitian
 
 
-def getnum(file, vartype):
-    readnum = file.readline()
-    if vartype == 0:
-        return int(readnum)
-    elif vartype == 1:
-        return float(readnum)
-    elif vartype == 2:
+class MtxIO:
+    """From and to file matrix serialization."""
+
+    @staticmethod
+    def get_number(
+        file: StringIO, vartype: Literal[0] | Literal[1] | Literal[2]
+    ) -> int | float | complex:
+
+        readnum = file.readline()
+
+        if vartype == 0:
+            return int(readnum)
+
+        if vartype == 1:
+            return float(readnum)
+
+        if vartype == 2:
+            readnum = readnum.split()
+            kreadnum = list(map(float, readnum))
+            return kreadnum[0] + complex(0, 1) * kreadnum[1]
+
+        raise AssertionError()
+
+    @staticmethod
+    def get_3_numbers(
+        file: StringIO, vartype: Literal[0] | Literal[1] | Literal[2]
+    ) -> tuple[int, int, int | float | complex]:
+
+        readnum = file.readline()
         readnum = readnum.split()
-        kreadnum = list(map(float, readnum))
-        return kreadnum[0] + complex(0, 1) * kreadnum[1]
 
+        if vartype == 0:
+            return (int(readnum[0]), int(readnum[1]), int(readnum[2]))
 
-def get3num(file, vartype):
-    readnum = file.readline()
-    readnum = readnum.split
-    if vartype == 0:
-        return [int(readnum[0]), int(readnum[1]), int(readnum[2])]
-    elif vartype == 1:
-        return [int(readnum[0]), int(readnum[1]), float(readnum[2])]
-    elif vartype == 2:
-        return [
-            int(readnum[0]),
-            int(readnum[1]),
-            float(readnum[2]) + complex(float(readnum[3])),
-        ]
+        if vartype == 1:
+            return (int(readnum[0]), int(readnum[1]), float(readnum[2]))
 
+        if vartype == 2:
+            return (
+                int(readnum[0]),
+                int(readnum[1]),
+                float(readnum[2]) + complex(float(readnum[3])),
+            )
 
-def readmtx(filename):
-    with open(filename, "r") as file:
-        line = str(file.readline())
-        firstline = line.split()
-        if firstline[1] == "matrix":
-            shape = 0
-        elif firstline[1] == "vector":
-            shape = 1
-        if firstline[2] == "array":
-            descr = 0
-        elif firstline[2] == "coordinate":
-            descr = 1
-        if firstline[3] == "integer":
-            vartype = 0
-        elif firstline[3] == "real":
-            vartype = 1
-        elif firstline[3] == "complex":
-            vartype = 2
-        if firstline[4] == "general":
-            symtype = 0
-        elif firstline[4] == "symmetric":
-            symtype = 1
-        elif firstline[4] == "skew-symmetric":
-            symtype = 2
-        elif firstline[4] == "hermitian":
-            symtype = 3
-        while line[0] == "%" or len(line) == 1:
-            line = file.readline()
-        line = list(map(int, line.split()))
-        if shape == 0 and descr == 0:
-            rows = line[0]
-            cols = line[1]
-            if vartype == 0:
-                wynik = np.zeros((rows, cols), dtype=int)
-            elif vartype == 1:
-                wynik = np.zeros((rows, cols), dtype=float)
-            elif vartype == 2:
-                wynik = np.zeros((rows, cols), dtype=complex)
-            if symtype == 0:
-                for i1 in range(cols):
-                    for i2 in range(rows):
-                        wynik[i2][i1] = getnum(file, vartype)
-            elif symtype == 1 and rows == cols:
-                for i1 in range(cols):
-                    for i2 in range(i1, rows):
-                        wynik[i2][i1] = getnum(file, vartype)
-                        wynik[i1][i2] = wynik[i2][i1]
-            elif symtype == 2 and rows == cols:
-                for i1 in range(0, cols):
-                    for i2 in range(i1 + 1, rows):
-                        wynik[i2][i1] = getnum(file, vartype)
-                        wynik[i1][i2] = -wynik[i2][i1]
-            elif symtype == 3 and rows == cols:
-                for i1 in range(0, cols):
-                    for i2 in range(i1, rows):
-                        wynik[i2][i1] = getnum(file, vartype)
-                        wynik[i1][i2] = np.conj(wynik[i2][i1])
-        if shape == 0 and descr == 1:
-            rows = line[0]
-            cols = line[1]
-            nonzeros = line[3]
-            if vartype == 0:
-                wynik = np.zeros((cols, rows), dtype=int)
-            elif vartype == 1:
-                wynik = np.zeros((cols, rows), dtype=float)
-            elif vartype == 2:
-                wynik = np.zeros((cols, rows), dtype=complex)
-            for i1 in range(nonzeros):
-                entry = get3num(file, vartype)
-                wynik[entry[1]][entry[0]] = entry[2]
-            if symtype == 1 and rows == cols:
-                for i1 in range(rows):
-                    for i2 in range(i1, cols):
-                        if np.abs(wynik[i1][i2]) != 0:
-                            wynik[i2][i1] = wynik[i1][i2]
-                        else:
-                            wynik[i1][i2] = wynik[i2][i1]
-            elif symtype == 2 and rows == cols:
-                for i1 in range(0, cols):
-                    for i2 in range(i1 + 1, rows):
-                        if np.abs(wynik[i1][i2]) != 0:
-                            wynik[i2][i1] = -wynik[i1][i2]
-                        else:
-                            wynik[i1][i2] = -wynik[i2][i1]
-            elif symtype == 3 and rows == cols:
-                for i1 in range(0, cols):
-                    for i2 in range(i1, rows):
-                        if np.abs(wynik[i1][i2]) != 0:
-                            wynik[i2][i1] = np.conj(wynik[i1][i2])
-                        else:
-                            wynik[i1][i2] = np.conj(wynik[i2][i1])
-        file.close()
-    return wynik
+        raise AssertionError()
 
+    @staticmethod
+    def read_mtx(filename: str | Path) -> NDArray[DTYPE]:
+        """Read matrix data from file."""
 
-def writemtx(filename, lista, vartype):
-    if vartype == 1:
-        vartype1 = "real"
-    elif vartype == 2:
-        vartype1 = "complex"
-    elif vartype == 0:
-        vartype1 = "integer"
-    with open(filename, "w") as file:
-        file.write(" ".join(["%%MatrixMarket matrix array", vartype1, "general\n"]))
-        file.write("%Generated by CSSFinder\n")
-        file.write(str(len(lista)))
-        file.write("  ")
-        file.write(str(len(lista[0])))
-        file.write("\n")
-        for i1 in range(len(lista[0])):
-            for i2 in range(len(lista)):
-                if vartype == 2:
-                    file.write(str(np.real(lista[i2][i1])))
-                    file.write("   ")
-                    file.write(str(np.imag(lista[i2][i1])))
-                    file.write("\n")
-                else:
-                    file.write(str(lista[i2][i1]))
-                    file.write("\n")
-        file.close()
+        with open(filename, "r") as file:
+            line = str(file.readline())
+            firstline = line.split()
+            if firstline[1] == "matrix":
+                shape = 0
+            elif firstline[1] == "vector":
+                shape = 1
+            if firstline[2] == "array":
+                descr = 0
+            elif firstline[2] == "coordinate":
+                descr = 1
+            if firstline[3] == "integer":
+                vartype = 0
+            elif firstline[3] == "real":
+                vartype = 1
+            elif firstline[3] == "complex":
+                vartype = 2
+            if firstline[4] == "general":
+                symtype = 0
+            elif firstline[4] == "symmetric":
+                symtype = 1
+            elif firstline[4] == "skew-symmetric":
+                symtype = 2
+            elif firstline[4] == "hermitian":
+                symtype = 3
+            while line[0] == "%" or len(line) == 1:
+                line = file.readline()
+            line = list(map(int, line.split()))
+            if shape == 0 and descr == 0:
+                rows = line[0]
+                cols = line[1]
+                if vartype == 0:
+                    retval = np.zeros((rows, cols), dtype=int)
+                elif vartype == 1:
+                    retval = np.zeros((rows, cols), dtype=float)
+                elif vartype == 2:
+                    retval = np.zeros((rows, cols), dtype=complex)
+                if symtype == 0:
+                    for i1 in range(cols):
+                        for i2 in range(rows):
+                            retval[i2][i1] = getnum(file, vartype)
+                elif symtype == 1 and rows == cols:
+                    for i1 in range(cols):
+                        for i2 in range(i1, rows):
+                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i1][i2] = retval[i2][i1]
+                elif symtype == 2 and rows == cols:
+                    for i1 in range(0, cols):
+                        for i2 in range(i1 + 1, rows):
+                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i1][i2] = -retval[i2][i1]
+                elif symtype == 3 and rows == cols:
+                    for i1 in range(0, cols):
+                        for i2 in range(i1, rows):
+                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i1][i2] = np.conj(retval[i2][i1])
+            if shape == 0 and descr == 1:
+                rows = line[0]
+                cols = line[1]
+                nonzeros = line[3]
+                if vartype == 0:
+                    retval = np.zeros((cols, rows), dtype=int)
+                elif vartype == 1:
+                    retval = np.zeros((cols, rows), dtype=float)
+                elif vartype == 2:
+                    retval = np.zeros((cols, rows), dtype=complex)
+                for i1 in range(nonzeros):
+                    entry = MtxIO.get_3_numbers(file, vartype)
+                    retval[entry[1]][entry[0]] = entry[2]
+                if symtype == 1 and rows == cols:
+                    for i1 in range(rows):
+                        for i2 in range(i1, cols):
+                            if np.abs(retval[i1][i2]) != 0:
+                                retval[i2][i1] = retval[i1][i2]
+                            else:
+                                retval[i1][i2] = retval[i2][i1]
+                elif symtype == 2 and rows == cols:
+                    for i1 in range(0, cols):
+                        for i2 in range(i1 + 1, rows):
+                            if np.abs(retval[i1][i2]) != 0:
+                                retval[i2][i1] = -retval[i1][i2]
+                            else:
+                                retval[i1][i2] = -retval[i2][i1]
+                elif symtype == 3 and rows == cols:
+                    for i1 in range(0, cols):
+                        for i2 in range(i1, rows):
+                            if np.abs(retval[i1][i2]) != 0:
+                                retval[i2][i1] = np.conj(retval[i1][i2])
+                            else:
+                                retval[i1][i2] = np.conj(retval[i2][i1])
+
+        return retval
+
+    @staticmethod
+    def write_mtx(filename, lista, vartype):
+        if vartype == 1:
+            vartype1 = "real"
+        elif vartype == 2:
+            vartype1 = "complex"
+        elif vartype == 0:
+            vartype1 = "integer"
+        with open(filename, "w") as file:
+            file.write(" ".join(["%%MatrixMarket matrix array", vartype1, "general\n"]))
+            file.write("%Generated by CSSFinder\n")
+            file.write(str(len(lista)))
+            file.write("  ")
+            file.write(str(len(lista[0])))
+            file.write("\n")
+            for i1 in range(len(lista[0])):
+                for i2 in range(len(lista)):
+                    if vartype == 2:
+                        file.write(str(np.real(lista[i2][i1])))
+                        file.write("   ")
+                        file.write(str(np.imag(lista[i2][i1])))
+                        file.write("\n")
+                    else:
+                        file.write(str(lista[i2][i1]))
+                        file.write("\n")
+            file.close()
 
 
 # Random states:
 # n qubit state
 def Random2FS(n):
-    q1 = Normalize(Generate(2))
+    q1 = MtxFn.normalize(MtxFn.generate(2))
     if n > 1:
         for l1 in range(n - 1):
-            q1 = Outer(q1, Normalize(Generate(2)))
-    return Project(q1)
+            q1 = MtxFn.outer(q1, MtxFn.normalize(MtxFn.generate(2)))
+    return MtxFn.project(q1)
 
 
 # n quDit state
 def RandomdFS(d, n):
-    q1 = Normalize(Generate(d))
+    q1 = MtxFn.normalize(MtxFn.generate(d))
     for l1 in range(n - 1):
-        q1 = Outer(q1, Normalize(Generate(d)))
-    return Project(q1)
+        q1 = Outer(q1, MtxFn.normalize(MtxFn.generate(d)))
+    return MtxFn.project(q1)
 
 
 # biseparable state
 def RandomBS(d1, d2):
-    return Project(Outer(Normalize(Generate(d1)), Normalize(Generate(d2))))
+    return MtxFn.project(
+        MtxFn.outer(
+            MtxFn.normalize(MtxFn.generate(d1)), MtxFn.normalize(MtxFn.generate(d2))
+        )
+    )
 
 
 # biseparable state with three quDits
@@ -307,7 +347,7 @@ def Random3P(d1, swaps, i):
         return RandomBS(d1, d1 * d1)
     if i == 1:
         # AbC
-        return Rotate(RandomBS(d1, d1 * d1), swaps[0])
+        return MtxFn.rotate(RandomBS(d1, d1 * d1), swaps[0])
     if i == 2:
         # ABc
         return RandomBS(d1 * d1, d1)
@@ -320,10 +360,10 @@ def Random4P(d1, swaps, i):
         return RandomBS(d1, d1 * d1 * d1)
     if i == 1:
         # AbCD
-        return Rotate(RandomBS(d1, d1 * d1 * d1), swaps[0])
+        return MtxFn.rotate(RandomBS(d1, d1 * d1 * d1), swaps[0])
     if i == 2:
         # ABcD
-        return Rotate(RandomBS(d1 * d1 * d1, d1), swaps[3])
+        return MtxFn.rotate(RandomBS(d1 * d1 * d1, d1), swaps[3])
     if i == 3:
         # ABCd
         return RandomBS(d1 * d1 * d1, d1)
@@ -332,10 +372,10 @@ def Random4P(d1, swaps, i):
         return RandomBS(d1 * d1, d1 * d1)
     if i == 5:
         # aBcD
-        return Rotate(RandomBS(d1 * d1, d1 * d1), swaps[2])
+        return MtxFn.rotate(RandomBS(d1 * d1, d1 * d1), swaps[2])
     if i == 6:
         # aBCd
-        return Rotate(RandomBS(d1 * d1, d1 * d1), swaps[1])
+        return MtxFn.rotate(RandomBS(d1 * d1, d1 * d1), swaps[1])
 
 
 # Rendom Unitaries
@@ -344,13 +384,13 @@ def RandomUBS(a, d1, d2):
     if a == 0:
         rubsp1 = (
             math.cos(0.01 * math.pi) + complex(0, 1) * math.sin(0.01 * math.pi) - 1
-        ) * Project(Normalize(Generate(d1))) + IdMatrix(d1)
-        return Kronecker(rubsp1, IdMatrix(int(d2)))
+        ) * MtxFn.project(MtxFn.normalize(MtxFn.generate(d1))) + MtxFn.ident_mtx(d1)
+        return MtxFn.kronecker(rubsp1, MtxFn.ident_mtx(int(d2)))
     if a == 1:
         rubsp1 = (
             math.cos(0.01 * math.pi) + complex(0, 1) * math.sin(0.01 * math.pi) - 1
-        ) * Project(Normalize(Generate(d2))) + IdMatrix(d2)
-        return Kronecker(IdMatrix(int(d1)), rubsp1)
+        ) * MtxFn.project(MtxFn.normalize(MtxFn.generate(d2))) + MtxFn.ident_mtx(d2)
+        return MtxFn.kronecker(MtxFn.ident_mtx(int(d1)), rubsp1)
         # return(Kronecker(IdMatrix(d1),unitatry_group.rvs(d2)))
 
 
@@ -359,8 +399,8 @@ def RandomU2FS(n, j):
     # p1=unitary_group.rvs(2)
     p1 = (
         math.cos(0.01 * math.pi) + complex(0, 1) * math.sin(0.01 * math.pi) - 1
-    ) * Random2FS(1) + IdMatrix(2)
-    return Expand2FS(p1, n, j)
+    ) * Random2FS(1) + MtxFn.ident_mtx(2)
+    return MtxFn.expand2FS(p1, n, j)
 
 
 # n quDits
@@ -368,65 +408,65 @@ def RandomUdFS(d, n, j):
     # p1=unitary_group.rvs(d)
     p1 = (
         math.cos(0.01 * math.pi) + complex(0, 1) * math.sin(0.01 * math.pi) - 1
-    ) * RandomdFS(d, 1) + IdMatrix(d)
-    return ExpanddFS(p1, d, n, j)
+    ) * RandomdFS(d, 1) + MtxFn.ident_mtx(d)
+    return MtxFn.expand_d_FS(p1, d, n, j)
 
 
 # Optimizers
 # biseparability
 def OptimizeBS(rho2, rho3, d1, d2):
-    pp1 = Product(rho2, rho3)
+    pp1 = MtxFn.product(rho2, rho3)
     for obsj1 in range(5 * d1 * d2):
         U = RandomUBS(obsj1 % 2, d1, d2)
-        rho2a = Rotate(rho2, U)
-        if pp1 > Product(rho2a, rho3):
+        rho2a = MtxFn.rotate(rho2, U)
+        if pp1 > MtxFn.product(rho2a, rho3):
             U = U.conj().T
-            rho2a = Rotate(rho2, U)
-        while Product(rho2a, rho3) > pp1:
+            rho2a = MtxFn.rotate(rho2, U)
+        while MtxFn.product(rho2a, rho3) > pp1:
             rho2b = rho2a
-            pp1 = Product(rho2b, rho3)
-            rho2a = Rotate(rho2a, U)
+            pp1 = MtxFn.product(rho2b, rho3)
+            rho2a = MtxFn.rotate(rho2a, U)
     return rho2a
 
 
 # 3-partite entanglement
 def Optimized3P(rho2, swaps, rho3, d1, i1):
     if i1 == 0:
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**6):
             U = RandomUBS(j1 % 2, d1, d1 * d1)
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 1:
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**6):
-            U = Rotate(RandomUBS(j1 % 2, d1, d1 * d1), swaps[0])
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            U = MtxFn.rotate(RandomUBS(j1 % 2, d1, d1 * d1), swaps[0])
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 2:
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**6):
             U = RandomUBS(j1 % 2, d1 * d1, d1)
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     return rho2a
 
 
@@ -435,127 +475,127 @@ def Optimized3P(rho2, swaps, rho3, d1, i1):
 def Optimized4P(rho2, rho3, swaps, d1, i1):
     if i1 == 0:
         # aBCD
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
             U = RandomUBS(j1 % 2, d1, d1**3)
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 1:
         # AbCD
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
-            U = Rotate(RandomUBS(j1 % 2, d1, d1 * d1 * d1), swaps[0])
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            U = MtxFn.rotate(RandomUBS(j1 % 2, d1, d1 * d1 * d1), swaps[0])
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 2:
         # ABcD
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
-            U = Rotate(RandomUBS(j1 % 2, d1**3, d1), swaps[3])
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            U = MtxFn.rotate(RandomUBS(j1 % 2, d1**3, d1), swaps[3])
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 3:
         # ABCd
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
             U = RandomUBS(j1 % 2, d1**3, d1)
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 4:
         # abCD
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
             U = RandomUBS(j1 % 2, d1 * d1, d1 * d1)
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 5:
         # aBcD
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
-            U = Rotate(RandomUBS(j1 % 2, d1 * d1, d1 * d1), swaps[2])
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            U = MtxFn.rotate(RandomUBS(j1 % 2, d1 * d1, d1 * d1), swaps[2])
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     if i1 == 6:
         # aBCd
-        pp1 = Product(rho2, rho3)
+        pp1 = MtxFn.product(rho2, rho3)
         for j1 in range(5 * d1**8):
-            U = Rotate(RandomUBS(j1 % 2, d1 * d1, d1 * d1), swaps[1])
-            rho2a = Rotate(rho2, U)
-            if pp1 > Product(rho2a, rho3):
+            U = MtxFn.rotate(RandomUBS(j1 % 2, d1 * d1, d1 * d1), swaps[1])
+            rho2a = MtxFn.rotate(rho2, U)
+            if pp1 > MtxFn.product(rho2a, rho3):
                 U = U.conj().T
-                rho2a = Rotate(rho2, U)
-            while Product(rho2a, rho3) > pp1:
+                rho2a = MtxFn.rotate(rho2, U)
+            while MtxFn.product(rho2a, rho3) > pp1:
                 rho2b = rho2a
-                pp1 = Product(rho2b, rho3)
-                rho2a = Rotate(rho2a, U)
+                pp1 = MtxFn.product(rho2b, rho3)
+                rho2a = MtxFn.rotate(rho2a, U)
     return rho2a
 
 
 # n qubits
 def Optimize2FS(rho2, rho3, n):
-    pp1 = Product(rho2, rho3)
+    pp1 = MtxFn.product(rho2, rho3)
     for j1 in range(100 * n):
         U = RandomU2FS(n, j1 % n)
-        rho2a = Rotate(rho2, U)
-        if pp1 > Product(rho2a, rho3):
+        rho2a = MtxFn.rotate(rho2, U)
+        if pp1 > MtxFn.product(rho2a, rho3):
             U = U.conj().T
-            rho2a = Rotate(rho2, U)
-        while Product(rho2a, rho3) > pp1:
+            rho2a = MtxFn.rotate(rho2, U)
+        while MtxFn.product(rho2a, rho3) > pp1:
             rho2b = rho2a
-            pp1 = Product(rho2b, rho3)
-            rho2a = Rotate(rho2a, U)
+            pp1 = MtxFn.product(rho2b, rho3)
+            rho2a = MtxFn.rotate(rho2a, U)
     return rho2a
 
 
 # n quDits
 def OptimizedFS(rho2, rho3, ddd1, n):
-    pp1 = Product(rho2, rho3)
+    pp1 = MtxFn.product(rho2, rho3)
     for j1 in range(20 * ddd1 * ddd1 * n):
         U = RandomUdFS(ddd1, n, j1 % n)
-        rho2a = Rotate(rho2, U)
-        if pp1 > Product(rho2a, rho3):
+        rho2a = MtxFn.rotate(rho2, U)
+        if pp1 > MtxFn.product(rho2a, rho3):
             U = U.conj().T
-            rho2a = Rotate(rho2, U)
-        while Product(rho2a, rho3) > pp1:
+            rho2a = MtxFn.rotate(rho2, U)
+        while MtxFn.product(rho2a, rho3) > pp1:
             rho2b = rho2a
-            pp1 = Product(rho2b, rho3)
-            rho2a = Rotate(rho2a, U)
+            pp1 = MtxFn.product(rho2b, rho3)
+            rho2a = MtxFn.rotate(rho2a, U)
     return rho2a
 
 
@@ -658,18 +698,18 @@ def swap344(d):
 # read rho
 def Initrho0(prefix):
     #    return(scipy.io.mmread("_".join([prefix,"in.mtx"])))
-    return readmtx("_".join([prefix, "in.mtx"]))
+    return MtxIO.read_mtx("_".join([prefix, "in.mtx"]))
 
 
 # read or generate rho1
 def Initrho1(prefix, rho, mode, d1, vis):
     if exists("".join([prefix, "_out_", str(vis), ".mtx"])):
         #        return(scipy.io.mmread("".join([prefix,"_out_",str(vis),".mtx"])))
-        return readmtx("".join([prefix, "_out_", str(vis), ".mtx"]))
+        return MtxIO.read_mtx("".join([prefix, "_out_", str(vis), ".mtx"]))
     elif exists(
         "".join([prefix, "_out_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
     ):
-        return readmtx(
+        return MtxIO.read_mtx(
             "".join([prefix, "_out_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
         )
     else:
@@ -745,7 +785,9 @@ def DefineSym(prefix):
         while exists("".join([prefix, "_sym_", str(symj1), "_", str(symj2), ".mtx"])):
             #            symlist2.append(scipy.io.mmread("".join([prefix,"_sym_",str(symj1),"_",str(symj2),".mtx"])))
             symlist2.append(
-                readmtx("".join([prefix, "_sym_", str(symj1), "_", str(symj2), ".mtx"]))
+                MtxIO.read_mtx(
+                    "".join([prefix, "_sym_", str(symj1), "_", str(symj2), ".mtx"])
+                )
             )
             symj2 = symj2 + 1
         symj2 = 0
@@ -759,7 +801,7 @@ def ApplySym(rho, symlist1):
     asrho0 = rho
     for asj1 in range(len(symlist1)):
         for asj2 in range(len(symlist1[asj1])):
-            asrho0 = asrho0 + Rotate(asrho0, symlist1[asj1][asj2])
+            asrho0 = asrho0 + MtxFn.rotate(asrho0, symlist1[asj1][asj2])
         asrho0 = asrho0 / np.trace(asrho0)
     return asrho0
 
@@ -769,7 +811,7 @@ def DefineProj(projflag, prefix):
     if exists("_".join([prefix, "proj", ".mtx"])):
         projflag = True
         #        return(scipy.io.mmread("_".join([prefix,"proj.mtx"])))
-        return readmtx("_".join([prefix, "proj.mtx"]))
+        return MtxIO.read_mtx("_".join([prefix, "proj.mtx"]))
     else:
         return [[]]
 
@@ -787,7 +829,7 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
     # if symflag==True:
     #     rho1=ApplySym(rho1, symlist)
     if projflag == True:
-        rho1 = Rotate(rho1, proj1)
+        rho1 = MtxFn.rotate(rho1, proj1)
     lastcorr = 0
     currentcorr = 0
     ll = []
@@ -798,7 +840,7 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
         "".join([prefix, "_out_", str(vis), ".mtx"])
     ):
         #        ll2=scipy.io.mmread("".join([prefix,"_list_",str(vis),".mtx"]))
-        ll2 = readmtx("".join([prefix, "_list_", str(vis), ".mtx"]))
+        ll2 = MtxIO.read_mtx("".join([prefix, "_list_", str(vis), ".mtx"]))
         trail = int(ll2[len(ll2) - 1][0])
         counter = int(ll2[len(ll2) - 1][1])
         for i3 in range(len(ll2)):
@@ -814,7 +856,7 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
         "".join([prefix, "_out_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
     ):
         #        ll2=scipy.io.mmread("".join([prefix,"_list_",str(vis),".mtx"]))
-        ll2 = readmtx(
+        ll2 = MtxIO.read_mtx(
             "".join([prefix, "_list_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
         )
         trail = int(ll2[len(ll2) - 1][0])
@@ -853,11 +895,11 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
         print(
             "Input state strictly real. Imaginary parts of the output state will be discarded"
         )
-    aa1 = Product(rho, rho)
-    aa4 = 2 * Product(rho, rho1)
-    aa6 = Product(rho1, rho1)
+    aa1 = MtxFn.product(rho, rho)
+    aa4 = 2 * MtxFn.product(rho, rho1)
+    aa6 = MtxFn.product(rho1, rho1)
     rho3 = rho - rho1
-    dd1 = Product(rho1, rho3)
+    dd1 = MtxFn.product(rho1, rho3)
     if mode == 3:
         swaps = [swap123(d1)]
     elif mode == 4:
@@ -908,7 +950,7 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
                 print("Mode ", mode, "does not exist!")
             DisplayHelp()
             break
-        if Product(rho2, rho3) > dd1:
+        if MtxFn.product(rho2, rho3) > dd1:
             # if mode==0:
             #     rho2=Optimize2FS(rho2, rho3, d1)
             if mode == 2:
@@ -924,11 +966,11 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
             if symflag == True:
                 rho1 = ApplySym(rho1, symlist)
             if projflag == True:
-                rho1 = Rotate(rho1, proj1)
+                rho1 = MtxFn.rotate(rho1, proj1)
                 rho1 = rho1 / np.trace(rho1)
-            aa3 = Product(rho2, rho2)
-            aa2 = 2 * Product(rho, rho2)
-            aa5 = 2 * Product(rho1, rho2)
+            aa3 = MtxFn.product(rho2, rho2)
+            aa2 = 2 * MtxFn.product(rho, rho2)
+            aa5 = 2 * MtxFn.product(rho1, rho2)
             #            bb1=aa1-aa2+aa3
             bb2 = -aa4 + aa2 + aa5 - 2 * aa3
             bb3 = aa6 - aa5 + aa3
@@ -958,8 +1000,8 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
                     #     # print("\b",end="")
                     #     print(marker,end=" ")
                 rho3 = rho - rho1
-                aa4 = 2 * Product(rho, rho1)
-                aa6 = Product(rho1, rho1)
+                aa4 = 2 * MtxFn.product(rho, rho1)
+                aa6 = MtxFn.product(rho1, rho1)
                 dd1 = aa4 / 2 - aa6
                 flag = 1
             if 0 > cc1 or cc1 > 1:
@@ -974,11 +1016,11 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
                         " Corrections:",
                         counter,
                         "D^2:",
-                        Product(rho3, rho3),
+                        MtxFn.product(rho3, rho3),
                     )
-                ll.append([trail, counter, Product(rho3, rho3)])
+                ll.append([trail, counter, MtxFn.product(rho3, rho3)])
                 #                scipy.io.mmwrite("".join([prefix,"_out_",str(vis),".mtx"]),rho1)
-                writemtx(
+                MtxIO.write_mtx(
                     "".join(
                         [
                             prefix,
@@ -995,7 +1037,7 @@ def Gilbert(mode, prefix, vis, rho, steps, corrs, d1, d2, verboseflag):
                     2,
                 )
                 #                scipy.io.mmwrite("".join([prefix,"_list_",str(vis),".mtx"]),ll)
-                writemtx(
+                MtxIO.write_mtx(
                     "".join(
                         [
                             prefix,
@@ -1111,14 +1153,14 @@ def makelongreport(prefix, mode, vis, swaps, d1, d2, ll, verboseflag):
     #         file.write("The squared distance based on entanglement witness is ")
     #         file.write(str(wdist0))
     #     file.close()
-    rhoa = readmtx("".join([prefix, "_in.mtx"]))
+    rhoa = MtxIO.read_mtx("".join([prefix, "_in.mtx"]))
     #    rhob=scipy.io.mmread("".join([prefix,"_out_",str(vis),".mtx"]))
-    rhob = readmtx(
+    rhob = MtxIO.read_mtx(
         "".join([prefix, "_out_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
     )
-    rhoa = vis * rhoa + (1 - vis) * IdMatrix(len(rhoa)) / len(rhoa)
+    rhoa = vis * rhoa + (1 - vis) * MtxFn.ident_mtx(len(rhoa)) / len(rhoa)
     witness = rhoa - rhob
-    writemtx(
+    MtxIO.write_mtx(
         "".join([prefix, "_witness_", str(mode), "_", str(d1), "_", str(vis), ".mtx"]),
         witness,
         2,
@@ -1128,7 +1170,7 @@ def makelongreport(prefix, mode, vis, swaps, d1, d2, ll, verboseflag):
 def OptimizeW(prefix, mode, vis, swaps, d1, d2, verboseflag):
     l = -1
     #    rhoa=scipy.io.mmread("_".join([prefix,"in.mtx"]))
-    rhoa = readmtx("_".join([prefix, "in.mtx"]))
+    rhoa = MtxIO.read_mtx("_".join([prefix, "in.mtx"]))
     rhob = Initrho1(prefix, rhoa, vis)
     witness = rhoa - rhob
     #     zasieg=1000*d1
@@ -1151,27 +1193,27 @@ def OptimizeW(prefix, mode, vis, swaps, d1, d2, verboseflag):
         if mode == 2:
             w1 = RandomBS(d1, d2)
             rho2a = OptimizeBS(w1, witness, d1, d2)
-            l1 = Product(rho2a, witness)
+            l1 = MtxFn.product(rho2a, witness)
             if l1 > l:
                 l = l1
         if mode == 1:
             w1 = RandomdFS(d1, d2)
             rho2a = OptimizedFS(w1, witness, d1, d2)
-            l1 = Product(rho2a, witness)
+            l1 = MtxFn.product(rho2a, witness)
             if l1 > l:
                 l = l1
         if mode == 3:
             for owi2 in range(3):
                 w1 = Random3P(d1, swaps[0], owi2)
                 rho2a = Optimize2FS(w1, witness, d1)
-                l1 = Product(rho2a, witness)
+                l1 = MtxFn.product(rho2a, witness)
                 if l1 > l:
                     l = l1
         if mode == 4:
             for owi2 in range(7):
                 w1 = Random4P(d1, swaps[0], swaps[1], swaps[2], swaps[3], owi2)
                 rho2a = Optimize2FS(w1, witness, d1)
-                l1 = Product(rho2a, witness)
+                l1 = MtxFn.product(rho2a, witness)
                 if l1 > l:
                     l = l1
     return l
@@ -1179,14 +1221,16 @@ def OptimizeW(prefix, mode, vis, swaps, d1, d2, verboseflag):
 
 def WitnessDist(prefix, vis, sepmax, verboseflag):
     #    rhoa=scipy.io.mmread("".join([prefix,"_in.mtx"]))
-    rhoa = readmtx("".join([prefix, "_in.mtx"]))
+    rhoa = MtxIO.read_mtx("".join([prefix, "_in.mtx"]))
     #    rhob=scipy.io.mmread("".join([prefix,"_out_",str(vis),".mtx"]))
-    rhob = readmtx(
+    rhob = MtxIO.read_mtx(
         "".join([prefix, "_out_", str(mode), "_", str(d1), "_", str(vis), ".mtx"])
     )
-    rhoa = vis * rhoa + (1 - vis) * IdMatrix(len(rhoa)) / len(rhoa)
+    rhoa = vis * rhoa + (1 - vis) * MtxFn.ident_mtx(len(rhoa)) / len(rhoa)
     witness = rhoa - rhob
-    wdist = (Product(witness, rhoa) - sepmax) / math.sqrt(Product(witness, witness))
+    wdist = (MtxFn.product(witness, rhoa) - sepmax) / math.sqrt(
+        MtxFn.product(witness, witness)
+    )
     if wdist < 0:
         if verboseflag == True:
             print("No entanglement witness found.")
@@ -1196,7 +1240,7 @@ def WitnessDist(prefix, vis, sepmax, verboseflag):
                 "Witness-based estimated squared distance:", wdist**2, " (VERIFY!!!)"
             )
         #        scipy.io.mmwrite("".join([prefix,"_witness_",str(vis),".mtx"]),witness,"".join(["Estimated sqared distance:",str(wdist**2)]))
-        writemtx(
+        MtxIO.write_mtx(
             "".join(
                 [prefix, "_witness_", str(mode), "_", str(d1), "_", str(vis), ".mtx"]
             ),
@@ -1390,7 +1434,7 @@ def main(args):
             correctdimflag == False
             wrongdim(prefix, mode)
         else:
-            rho = vis * rho + (1 - vis) * IdMatrix(totdim) / totdim
+            rho = vis * rho + (1 - vis) * MtxFn.ident_mtx(totdim) / totdim
             rho1 = np.zeros((totdim, totdim))
             steps = int(args[5])
             if steps == 0:

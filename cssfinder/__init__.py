@@ -18,6 +18,8 @@ from numpy.typing import NDArray
 from datetime import datetime
 from os.path import exists
 
+__version__ = "0.1.0"
+
 # fmt: off
 PRIMES = (
     2,      3,      5,      7,      11,     13,     17,     19,     23,     29,     31,     37,
@@ -232,21 +234,21 @@ class MtxIO:
                 if symtype == 0:
                     for i1 in range(cols):
                         for i2 in range(rows):
-                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i2][i1] = MtxIO.get_number(file, vartype)
                 elif symtype == 1 and rows == cols:
                     for i1 in range(cols):
                         for i2 in range(i1, rows):
-                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i2][i1] = MtxIO.get_number(file, vartype)
                             retval[i1][i2] = retval[i2][i1]
                 elif symtype == 2 and rows == cols:
                     for i1 in range(0, cols):
                         for i2 in range(i1 + 1, rows):
-                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i2][i1] = MtxIO.get_number(file, vartype)
                             retval[i1][i2] = -retval[i2][i1]
                 elif symtype == 3 and rows == cols:
                     for i1 in range(0, cols):
                         for i2 in range(i1, rows):
-                            retval[i2][i1] = getnum(file, vartype)
+                            retval[i2][i1] = MtxIO.get_number(file, vartype)
                             retval[i1][i2] = np.conj(retval[i2][i1])
             if shape == 0 and descr == 1:
                 rows = line[0]
@@ -327,7 +329,7 @@ def Random2FS(n):
 def RandomdFS(d, n):
     q1 = MtxFn.normalize(MtxFn.generate(d))
     for l1 in range(n - 1):
-        q1 = Outer(q1, MtxFn.normalize(MtxFn.generate(d)))
+        q1 = MtxFn.outer(q1, MtxFn.normalize(MtxFn.generate(d)))
     return MtxFn.project(q1)
 
 
@@ -1389,14 +1391,10 @@ def DisplayHelp():
 
 # Display the Logo
 def DisplayLogo():
-    print(" ██████╗███████╗███████╗███████╗██╗███╗   ██╗██████╗ ███████╗██████╗")
-    if True:
-        print("██╔════╝██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔══██╗██╔════╝██╔══██╗")
-        if True:
-            print(
-                "██║     ███████╗███████╗█████╗  ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝"
-            )
-        print("██║     ╚════██║╚════██║██╔══╝  ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗")
+    print(" ██████╗███████╗███████╗███████╗██╗███╗   ██╗██████╗ ███████╗██████╗ ")
+    print("██╔════╝██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔══██╗██╔════╝██╔══██╗")
+    print("██║     ███████╗███████╗█████╗  ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝")
+    print("██║     ╚════██║╚════██║██╔══╝  ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗")
     print("╚██████╗███████║███████║██║     ██║██║ ╚████║██████╔╝███████╗██║  ██║")
     print(" ╚═════╝╚══════╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝")
 

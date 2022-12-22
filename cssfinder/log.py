@@ -108,7 +108,7 @@ def enable_logging(verbosity: int) -> None:
 
     logger.addHandler(file_handler)
 
-    LOGGER = FormatStringAdapter(logger)
+    LOGGER = FormatStringAdapter(logger)  # type: ignore
 
 
 def get_logger() -> logging.Logger:

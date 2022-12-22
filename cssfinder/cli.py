@@ -1,11 +1,13 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import Optional
 
 import click
 import pendulum
-from cssfinder import main as _main
+from cssfinder.api import run
 from cssfinder.io import show_logo
 from cssfinder.log import enable_logging, get_logger
+from cssfinder.task import Task
 
 
 @click.command()
@@ -24,6 +26,7 @@ from cssfinder.log import enable_logging, get_logger
 @click.option(
     "-i",
     "--input",
+    "input_dir",
     required=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True),
     help="See INPUT section.",
@@ -55,16 +58,16 @@ from cssfinder.log import enable_logging, get_logger
     "-o",
     "--output",
     required=False,
-    default=None,
+    default=(Path.cwd() / "out").as_posix(),
     help="Path to directory to put output files in.",
 )
-def main(
+def main(  # pylint: disable=too-many-arguments
     verbose: int,
     vis: float,
     steps: int,
     cors: int,
     mode: str,
-    input: str,
+    input_dir: str,
     output: Optional[str],
 ) -> None:
     """
@@ -74,8 +77,8 @@ def main(
         FSNQ+   -   full separability of an n-quDit state (d1 optional and can be
                     arbitrary).
         SBS     -   separability of a bipartite state.
-        G3PE3Q  -   genuine 3-partite entaglement of a 3-quDit state
-        G4PE3Q  -   genuine 4-partite entaglement of a 3-quDit state
+        G3PE3Q  -   genuine 3-partite entanglement of a 3-quDit state
+        G4PE3Q  -   genuine 4-partite entanglement of a 3-quDit state
 
     \b
     INPUT:
@@ -106,6 +109,7 @@ def main(
     enable_logging(verbose)
 
     logger = get_logger()
+    # String formatting reference: https://peps.python.org/pep-3101/
     logger.info("CSSFinder started at {}", pendulum.now())
     logger.debug("INPUT PARAMETERS")
     logger.debug("================")
@@ -114,5 +118,15 @@ def main(
     logger.debug(" steps   =   {0!r}", steps)
     logger.debug(" cors    =   {0!r}", cors)
     logger.debug(" mode    =   {0!r}", mode)
-    logger.debug(" input   =   {0!r}", input)
+    logger.debug(" input   =   {0!r}", input_dir)
     logger.debug(" output  =   {0!r}", output)
+
+    task = Task.new(
+        mode=mode,
+        visibility=vis,
+        steps=steps,
+        correlations=cors,
+        input_dir=input_dir,
+        output_dir=output,
+    )
+    run(task)

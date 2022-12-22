@@ -2,13 +2,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 
 DEFAULT_TASK_OUT_DIR = Path.cwd() / "out"
 
 
-class Mode(Enum):
+class ModeFlag(Enum):
     """List of possible execution modes."""
 
     FSNQ = "FSNQ"
@@ -30,26 +30,32 @@ class Mode(Enum):
 _TaskT = TypeVar("_TaskT", bound="Task")
 
 
-@dataclass(frozen=True)
+@dataclass
 class Task:
     """Task specification for algorithm."""
 
-    mode: Mode
+    mode: ModeFlag
     visibility: float
     steps: int
     correlations: int
+
     input_dir: Path
     output_dir: Path
+
+    size: Optional[int]
+    sub_sys_number: Optional[int]
 
     @classmethod
     def new(  # pylint: disable=too-many-arguments
         cls: Type[_TaskT],
-        mode: str | Mode,
+        mode: str | ModeFlag,
         visibility: int | float | str,
         steps: int | float | str,
         correlations: int | float | str,
         input_dir: str | Path,
         output_dir: str | Path | None,
+        size: int | None,
+        sub_system_number: int | None,
     ) -> _TaskT:
         """Create new Task instance with automatic field data validation.
 
@@ -73,15 +79,55 @@ class Task:
         _TaskT
             Task instance.
         """
-        return cls(
-            Mode(mode),
+        instance = cls(
+            ModeFlag(mode),
             min(1.0, max(0.0, float(visibility))),
             (int(steps) // 10) * 10,
             (int(correlations) // 50) * 50,
             Path(input_dir),
             Path(output_dir) if output_dir is not None else DEFAULT_TASK_OUT_DIR,
+            size,
+            sub_system_number,
         )
+        return instance
 
     def describe(self) -> str:
         """Short task content description as string."""
-        return f"<{self.mode.value}/{self.visibility}/{self.steps}/{self.correlations}/{self.input_dir}>"
+        return (
+            f"<{self.mode.value}/{self.visibility}/{self.steps}/"
+            f"{self.correlations}/{self.input_dir}>"
+        )
+
+    def get_prefix(self) -> str:
+        """File and directory prefix."""
+        return self.input_dir.name
+
+    def get_input_file(self) -> Path:
+        """Path to file containing input state."""
+        return self.input_dir / f"{self.get_prefix()}_in.mtx"
+
+    def get_input_symmetry_files(self) -> list[Path]:
+        """Paths to all symmetry files."""
+        # TODO implement
+        return [self.input_dir / f"{self.get_prefix()}_sym_0_0.mtx"]
+
+    def get_input_projection_file(self) -> Path:
+        """Path to input projection file."""
+        # TODO implement
+        return self.input_dir / f"{self.get_prefix()}_proj.mtx"
+
+    def get_output_list_file(self) -> Path:
+        return (
+            self.output_dir
+            / f"{self.get_prefix()}_list_{self.get_identifier_suffix()}.mtx"
+        )
+
+    def get_identifier_suffix(self) -> str:
+        """Suffix containing general description of configuration used for task."""
+        return f"{self.mode.value}_{self.visibility}_{self.size}_{self.sub_sys_number}"
+
+    def get_output_out_file(self) -> Path:
+        return (
+            self.output_dir
+            / f"{self.get_prefix()}_out_{self.get_identifier_suffix()}.mtx"
+        )

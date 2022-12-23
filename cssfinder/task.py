@@ -1,10 +1,10 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Type, TypeVar
 
-from cssfinder.modes import Mode
-
+from cssfinder.modes import DataType, Mode
 
 DEFAULT_TASK_OUT_DIR = Path.cwd() / "out"
 
@@ -25,7 +25,8 @@ class Task:
     output_dir: Path
 
     size: Optional[int]
-    sub_sys_count: Optional[int]
+    sub_sys_size: Optional[int]
+    data_type: DataType
 
     @classmethod
     def new(  # pylint: disable=too-many-arguments
@@ -37,7 +38,8 @@ class Task:
         input_dir: str | Path,
         output_dir: str | Path | None,
         size: int | None,
-        sub_sys_count: int | None,
+        sub_sys_size: int | None,
+        data_type: str | DataType,
     ) -> _TaskT:
         """Create new Task instance with automatic field data validation.
 
@@ -69,7 +71,8 @@ class Task:
             Path(input_dir),
             Path(output_dir) if output_dir is not None else DEFAULT_TASK_OUT_DIR,
             size,
-            sub_sys_count,
+            sub_sys_size,
+            DataType(data_type),  # type: ignore
         )
         return instance
 
@@ -87,29 +90,3 @@ class Task:
     def get_input_file(self) -> Path:
         """Path to file containing input state."""
         return self.input_dir / f"{self.get_prefix()}_in.mtx"
-
-    def get_input_symmetry_files(self) -> list[Path]:
-        """Paths to all symmetry files."""
-        # TODO implement
-        return [self.input_dir / f"{self.get_prefix()}_sym_0_0.mtx"]
-
-    def get_input_projection_file(self) -> Path:
-        """Path to input projection file."""
-        # TODO implement
-        return self.input_dir / f"{self.get_prefix()}_proj.mtx"
-
-    def get_output_list_file(self) -> Path:
-        return (
-            self.output_dir
-            / f"{self.get_prefix()}_list_{self.get_identifier_suffix()}.mtx"
-        )
-
-    def get_identifier_suffix(self) -> str:
-        """Suffix containing general description of configuration used for task."""
-        return f"{self.mode.value}_{self.visibility}_{self.size}_{self.sub_sys_count}"
-
-    def get_output_out_file(self) -> Path:
-        return (
-            self.output_dir
-            / f"{self.get_prefix()}_out_{self.get_identifier_suffix()}.mtx"
-        )

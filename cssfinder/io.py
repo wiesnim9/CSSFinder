@@ -9,9 +9,9 @@ from typing import Optional, Type
 
 import numpy as np
 import scipy.io
-from numpy.typing import NDArray
 
 from cssfinder.log import get_logger
+from cssfinder.types import MtxT
 
 
 def show_logo() -> None:
@@ -62,14 +62,14 @@ class MatrixIO(ABC):
         return FORMAT_TO_LOADER[file_format](file_path)
 
     @abstractmethod
-    def load(self) -> NDArray[np.number]:
+    def load(self) -> MtxT:
         """Load matrix from file as numpy array."""
 
 
 class MatrixMarketIO(MatrixIO):
     """MatrixIO implementation for loading MatrixMarket exchange format files."""
 
-    def load(self) -> NDArray[np.number]:
+    def load(self) -> MtxT:
         mtx = scipy.io.mmread(self.file_path.as_posix())
         assert mtx is not None
         return np.array(mtx)

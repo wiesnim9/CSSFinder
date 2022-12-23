@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
 
 import click
 import pendulum
+
 from cssfinder.api import run
 from cssfinder.io import show_logo
 from cssfinder.log import enable_logging, get_logger
+from cssfinder.modes import DataType
 from cssfinder.task import Task
 
 
@@ -70,10 +73,17 @@ from cssfinder.task import Task
 )
 @click.option(
     "-n",
-    "--sub-sys-number",
+    "--sub-sys-size",
     type=int,
     default=None,
-    help="Number of subsystems",
+    help="Size of each subsystems",
+)
+@click.option(
+    "-t",
+    "--type",
+    "data_type",
+    default="complex",
+    type=click.Choice(["complex", "real", "int"]),
 )
 def main(  # pylint: disable=too-many-arguments
     verbose: int,
@@ -84,7 +94,8 @@ def main(  # pylint: disable=too-many-arguments
     input_dir: str,
     output: Optional[str],
     size: Optional[str],
-    sub_sys_count: Optional[str],
+    sub_sys_size: Optional[str],
+    data_type: str,
 ) -> None:
     """
     \b
@@ -129,13 +140,15 @@ def main(  # pylint: disable=too-many-arguments
     logger.info("CSSFinder started at {}", pendulum.now())
     logger.debug("INPUT PARAMETERS")
     logger.debug("================")
-    logger.debug(" verbose =   {0!r}", verbose)
-    logger.debug(" vis     =   {0!r}", vis)
-    logger.debug(" steps   =   {0!r}", steps)
-    logger.debug(" cors    =   {0!r}", cors)
-    logger.debug(" mode    =   {0!r}", mode)
-    logger.debug(" input   =   {0!r}", input_dir)
-    logger.debug(" output  =   {0!r}", output)
+    logger.debug("      verbose     =   {0!r}", verbose)
+    logger.debug("      vis         =   {0!r}", vis)
+    logger.debug("      steps       =   {0!r}", steps)
+    logger.debug("      cors        =   {0!r}", cors)
+    logger.debug("      mode        =   {0!r}", mode)
+    logger.debug("      input       =   {0!r}", input_dir)
+    logger.debug("      output      =   {0!r}", output)
+    logger.debug("      size        =   {0!r}", size)
+    logger.debug(" sub_sys_size    =   {0!r}", sub_sys_size)
 
     task = Task.new(
         mode=mode,
@@ -144,7 +157,8 @@ def main(  # pylint: disable=too-many-arguments
         correlations=cors,
         input_dir=input_dir,
         output_dir=output,
-        size=size,
-        sub_sys_count=sub_sys_count,
+        size=size if size is None else int(size),
+        sub_sys_size=sub_sys_size if sub_sys_size is None else int(sub_sys_size),
+        data_type=data_type,
     )
     run(task)

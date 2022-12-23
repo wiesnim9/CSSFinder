@@ -61,6 +61,20 @@ from cssfinder.task import Task
     default=(Path.cwd() / "out").as_posix(),
     help="Path to directory to put output files in.",
 )
+@click.option(
+    "-s",
+    "--size",
+    type=int,
+    default=None,
+    help="Size of system",
+)
+@click.option(
+    "-n",
+    "--sub-sys-number",
+    type=int,
+    default=None,
+    help="Number of subsystems",
+)
 def main(  # pylint: disable=too-many-arguments
     verbose: int,
     vis: float,
@@ -69,6 +83,8 @@ def main(  # pylint: disable=too-many-arguments
     mode: str,
     input_dir: str,
     output: Optional[str],
+    size: Optional[str],
+    sub_sys_count: Optional[str],
 ) -> None:
     """
     \b
@@ -128,5 +144,7 @@ def main(  # pylint: disable=too-many-arguments
         correlations=cors,
         input_dir=input_dir,
         output_dir=output,
+        size=size,
+        sub_sys_count=sub_sys_count,
     )
     run(task)

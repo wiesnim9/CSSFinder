@@ -1,30 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Optional, Type, TypeVar
 
+from cssfinder.modes import Mode
+
 
 DEFAULT_TASK_OUT_DIR = Path.cwd() / "out"
-
-
-class ModeFlag(Enum):
-    """List of possible execution modes."""
-
-    FSNQ = "FSNQ"
-    """Full separability of an n-quDit state."""
-
-    FSNQ_PLUS = "FSNQ+"
-    """Full separability of an n-quDit state (d1 optional and can be arbitrary)."""
-
-    SBS = "SBS"
-    """Separability of a bipartite state."""
-
-    G3PE3Q = "G3PE3Q"
-    """Genuine 3-partite entanglement of a 3-quDit state"""
-
-    G4PE3Q = "G4PE3Q"
-    """Genuine 4-partite entanglement of a 3-quDit state"""
 
 
 _TaskT = TypeVar("_TaskT", bound="Task")
@@ -34,7 +16,7 @@ _TaskT = TypeVar("_TaskT", bound="Task")
 class Task:
     """Task specification for algorithm."""
 
-    mode: ModeFlag
+    mode: Mode
     visibility: float
     steps: int
     correlations: int
@@ -43,19 +25,19 @@ class Task:
     output_dir: Path
 
     size: Optional[int]
-    sub_sys_number: Optional[int]
+    sub_sys_count: Optional[int]
 
     @classmethod
     def new(  # pylint: disable=too-many-arguments
         cls: Type[_TaskT],
-        mode: str | ModeFlag,
+        mode: str | Mode,
         visibility: int | float | str,
         steps: int | float | str,
         correlations: int | float | str,
         input_dir: str | Path,
         output_dir: str | Path | None,
         size: int | None,
-        sub_system_number: int | None,
+        sub_sys_count: int | None,
     ) -> _TaskT:
         """Create new Task instance with automatic field data validation.
 
@@ -80,14 +62,14 @@ class Task:
             Task instance.
         """
         instance = cls(
-            ModeFlag(mode),
+            Mode(mode),
             min(1.0, max(0.0, float(visibility))),
             (int(steps) // 10) * 10,
             (int(correlations) // 50) * 50,
             Path(input_dir),
             Path(output_dir) if output_dir is not None else DEFAULT_TASK_OUT_DIR,
             size,
-            sub_system_number,
+            sub_sys_count,
         )
         return instance
 
@@ -124,7 +106,7 @@ class Task:
 
     def get_identifier_suffix(self) -> str:
         """Suffix containing general description of configuration used for task."""
-        return f"{self.mode.value}_{self.visibility}_{self.size}_{self.sub_sys_number}"
+        return f"{self.mode.value}_{self.visibility}_{self.size}_{self.sub_sys_count}"
 
     def get_output_out_file(self) -> Path:
         return (

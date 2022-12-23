@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import logging
 import logging.handlers as handlers
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, MutableMapping
 
 LOGGER: logging.Logger

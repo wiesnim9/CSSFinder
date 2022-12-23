@@ -1,16 +1,19 @@
 from __future__ import annotations
+
+import math
 from abc import ABC, abstractmethod
 from enum import Enum
-import math
-from typing import Type
+from typing import Any, Type
 
 import numpy as np
+from cssfinder import ops
 
 from cssfinder.log import get_logger
+from cssfinder.types import MtxC128T, MtxT
 
 # fmt: off
 # pylint: disable=line-too-long
-PRIMES = (
+PRIMES = np.array([
     2,      3,      5,      7,      11,     13,     17,     19,     23,     29,     31,
     37,     41,     43,     47,     53,     59,     61,     67,     71,     73,     79,
     83,     89,     97,     101,    103,    107,    109,    113,    127,    131,    137,
@@ -39,9 +42,22 @@ PRIMES = (
     1783,   1787,   1789,   1801,   1811,   1823,   1831,   1847,   1861,   1867,   1871,
     1873,   1877,   1879,   1889,   1901,   1907,   1913,   1931,   1933,   1949,   1951,
     1973,   1979,   1987,   1993,   1997,   1999,
-)
+], dtype=np.int64)
 # pylint: enable=line-too-long
 # fmt: on
+
+
+class DataType(Enum):
+    """Type of data to use for output."""
+
+    COMPLEX = "complex"
+    """Return matrix of complex values."""
+
+    REAL = "real"
+    """Return matrix of real (floating point) values."""
+
+    INT = "int"
+    """Return matrix of integer values."""
 
 
 class Mode(Enum):
@@ -64,6 +80,8 @@ class Mode(Enum):
 
 
 class ModeABC(ABC):
+    """Abstract base class defining specialization of Gilbert algorithm."""
+
     @abstractmethod
     def detect_dims_none_given(self, total: int) -> tuple[int, int]:
         """Detect dimensions of system from loaded data matrix.
@@ -112,41 +130,61 @@ class ModeABC(ABC):
         """
         return MODE_MAP[mode]
 
+    @staticmethod
+    @abstractmethod
+    def optimize(*args: Any) -> MtxC128T:
+        """Implementation of optimization for specified mode."""
+
+    @staticmethod
+    @abstractmethod
+    def random(*args: Any) -> MtxC128T:
+        """Radom state for optimization."""
+
 
 class FSNQ(ModeABC):
     """Specific to FSNQ mode implementation of Gilbert algorithm related hooks."""
 
     def detect_dims_none_given(self, total: int) -> tuple[int, int]:
         for prime in PRIMES:
-            sub_sys_count = int(math.log(total, prime))
+            sub_sys_size = int(math.log(total, prime))
 
-            if sub_sys_count == int(sub_sys_count):
+            if sub_sys_size == int(sub_sys_size):
                 get_logger().debug(
                     "Determined size: {} and number of subsystems: {}",
                     prime,
-                    sub_sys_count,
+                    sub_sys_size,
                 )
-                return prime, sub_sys_count
+                return prime, sub_sys_size
 
         raise ValueError(
             "Couldn't determine size of system, prime number range exceeded."
         )
 
     def detect_dims_size_given(self, size: int, total: int) -> tuple[int, int]:
-        sub_sys_count = int(math.log(total, size))
+        sub_sys_size = int(math.log(total, size))
 
-        if sub_sys_count == int(sub_sys_count):
+        if sub_sys_size == int(sub_sys_size):
             get_logger().debug(
                 "Determined size: {} and number of subsystems: {}",
                 size,
-                sub_sys_count,
+                sub_sys_size,
             )
-            return size, sub_sys_count
+            return size, sub_sys_size
 
         raise ValueError(
-            f"Couldn't determine size of system: {sub_sys_count} == "
-            f"{int(sub_sys_count)} is False.",
+            f"Couldn't determine size of system: {sub_sys_size} == "
+            f"{int(sub_sys_size)} is False.",
         )
+
+    @staticmethod
+    def optimize(*args: Any) -> MtxC128T:
+        rho2, rho3, size, sub_sys_size, epochs = args
+        return ops.optimize_d_fs(rho2, rho3, size, sub_sys_size, epochs)
+
+    @staticmethod
+    def random(*args: Any) -> MtxC128T:
+        size, sub_sys_size = args
+        return ops.random_d_fs(size, sub_sys_size)
 
 
 MODE_MAP: dict[Mode, Type[ModeABC]] = {Mode.FSNQ: FSNQ}

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 from pathlib import Path
 from typing import Optional
@@ -132,10 +133,12 @@ def main(  # pylint: disable=too-many-arguments
     -   prefix_abort.txt: The error message if the algorithm was extremely slow
         (for some highly entangled states).
     """
-    show_logo()
     enable_logging(verbose)
-
     logger = get_logger()
+
+    if verbose >= 2:
+        show_logo()
+
     # String formatting reference: https://peps.python.org/pep-3101/
     logger.info("CSSFinder started at {}", pendulum.now())
     logger.debug("INPUT PARAMETERS")

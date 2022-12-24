@@ -24,6 +24,7 @@ pre-commit = "^2.20.0"
 pytest-cov = "^4.0.0"
 mypy = "^0.991"
 ptpython = "^3.0.22"
+typing-extensions = "^4.4.0"
 
 [tool.poetry.scripts]
 cssfinder = "cssfinder.cli:main"

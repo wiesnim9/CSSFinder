@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import cast
+
 import numpy as np
 from numba import jit
 
@@ -10,12 +12,6 @@ def product(mtx1: MtxC128T, mtx2: MtxC128T) -> float:
     """Scalar product of two matrices."""
     k = np.trace(np.dot(mtx1, mtx2))  # matmul replaced with dot
     return float(np.real(k))
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def outer_flatten(mtx: MtxC128T, mtx2: MtxC128T) -> MtxC128T:
-    """Outer product of two vectors."""
-    return np.outer(mtx, mtx2).flatten()
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -47,13 +43,14 @@ def random_d_fs(size: int, sub_sys_size: int) -> MtxC128T:
 
     for _ in range(sub_sys_size - 1):
         idx_vector = normalize(get_random_haar(size))
-        vector = outer_flatten(vector, idx_vector)
+        vector = np.outer(vector, idx_vector).flatten()
 
     vector = project(vector)
     return vector  # type: ignore
 
 
 # @jit(nopython=True, nogil=True, cache=True)
+# @jit(forceobj=True)
 def optimize_d_fs(
     rho2: MtxC128T, rho3: MtxC128T, size: int, sub_sys_size: int, epochs: int
 ) -> MtxC128T:
@@ -87,8 +84,16 @@ def optimize_d_fs(
 
 
 # @jit(nopython=True, nogil=True, cache=True)
+# @jit(forceobj=True)
 def random_unitary_d_fs(size: int, sub_sys_size: int, idx: int) -> MtxC128T:
     """n quDits"""
+    value = _random_unitary_d_fs_val(size)
+    mtx = expand_d_fs(value, size, sub_sys_size, idx)
+    return mtx
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def _random_unitary_d_fs_val(size: int) -> MtxC128T:
     real = np.cos(0.01 * np.pi)
     imag = 1j * np.sin(0.01 * np.pi)
     value = real + imag - 1
@@ -96,12 +101,11 @@ def random_unitary_d_fs(size: int, sub_sys_size: int, idx: int) -> MtxC128T:
     random_mtx = random_d_fs(size, 1)
     identity_mtx = np.identity(size).astype(np.complex128)
     value = np.add(np.multiply(value, random_mtx), identity_mtx)
-
-    mtx = expand_d_fs(value, size, sub_sys_size, idx)
-    return mtx
+    return value
 
 
 # @jit(nopython=True, nogil=True, cache=True)
+# @jit(forceobj=True)
 def expand_d_fs(  # pylint: disable=invalid-name
     value: MtxC128T,
     size: int,
@@ -118,17 +122,19 @@ def expand_d_fs(  # pylint: disable=invalid-name
     kronecker_1 = kronecker(identity_1, value)
     kronecker_2 = kronecker(kronecker_1, identity_2)
 
-    return kronecker_2
+    return cast(MtxC128T, kronecker_2)
+
 
 # @jit(nopython=True, nogil=True, cache=True)
+# @jit(forceobj=True)
 def kronecker(mtx: MtxC128T, mtx1: MtxC128T) -> MtxC128T:
     """Kronecker Product."""
     ddd1 = len(mtx)
     ddd2 = len(mtx1)
 
     output_shape = (ddd1 * ddd2, ddd1 * ddd2)
-    tdot_0_1 = np.tensordot(mtx, mtx1, 0)
-    out_mtx = np.swapaxes(tdot_0_1, 1, 2)
+    dot_0_1 = np.tensordot(mtx, mtx1, 0)
+    out_mtx = np.swapaxes(dot_0_1, 1, 2)
 
     return out_mtx.reshape(output_shape)
 

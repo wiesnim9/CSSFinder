@@ -6,8 +6,8 @@ from enum import Enum
 from typing import Any, Type
 
 import numpy as np
-from cssfinder import ops
 
+from cssfinder import ops
 from cssfinder.log import get_logger
 from cssfinder.types import MtxC128T, MtxT
 

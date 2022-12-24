@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-import numpy.typing as npt
 import numpy as np
+import numpy.typing as npt
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias

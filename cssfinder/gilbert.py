@@ -1,12 +1,14 @@
 from __future__ import annotations
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-import logging
-from time import perf_counter, sleep
-from typing import Any, Optional
-import numpy as np
-from cssfinder import ops
 
+import logging
+# from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from time import perf_counter
+from typing import Any, Optional
+
+import numpy as np
+
+from cssfinder import ops
 from cssfinder.log import get_logger
 from cssfinder.modes import Mode, ModeABC
 from cssfinder.types import MtxC128T, MtxT
@@ -119,14 +121,18 @@ def _gilbert(
 
     _debug_msg_short_rho(True, 1, rho1)
 
+    rho3 = rho - rho1
+    _debug_msg_short_rho(True, 3, rho3)
+
+    # product_0_1, product_1_1, product_1_3 = executor.map(
+    #     ops.product, [rho, rho1, rho1], [rho1, rho1, rho3]
+    # )
+
     product_0_1 = ops.product(rho, rho1)
     logger.debug("Product RHO0 RHO1 type: {} value: {}", type(product_0_1), product_0_1)
 
     product_1_1 = ops.product(rho1, rho1)
     logger.debug("Product RHO0 RHO1 type: {} value: {}", type(product_1_1), product_1_1)
-
-    rho3 = rho - rho1
-    _debug_msg_short_rho(True, 3, rho3)
 
     product_1_3 = ops.product(rho1, rho3)
     logger.debug("Product RHO1 RHO3 type: {} value: {}", type(product_1_3), product_1_3)
@@ -137,7 +143,7 @@ def _gilbert(
     idx = 0
 
     limiter_product_1_3 = product_1_3
-    logger.warning("Starting optimization...")
+    logger.info("Starting optimization...")
 
     for idx in range(steps):
         is_log_iter = bool(idx % log_every_epochs == 0)
@@ -163,6 +169,10 @@ def _gilbert(
                 logger.debug("Optimization epoch {}", product_2_3)
 
             rho2 = mode.optimize(rho2, rho3, size, sub_sys_size, optimization_epochs)
+
+            # product_0_2, product_1_2, product_2_2 = executor.map(
+            #     ops.product, [rho, rho1, rho2], [rho2, rho2, rho2]
+            # )
 
             product_0_2 = ops.product(rho, rho2)
             _debug_msg_product(is_log_iter, 0, 2, product_0_2)
@@ -199,7 +209,7 @@ def _gilbert(
                 double_product_0_1 = 2 * product_0_1
                 product_0_1 = double_product_0_1
 
-    logger.warning("Finished optimization...")
+    logger.info("Finished optimization...")
     # executor.__exit__(None, None, None)
 
 

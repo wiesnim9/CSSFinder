@@ -22,12 +22,15 @@ from inspect import signature
 
 
 class _FormatStr:
-    def __init__(self, fmt: str, args: Any, kwargs: Any) -> None:
+    def __init__(self, fmt: str, args: Any, kwargs: MutableMapping[str, Any]) -> None:
         self.fmt = fmt
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self) -> str:
+        disable_format = self.kwargs.get("extra", {}).get("disable_format", False)
+        if disable_format:
+            return self.fmt
         return str(self.fmt).format(*self.args, **self.kwargs)
 
 
@@ -50,7 +53,7 @@ class FormatStringAdapter(logging.LoggerAdapter):
         return msg, {
             key: kwargs[key]
             for key in signature(
-                self.logger._log # pylint: disable=protected-access
+                self.logger._log  # pylint: disable=protected-access
             ).parameters
             if key in kwargs
         }

@@ -1,6 +1,6 @@
 from __future__ import annotations
-import logging
 
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -10,11 +10,21 @@ import pendulum
 from cssfinder.api import run
 from cssfinder.io import show_logo
 from cssfinder.log import enable_logging, get_logger
-from cssfinder.modes import DataType
+from cssfinder.project import (
+    InvalidCSSFProjectContent,
+    MalformedProjectFileError,
+    load_project_from,
+)
+from cssfinder.project.base import (
+    CSSFProjectFileMissingVersion,
+    CSSFProjectInvalidVersion,
+    CSSFProjectVersionNotSupported,
+    ProjectFormatTooOld,
+)
 from cssfinder.task import Task
 
 
-@click.command()
+@click.group(invoke_without_command=True)
 @click.option(
     "-v",
     "--verbose",
@@ -23,6 +33,76 @@ from cssfinder.task import Task
     help="Control verbosity of logging, by default critical only, use "
     "-v, -vv, -vvv to gradually increase it.",
 )
+def main(verbose: int) -> None:
+    """CSSFinder is a script for finding closest separable states."""
+    enable_logging(verbose)
+    logger = get_logger()
+    logger.info("CSSFinder started at {}", pendulum.now())
+
+    if verbose >= 2:
+        show_logo()
+
+
+@main.command("project")
+@click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
+def _project(path: str) -> None:
+    """Use project file to determine runtime configuration."""
+    logger = get_logger()
+
+    try:
+        project = load_project_from(path)
+        logger.info(
+            "Loaded project {0} by {1} <{2}>.",
+            project.meta.name,
+            project.meta.author,
+            project.meta.email,
+        )
+    except FileNotFoundError as exc:
+        logger.critical("Project file not found.")
+        raise SystemExit(300_000) from exc
+
+    except MalformedProjectFileError as exc:
+        logger.critical(
+            "Project file content is not a valid JSON file. Fix it and try again."
+        )
+        raise SystemExit(301_000) from exc
+
+    except InvalidCSSFProjectContent as exc:
+        logger.critical("Project file doesn't contain valid project configuration.")
+        logger.critical("Fix it and try again.")
+        raise SystemExit(302_000) from exc
+
+    except ProjectFormatTooOld as exc:
+        logger.critical(
+            "Loaded project version ({0}) is too old to use it for execution.", exc.got
+        )
+        logger.critical("At least version {0} is required.", exc.required)
+        raise SystemExit(303_000) from exc
+
+    except CSSFProjectFileMissingVersion as exc:
+        logger.critical("Version field is missing in your {0!r} project file.", path)
+        raise SystemExit(400_000) from exc
+
+    except CSSFProjectInvalidVersion as exc:
+        logger.critical(
+            "Malformed version string {0!r} is your {1!r} project file.",
+            exc.version,
+            path,
+        )
+        raise SystemExit(401_000) from exc
+
+    except CSSFProjectVersionNotSupported as exc:
+        logger.critical(
+            "Selected project file format version {0} is not supported.", exc.version
+        )
+        raise SystemExit(402_000) from exc
+
+    project.info_display()
+
+    raise SystemExit(0)
+
+
+@main.command()
 @click.argument(
     "mode",
     type=click.Choice(["FSNQ", "FSNQ+", "SBS", "G3PE3Q", "G4PE3Q"]),
@@ -86,8 +166,7 @@ from cssfinder.task import Task
     default="complex",
     type=click.Choice(["complex", "real", "int"]),
 )
-def main(  # pylint: disable=too-many-arguments
-    verbose: int,
+def file(  # pylint: disable=too-many-arguments
     vis: float,
     steps: int,
     cors: int,
@@ -133,14 +212,9 @@ def main(  # pylint: disable=too-many-arguments
     -   prefix_abort.txt: The error message if the algorithm was extremely slow
         (for some highly entangled states).
     """
-    enable_logging(verbose)
     logger = get_logger()
 
-    if verbose >= 2:
-        show_logo()
-
     # String formatting reference: https://peps.python.org/pep-3101/
-    logger.info("CSSFinder started at {}", pendulum.now())
     logger.debug("INPUT PARAMETERS")
     logger.debug("================")
     logger.debug("      verbose     =   {0!r}", verbose)
@@ -151,7 +225,7 @@ def main(  # pylint: disable=too-many-arguments
     logger.debug("      input       =   {0!r}", input_dir)
     logger.debug("      output      =   {0!r}", output)
     logger.debug("      size        =   {0!r}", size)
-    logger.debug(" sub_sys_size    =   {0!r}", sub_sys_size)
+    logger.debug("  sub_sys_size    =   {0!r}", sub_sys_size)
 
     task = Task.new(
         mode=mode,

@@ -1,14 +1,16 @@
+"""This module contains implementation of CSSFinder command line interface."""
+
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Optional
 
 import click
 import pendulum
 
+import cssfinder
 from cssfinder.api import run
-from cssfinder.io import show_logo
+from cssfinder.io.v1_0_0.asset_loader import AssetLoader
 from cssfinder.log import enable_logging, get_logger
 from cssfinder.project import (
     InvalidCSSFProjectContent,
@@ -24,7 +26,7 @@ from cssfinder.project.base import (
 from cssfinder.task import Task
 
 
-@click.group(invoke_without_command=True)
+@click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option(
     "-v",
     "--verbose",
@@ -33,6 +35,7 @@ from cssfinder.task import Task
     help="Control verbosity of logging, by default critical only, use "
     "-v, -vv, -vvv to gradually increase it.",
 )
+@click.version_option(cssfinder.__version__, "-V", "--version", prog_name="cssfinder")
 def main(verbose: int) -> None:
     """CSSFinder is a script for finding closest separable states."""
     enable_logging(verbose)
@@ -40,12 +43,22 @@ def main(verbose: int) -> None:
     logger.info("CSSFinder started at {}", pendulum.now())
 
     if verbose >= 2:
-        show_logo()
+        print(
+            """
+  ██████╗███████╗███████╗███████╗██╗███╗   ██╗██████╗ ███████╗██████╗
+ ██╔════╝██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔══██╗██╔════╝██╔══██╗
+ ██║     ███████╗███████╗█████╗  ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝
+ ██║     ╚════██║╚════██║██╔══╝  ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗
+ ╚██████╗███████║███████║██║     ██║██║ ╚████║██████╔╝███████╗██║  ██║
+  ╚═════╝╚══════╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝
+"""
+        )
 
 
 @main.command("project")
 @click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
-def _project(path: str) -> None:
+@click.option("--force-squash", is_flag=True, default=False)
+def _project(path: str, force_squash: bool) -> None:
     """Use project file to determine runtime configuration."""
     logger = get_logger()
 
@@ -98,6 +111,10 @@ def _project(path: str) -> None:
         raise SystemExit(402_000) from exc
 
     project.info_display()
+
+    asset_loader = AssetLoader(project)
+    state = asset_loader.load_initial_state(force_squash)
+    print(state)
 
     raise SystemExit(0)
 
@@ -217,7 +234,6 @@ def file(  # pylint: disable=too-many-arguments
     # String formatting reference: https://peps.python.org/pep-3101/
     logger.debug("INPUT PARAMETERS")
     logger.debug("================")
-    logger.debug("      verbose     =   {0!r}", verbose)
     logger.debug("      vis         =   {0!r}", vis)
     logger.debug("      steps       =   {0!r}", steps)
     logger.debug("      cors        =   {0!r}", cors)

@@ -1,3 +1,4 @@
+"""This module contains helper types for CSSFinder package (EOL module)."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,6 +11,6 @@ if TYPE_CHECKING:
 
 DTypeT: TypeAlias = "np.int64 | np.float64 | np.complex128"
 
-MtxT: TypeAlias = npt.NDArray[DTypeT]
+MatrixT: TypeAlias = npt.NDArray[DTypeT]
 
-MtxC128T: TypeAlias = npt.NDArray[np.complex128]
+MatrixC128T: TypeAlias = npt.NDArray[np.complex128]

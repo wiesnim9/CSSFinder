@@ -1,6 +1,9 @@
-from pathlib import Path
-from cssfinder.cli import main
+"""EOL module."""
+from __future__ import annotations
 
+from pathlib import Path
+
+from cssfinder.cli import main
 
 FILE = Path(__file__)
 DIR = FILE.parent

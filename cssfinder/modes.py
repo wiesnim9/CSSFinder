@@ -1,3 +1,5 @@
+"""EOL module."""
+
 from __future__ import annotations
 
 import math
@@ -9,7 +11,7 @@ import numpy as np
 
 from cssfinder import ops
 from cssfinder.log import get_logger
-from cssfinder.types import MtxC128T, MtxT
+from cssfinder.types import MatrixC128T
 
 # fmt: off
 # pylint: disable=line-too-long
@@ -73,10 +75,10 @@ class Mode(Enum):
     """Separability of a bipartite state."""
 
     G3PE3Q = "G3PE3Q"
-    """Genuine 3-partite entanglement of a 3-quDit state"""
+    """Genuine 3-partite entanglement of a 3-quDit state."""
 
     G4PE3Q = "G4PE3Q"
-    """Genuine 4-partite entanglement of a 3-quDit state"""
+    """Genuine 4-partite entanglement of a 3-quDit state."""
 
 
 class ModeABC(ABC):
@@ -132,12 +134,12 @@ class ModeABC(ABC):
 
     @staticmethod
     @abstractmethod
-    def optimize(*args: Any) -> MtxC128T:
+    def optimize(*args: Any) -> MatrixC128T:
         """Implementation of optimization for specified mode."""
 
     @staticmethod
     @abstractmethod
-    def random(*args: Any) -> MtxC128T:
+    def random(*args: Any) -> MatrixC128T:
         """Radom state for optimization."""
 
 
@@ -177,12 +179,12 @@ class FSNQ(ModeABC):
         )
 
     @staticmethod
-    def optimize(*args: Any) -> MtxC128T:
+    def optimize(*args: Any) -> MatrixC128T:
         rho2, rho3, size, sub_sys_size, epochs = args
         return ops.optimize_d_fs(rho2, rho3, size, sub_sys_size, epochs)
 
     @staticmethod
-    def random(*args: Any) -> MtxC128T:
+    def random(*args: Any) -> MatrixC128T:
         size, sub_sys_size = args
         return ops.random_d_fs(size, sub_sys_size)
 

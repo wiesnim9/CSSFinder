@@ -1,13 +1,14 @@
+"""EOL module."""
+
 from __future__ import annotations
 
 import numpy as np
-from numpy.typing import NDArray
 
-from cssfinder.gilbert import Gilbert
-from cssfinder.io import MatrixIO
+from cssfinder._gilbert import Gilbert
+from cssfinder.io.matrix import MatrixIO
 from cssfinder.log import get_logger
 from cssfinder.task import Task
-from cssfinder.types import MtxT
+from cssfinder.types import MatrixT
 
 
 def run(task: Task) -> None:
@@ -35,7 +36,7 @@ def run(task: Task) -> None:
     algorithm.run(task.visibility, task.steps, task.correlations)
 
 
-def load_matrix(task: Task) -> MtxT:
+def load_matrix(task: Task) -> MatrixT:
     """Load matrix from task.
 
     Parameters
@@ -54,7 +55,7 @@ def load_matrix(task: Task) -> MtxT:
     return mtx
 
 
-def is_real_only(mtx: MtxT) -> bool:
+def is_real_only(mtx: MatrixT) -> bool:
     """Check if matrix contains only real values. (Imaginary parts are all 0.)
 
     Parameters

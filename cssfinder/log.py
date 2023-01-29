@@ -1,8 +1,9 @@
+"""This module contains logging utilities used by CSSFinder package."""
 from __future__ import annotations
 
 import logging
-import logging.handlers as handlers
 import sys
+from logging import handlers
 from pathlib import Path
 from typing import Any, MutableMapping
 
@@ -31,7 +32,10 @@ class _FormatStr:
         disable_format = self.kwargs.get("extra", {}).get("disable_format", False)
         if disable_format:
             return self.fmt
-        return str(self.fmt).format(*self.args, **self.kwargs)
+        try:
+            return str(self.fmt).format(*self.args, **self.kwargs)
+        except (IndexError, KeyError):
+            return str(self.fmt)
 
 
 class FormatStringAdapter(logging.LoggerAdapter):

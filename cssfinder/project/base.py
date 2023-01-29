@@ -1,5 +1,7 @@
+"""This file contains metaclass and base class used to create concrete implementations
+of cssfproject.json file format containers."""
+
 from __future__ import annotations
-import logging
 
 from pathlib import Path
 from typing import Any, ClassVar, Optional, Type, TypeVar, cast
@@ -41,14 +43,21 @@ class CSSFProjectBase(BaseModel, metaclass=CSSFProjectMeta):
     version: ClassVar[Version] = Version("0.0.0")
     """Project file format version."""
 
-    project_path: Optional[Path]
+    file: Optional[Path]
     """Path to loaded project file."""
+
+    @property
+    def directory(self) -> Optional[Path]:
+        """Path to directory containing cssfproject.json file."""
+        if self.file is None:
+            return None
+        return self.file
 
     class Config:
         validate_assignment = True
         extra = Extra.ignore
 
-    @validator("project_path")
+    @validator("file")
     @classmethod
     def _path_resolve(cls, value: Path) -> Path:
         if isinstance(value, Path):
@@ -111,6 +120,24 @@ class CSSFProjectBase(BaseModel, metaclass=CSSFProjectMeta):
             raise ProjectFormatTooOld(project.version, cls.version)
 
         return cast(CSSFProjectBaseT, project)
+
+    def expand_path(self, path: str) -> str:
+        """Expand all special variables in path string.
+
+        Parameters
+        ----------
+        path : str
+            Path string to expand.
+        project : CSSFProjectBase
+            Project to expand path for, it will be used as source of some special
+            variables.
+
+        Returns
+        -------
+        str
+            Expanded path.
+        """
+        return path.format(project=self)
 
 
 class CSSFProjectFileMissingVersion(ValueError):

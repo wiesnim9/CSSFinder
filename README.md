@@ -1,4 +1,6 @@
-# CSSFinder
+<center>
+<h1>CSSFinder</h1>
+</center>
 
 ## Building
 

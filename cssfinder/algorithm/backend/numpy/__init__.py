@@ -26,6 +26,6 @@ class NumPy(BackendBase):
         """Return number of all corrections found during optimization."""
         raise NotImplementedError()
 
-    def run_epoch(self, iterations: int) -> None:
+    def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
         raise NotImplementedError()

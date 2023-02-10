@@ -9,6 +9,7 @@ from functools import reduce
 from typing import ClassVar
 
 import numpy as np
+import numpy.typing as npt
 from packaging.version import Version
 from pydantic import BaseModel
 
@@ -16,7 +17,6 @@ from cssfinder.constants import PRIMES
 from cssfinder.io.matrix import MatrixIO
 from cssfinder.log import get_logger
 from cssfinder.project.v1_0_0.cssfproject import CSSFProjectV100
-from cssfinder.types import MatrixC128T
 
 
 class AssetLoader:
@@ -79,7 +79,7 @@ class AssetLoader:
         )
         return State(state=mtx, depth=depth, quantity=quantity)
 
-    def _check_matrix_shape(self, mtx: MatrixC128T) -> None:
+    def _check_matrix_shape(self, mtx: npt.NDArray[np.complex128]) -> None:
         """Check if ndarray conforms shape rules."""
         logger = get_logger()
 
@@ -188,7 +188,7 @@ class AssetLoader:
 class State(BaseModel):
     """State matrix and system dimensions."""
 
-    state: MatrixC128T
+    state: npt.NDArray[np.complex128]
     """Path to file containing state matrix."""
 
     depth: int
@@ -207,7 +207,7 @@ class State(BaseModel):
 class IncorrectMatrixShape(ValueError):
     """Raised when matrix has incorrect shape."""
 
-    def __init__(self, mtx: MatrixC128T) -> None:
+    def __init__(self, mtx: npt.NDArray[np.complex128]) -> None:
         super().__init__()
         self.mtx = mtx
 

@@ -8,19 +8,16 @@ import numpy as np
 from cssfinder.types import MatrixC128T
 
 
-# @jit(nopython=True, nogil=True, cache=True)
-def product(mtx1: MatrixC128T, mtx2: MatrixC128T) -> float:
-    """Scalar product of two matrices."""
-    k = np.trace(np.dot(mtx1, mtx2))  # matmul replaced with dot
-    return float(np.real(k))
+def product(matrix1, matrix2):
+    return np.trace(np.dot(matrix1, matrix2)).real
 
 
 # @jit(nopython=True, nogil=True, cache=True)
-def normalize(mtx: MatrixC128T) -> MatrixC128T:
+def normalize(matrix: MatrixC128T) -> MatrixC128T:
     """Normalization of a vector."""
-    mtx2 = np.dot(mtx, np.conj(mtx))
-    val = np.sqrt(np.real(mtx2))
-    return mtx / val  # type: ignore
+    matrix2 = np.dot(matrix, np.conj(matrix))
+    length = np.sqrt(np.real(matrix2))
+    return matrix / length  # type: ignore
 
 
 # @jit(nopython=True, nogil=True, cache=True)

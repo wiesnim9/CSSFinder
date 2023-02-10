@@ -39,7 +39,7 @@ class Gilbert:
                 (epoch_index + 1) / epochs,
             )
             # Run N iterations of algorithm without checking stop conditions.
-            self.backend.run_epoch(iterations)
+            self.backend.run_epoch(iterations, epoch_index)
 
             iterations_executed = (epoch_index + 1) * iterations
             self.logger.debug(

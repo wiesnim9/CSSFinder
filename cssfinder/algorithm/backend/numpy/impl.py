@@ -45,7 +45,7 @@ class Implementation(Protocol):
         ...
 
     @staticmethod
-    def get_random_haar(size: int) -> npt.NDArray[np.complex128]:
+    def get_random_haar(depth: int) -> npt.NDArray[np.complex128]:
         """Generate a random vector with Haar measure."""
         ...
 
@@ -55,7 +55,7 @@ class Implementation(Protocol):
         ...
 
     @staticmethod
-    def random_d_fs(size: int, sub_sys_size: int) -> npt.NDArray[np.complex128]:
+    def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
         """Random n quDit state."""
         ...
 
@@ -63,8 +63,8 @@ class Implementation(Protocol):
     def optimize_d_fs(
         rho2: npt.NDArray[np.complex128],
         rho3: npt.NDArray[np.complex128],
-        size: int,
-        sub_sys_size: int,
+        depth: int,
+        quantity: int,
         epochs: int,
     ) -> npt.NDArray[np.complex128]:
         """Optimize implementation for FSnQd mode."""
@@ -72,7 +72,7 @@ class Implementation(Protocol):
 
     @staticmethod
     def random_unitary_d_fs(
-        size: int, sub_sys_size: int, idx: int
+        depth: int, quantity: int, idx: int
     ) -> npt.NDArray[np.complex128]:
         """N quDits."""
         ...
@@ -80,8 +80,8 @@ class Implementation(Protocol):
     @staticmethod
     def expand_d_fs(  # pylint: disable=invalid-name
         value: npt.NDArray[np.complex128],
-        size: int,
-        sub_sys_size: int,
+        depth: int,
+        quantity: int,
         idx: int,
     ) -> npt.NDArray[np.complex128]:
         """Expand an operator to n quDits."""

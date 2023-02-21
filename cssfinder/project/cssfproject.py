@@ -28,13 +28,12 @@ This file contains implementation of project configuration in 1.0.0 version.
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, ConstrainedStr, EmailStr, Extra, Field
-
-from cssfinder.log import get_logger
 
 
 class CSSFProject(BaseModel):
@@ -74,6 +73,13 @@ class CSSFProject(BaseModel):
             return Path.cwd()
         return self._file.parent
 
+    @property
+    def output(self) -> Path:
+        """Path to output directory for this project."""
+        directory = self.directory / "output"
+        directory.mkdir(0o764, True, True)
+        return directory
+
     def expand_path(self, path: str) -> str:
         """Expand all special variables in path string.
 
@@ -94,8 +100,7 @@ class CSSFProject(BaseModel):
 
     def info_display(self) -> None:
         """Display configuration content."""
-        logger = get_logger()
-        logger.info("\n" + self.json(indent=2), extra=dict(disable_format=True))
+        logging.info("%s", "\n" + self.json(indent=2))
 
 
 class Meta(BaseModel):

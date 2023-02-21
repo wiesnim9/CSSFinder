@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Type
@@ -31,7 +32,7 @@ import numpy as np
 import numpy.typing as npt
 import scipy.io
 
-from cssfinder.log import get_logger
+import cssfinder
 
 
 class MatrixIO(ABC):
@@ -63,9 +64,8 @@ class MatrixIO(ABC):
         if file_format is None:
             file_format = file_path.suffix
 
-        logger = get_logger()
-        logger.debug(
-            "Using file format {!r} for file {}", file_format, file_path.as_posix()
+        logging.debug(
+            "Using file format %r for file %r", file_format, file_path.as_posix()
         )
 
         return FORMAT_TO_LOADER[file_format](file_path)
@@ -73,6 +73,10 @@ class MatrixIO(ABC):
     @abstractmethod
     def load(self) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
         """Load matrix from file as numpy array."""
+
+    @abstractmethod
+    def dump(self, data: npt.NDArray[np.int64 | np.float64 | np.complex128]) -> None:
+        """Dump matrix to file from numpy array."""
 
 
 class MatrixMarketIO(MatrixIO):
@@ -82,6 +86,14 @@ class MatrixMarketIO(MatrixIO):
         mtx = scipy.io.mmread(self.file_path.as_posix())
         assert mtx is not None
         return np.array(mtx)
+
+    def dump(self, data: npt.NDArray[np.int64 | np.float64 | np.complex128]) -> None:
+        self.file_path.touch(0o664, exist_ok=True)
+        scipy.io.mmwrite(
+            self.file_path.as_posix(),
+            data,
+            comment=f"Created with CSSFinder {cssfinder.__version__}.",
+        )
 
 
 FORMAT_TO_LOADER: dict[str, Type[MatrixIO]] = {

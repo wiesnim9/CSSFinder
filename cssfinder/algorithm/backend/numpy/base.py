@@ -43,8 +43,9 @@ class NumPyBase(BackendBase):
 
     def __init__(self, initial: State, mode: AlgoMode, visibility: float) -> None:
         super().__init__(initial, mode, visibility)
-        self._visibility = self._create_visibility_matrix(initial)
-        self._intermediate = self.initial.state.copy()
+
+        self._visibility = self._create_visibility_matrix()
+        self._intermediate = self._create_intermediate_state()
         self._corrections = []
 
         self._aa4 = 2 * self.impl.product(self._visibility, self._intermediate)
@@ -52,20 +53,27 @@ class NumPyBase(BackendBase):
         self._visibility_reduced = self._visibility - self._intermediate
         self._dd1 = self.impl.product(self._intermediate, self._visibility_reduced)
 
-    def _create_visibility_matrix(self, initial: State) -> npt.NDArray[np.complex128]:
-        return self.visibility * initial.state + (1 - self.visibility) * np.identity(
-            len(initial.state), dtype=np.complex128
+    def _create_visibility_matrix(self) -> npt.NDArray[np.complex128]:
+        vis_state = self.visibility * self.initial.state
+        inv_vis_ident = (1 - self.visibility) * np.identity(
+            len(self.initial.state), dtype=np.complex128
         )
+        return vis_state + inv_vis_ident / len(self.initial.state)
+
+    def _create_intermediate_state(self) -> npt.NDArray[np.complex128]:
+        intermediate = np.zeros_like(self._visibility, dtype=np.complex128)
+        np.fill_diagonal(intermediate, self._visibility.diagonal())
+        return intermediate
 
     @property
     def state(self) -> npt.NDArray[np.complex128]:
         """Return current system state with all optimizations applied."""
-        return self._intermediate
+        return self._intermediate.copy()
 
     @property
     def corrections(self) -> list[tuple[int, int, float]]:
         """Return list of all corrections found during optimization."""
-        return self._corrections
+        return self._corrections.copy()
 
     @property
     def corrections_count(self) -> int:
@@ -76,8 +84,6 @@ class NumPyBase(BackendBase):
         """Run sequence of iterations without stopping to check any stop conditions."""
 
         depth = self.initial.depth
-        quantity = self.initial.quantity
-
         quantity = self.initial.quantity
         epochs = 20 * depth * depth * quantity
 
@@ -111,11 +117,11 @@ class NumPyBase(BackendBase):
         aa2 = 2 * self.impl.product(self._visibility, alternative_state)
         aa5 = 2 * self.impl.product(self._intermediate, alternative_state)
 
-        coef = -(-self._aa4 + aa2 + aa5 - 2 * aa3) / (2 * (self._aa6 - aa5 + aa3))
+        param = -(-self._aa4 + aa2 + aa5 - 2 * aa3) / (2 * (self._aa6 - aa5 + aa3))
 
-        if 0 <= coef <= 1:
+        if 0 <= param <= 1:
             self._intermediate = (
-                coef * self._intermediate + (1 - coef) * alternative_state
+                param * self._intermediate + (1 - param) * alternative_state
             )
 
             self._visibility_reduced = self._visibility - self._intermediate

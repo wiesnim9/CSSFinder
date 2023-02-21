@@ -26,9 +26,9 @@ cssfproject.json files."""
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
-from cssfinder.log import get_logger
 from cssfinder.project.cssfproject import CSSFProject
 
 
@@ -50,7 +50,6 @@ def load_project_from(file_or_directory: str | Path) -> CSSFProject:
     InvalidCSSFProjectContent
         Raised when project file content is not a dictionary.
     """
-    logger = get_logger()
 
     # Unify path type to Path
     file_or_directory = Path(file_or_directory).expanduser().resolve()
@@ -65,7 +64,7 @@ def load_project_from(file_or_directory: str | Path) -> CSSFProject:
         file_path = file_or_directory
         del file_or_directory
 
-    logger.debug(f"Resolved project path to {file_path.as_posix()!r}")
+    logging.debug("Resolved project path to %r", file_path.as_posix())
 
     content = file_path.read_text(encoding="utf-8")
     try:
@@ -74,7 +73,7 @@ def load_project_from(file_or_directory: str | Path) -> CSSFProject:
         raise MalformedProjectFileError() from exc
 
     if not isinstance(content, dict):
-        logger.critical("Content of cssfproject.json file is not a dictionary.")
+        logging.critical("Content of cssfproject.json file is not a dictionary.")
         raise InvalidCSSFProjectContent(content)
 
     project = CSSFProject(**content)

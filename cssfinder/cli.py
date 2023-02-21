@@ -23,8 +23,9 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import click
 import pendulum
@@ -32,7 +33,7 @@ import pendulum
 import cssfinder
 from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.io.asset_loader import AssetLoader
-from cssfinder.log import enable_logging, get_logger
+from cssfinder.log import configure_logger
 from cssfinder.project import (
     InvalidCSSFProjectContent,
     MalformedProjectFileError,
@@ -52,9 +53,8 @@ from cssfinder.project import (
 @click.version_option(cssfinder.__version__, "-V", "--version", prog_name="cssfinder")
 def main(verbose: int) -> None:
     """CSSFinder is a script for finding closest separable states."""
-    enable_logging(verbose)
-    logger = get_logger()
-    logger.info("CSSFinder started at {}", pendulum.now())
+    configure_logger(verbosity=verbose, logger_name="cssfinder", use_rich=False)
+    logging.info("CSSFinder started at %r", pendulum.now())
 
     if verbose >= 2:
         print(
@@ -74,29 +74,28 @@ def main(verbose: int) -> None:
 @click.option("--force-squash", is_flag=True, default=False)
 def _project(path: str, force_squash: bool) -> None:
     """Use project file to determine runtime configuration."""
-    logger = get_logger()
 
     try:
         project = load_project_from(path)
-        logger.info(
+        logging.info(
             "Loaded project %r by %r <%r>.",
             project.meta.name,
             project.meta.author,
             project.meta.email,
         )
     except FileNotFoundError as exc:
-        logger.critical("Project file not found.")
+        logging.critical("Project file not found.")
         raise SystemExit(300_000) from exc
 
     except MalformedProjectFileError as exc:
-        logger.critical(
+        logging.critical(
             "Project file content is not a valid JSON file. Fix it and try again."
         )
         raise SystemExit(301_000) from exc
 
     except InvalidCSSFProjectContent as exc:
-        logger.critical("Project file doesn't contain valid project configuration.")
-        logger.critical("Fix it and try again.")
+        logging.critical("Project file doesn't contain valid project configuration.")
+        logging.critical("Fix it and try again.")
         raise SystemExit(302_000) from exc
 
     project.info_display()
@@ -116,6 +115,9 @@ def _project(path: str, force_squash: bool) -> None:
         iterations=project.algorithm.iters_per_epoch,
         max_corrections=project.algorithm.max_corrections,
     )
+
+    asset_loader.save_output_state(algorithm.state)
+    asset_loader.save_output_corrections(algorithm.corrections)
 
     raise SystemExit(0)
 
@@ -230,18 +232,17 @@ def file(  # pylint: disable=too-many-arguments
     -   prefix_abort.txt: The error message if the algorithm was extremely slow
         (for some highly entangled states).
     """
-    logger = get_logger()
 
     # String formatting reference: https://peps.python.org/pep-3101/
-    logger.debug("INPUT PARAMETERS")
-    logger.debug("================")
-    logger.debug("      vis         =   {0!r}", vis)
-    logger.debug("      steps       =   {0!r}", steps)
-    logger.debug("      cors        =   {0!r}", cors)
-    logger.debug("      mode        =   {0!r}", mode)
-    logger.debug("      input       =   {0!r}", input_dir)
-    logger.debug("      output      =   {0!r}", output)
-    logger.debug("      size        =   {0!r}", size)
-    logger.debug("  sub_sys_size    =   {0!r}", sub_sys_size)
+    logging.debug("INPUT PARAMETERS")
+    logging.debug("================")
+    logging.debug("      vis         =   {0!r}", vis)
+    logging.debug("      steps       =   {0!r}", steps)
+    logging.debug("      cors        =   {0!r}", cors)
+    logging.debug("      mode        =   {0!r}", mode)
+    logging.debug("      input       =   {0!r}", input_dir)
+    logging.debug("      output      =   {0!r}", output)
+    logging.debug("      size        =   {0!r}", size)
+    logging.debug("  sub_sys_size    =   {0!r}", sub_sys_size)
 
     raise NotImplementedError(data_type)

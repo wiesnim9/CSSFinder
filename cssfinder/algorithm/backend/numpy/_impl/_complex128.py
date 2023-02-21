@@ -29,11 +29,6 @@ import numpy as np
 import numpy.typing as npt
 from numba import jit
 
-# def create_rho_1(prefix, rho, mode, d1, vis):
-#     rhoa = np.zeros(rho.shape, dtype=np.complex128)
-#     np.fill_diagonal(rhoa, rho.diagonal())
-#     return rhoa
-
 
 @jit(nopython=True, nogil=True, cache=True)
 def product(
@@ -52,10 +47,10 @@ def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def get_random_haar(size: int) -> npt.NDArray[np.complex128]:
+def get_random_haar(depth: int) -> npt.NDArray[np.complex128]:
     """Generate a random vector with Haar measure."""
-    real = np.random.normal(0, 1, size)
-    imaginary = np.random.normal(0, 1, size)
+    real = np.random.normal(0, 1, depth)
+    imaginary = np.random.normal(0, 1, depth)
     return real + 1j * imaginary
 
 
@@ -66,12 +61,12 @@ def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def random_d_fs(size: int, sub_sys_size: int) -> npt.NDArray[np.complex128]:
+def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
     """Random n quDit state."""
-    vector = normalize(get_random_haar(size))
+    vector = normalize(get_random_haar(depth))
 
-    for _ in range(sub_sys_size - 1):
-        idx_vector = normalize(get_random_haar(size))
+    for _ in range(quantity - 1):
+        idx_vector = normalize(get_random_haar(depth))
         vector = np.outer(vector, idx_vector).flatten()
 
     vector = project(vector)
@@ -83,8 +78,8 @@ def random_d_fs(size: int, sub_sys_size: int) -> npt.NDArray[np.complex128]:
 def optimize_d_fs(
     rho2: npt.NDArray[np.complex128],
     rho3: npt.NDArray[np.complex128],
-    size: int,
-    sub_sys_size: int,
+    depth: int,
+    quantity: int,
     epochs: int,
 ) -> npt.NDArray[np.complex128]:
     """Optimize implementation for FSnQd mode."""
@@ -92,12 +87,12 @@ def optimize_d_fs(
     product_2_3 = product(rho2, rho3)
 
     # To make sure rotated_2 is not unbound
-    unitary = random_unitary_d_fs(size, sub_sys_size, 0)
+    unitary = random_unitary_d_fs(depth, quantity, 0)
     rotated_2 = rotate(rho2, unitary)
 
     for idx in range(epochs):
-        idx_mod = idx % int(sub_sys_size)
-        unitary = random_unitary_d_fs(size, sub_sys_size, idx_mod)
+        idx_mod = idx % int(quantity)
+        unitary = random_unitary_d_fs(depth, quantity, idx_mod)
         rotated_2 = rotate(rho2, unitary)
 
         product_rot2_3 = product(rotated_2, rho3)
@@ -117,22 +112,22 @@ def optimize_d_fs(
 # @jit(nopython=True, nogil=True, cache=True)
 # @jit(forceobj=True)
 def random_unitary_d_fs(
-    size: int, sub_sys_size: int, idx: int
+    depth: int, quantity: int, idx: int
 ) -> npt.NDArray[np.complex128]:
     """N quDits."""
-    value = _random_unitary_d_fs_val(size)
-    mtx = expand_d_fs(value, size, sub_sys_size, idx)
+    value = _random_unitary_d_fs_val(depth)
+    mtx = expand_d_fs(value, depth, quantity, idx)
     return mtx
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def _random_unitary_d_fs_val(size: int) -> npt.NDArray[np.complex128]:
+def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex128]:
     real = np.cos(0.01 * np.pi)
     imag = 1j * np.sin(0.01 * np.pi)
     value = real + imag - 1
 
-    random_mtx = random_d_fs(size, 1)
-    identity_mtx = np.identity(size).astype(np.complex128)
+    random_mtx = random_d_fs(depth, 1)
+    identity_mtx = np.identity(depth).astype(np.complex128)
     value = np.add(np.multiply(value, random_mtx), identity_mtx)
     return value
 
@@ -141,16 +136,16 @@ def _random_unitary_d_fs_val(size: int) -> npt.NDArray[np.complex128]:
 # @jit(forceobj=True)
 def expand_d_fs(
     value: npt.NDArray[np.complex128],
-    size: int,
-    sub_sys_size: int,
+    depth: int,
+    quantity: int,
     idx: int,
 ) -> npt.NDArray[np.complex128]:
     """Expand an operator to n quDits."""
-    size_1 = int(size**idx)
-    identity_1 = np.identity(size_1).astype(np.complex128)
+    depth_1 = int(depth**idx)
+    identity_1 = np.identity(depth_1).astype(np.complex128)
 
-    size_2 = int(size ** (sub_sys_size - idx - 1))
-    identity_2 = np.identity(size_2).astype(np.complex128)
+    depth_2 = int(depth ** (quantity - idx - 1))
+    identity_2 = np.identity(depth_2).astype(np.complex128)
 
     kronecker_1 = kronecker(identity_1, value)
     kronecker_2 = kronecker(kronecker_1, identity_2)

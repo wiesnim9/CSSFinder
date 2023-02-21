@@ -1,11 +1,32 @@
+# Copyright 2023 Krzysztof Wiśniewski <argmaster.world@gmail.com>
+#
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the “Software”), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 """This module contains public interface of Gilbert algorithm."""
 
 from __future__ import annotations
 
-from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.io.v1_0_0.asset_loader import State
+from cssfinder.algorithm import backend as _backend
+from cssfinder.io.asset_loader import State
 from cssfinder.log import get_logger
-from cssfinder.project.v1_0_0.cssfproject import AlgoMode, Backend, Precision
+from cssfinder.project.cssfproject import AlgoMode, Backend, Precision
 
 
 class Gilbert:
@@ -24,7 +45,7 @@ class Gilbert:
         self.mode = mode
         self.precision = precision
         self.visibility = visibility
-        backend_type = BackendBase.select(backend, self.precision)
+        backend_type = _backend.new(backend, self.precision)
         self.backend = backend_type(self.initial, self.mode, self.visibility)
 
     def run(self, epochs: int, iterations: int, max_corrections: int) -> None:
@@ -51,5 +72,7 @@ class Gilbert:
             )
             # Check if we already reached expected number of corrections
             if self.backend.corrections_count >= max_corrections:
-                self.logger.info("")
+                self.logger.info(
+                    "Reached expected maximal number of corrections {}", max_corrections
+                )
                 break

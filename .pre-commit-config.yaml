@@ -1,7 +1,25 @@
 exclude: '^(\.tox|\.env|dist|\.vscode)(/|$)'
 repos:
+  - repo: https://github.com/Argmaster/autocopyright
+    rev: "v1.1.0"
+    hooks:
+      - id: autocopyright
+        args:
+          [
+            -s,
+            "#",
+            -d,
+            cssfinder,
+            -g,
+            "*.py",
+            -g,
+            "*.pyi",
+            -l,
+            "./scripts/templates/MIT.md.jinja2",
+          ]
+
   - repo: https://github.com/PyCQA/autoflake
-    rev: "v2.0.0"
+    rev: "v2.0.1"
     hooks:
       - id: autoflake
         args:
@@ -37,7 +55,7 @@ repos:
         args: [-a, "from __future__ import annotations", cssfinder]
 
   - repo: https://github.com/ambv/black
-    rev: "22.12.0"
+    rev: "23.1.0"
     hooks:
       - id: black
 

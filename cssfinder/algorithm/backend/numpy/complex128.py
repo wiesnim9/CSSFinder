@@ -19,27 +19,18 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""Backend is an implementation of Gilbert algorithm implemented with specific tools and
-supporting various precisions of operation."""
-
+"""Numpy backend with fixed precision of complex 128-bit."""
 
 from __future__ import annotations
 
-from typing import Type
+from typing import cast
 
-from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
-from cssfinder.project.cssfproject import Backend, Precision
-
-
-def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
-    """Select one of the backends with fixed precision."""
-    if backend == Backend.NumPy:
-        if precision == Precision.Complex128:
-            return NumPyC128
-
-    raise UnsupportedBackendError(f"Backend {backend.name!r} not supported.")
+from cssfinder.algorithm.backend.numpy._impl import _complex128
+from cssfinder.algorithm.backend.numpy.base import NumPyBase
+from cssfinder.algorithm.backend.numpy.impl import Implementation
 
 
-class UnsupportedBackendError(Exception):
-    """Raised for unsupported backend type."""
+class NumPyC128(NumPyBase):
+    """Concrete numpy based backend for Gilbert algorithm using complex128 type."""
+
+    impl: Implementation = cast(Implementation, _complex128)

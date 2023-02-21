@@ -1,98 +1,33 @@
+# Copyright 2023 Krzysztof Wiśniewski <argmaster.world@gmail.com>
+#
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the “Software”), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 """This module contains implementation of Gilbert algorithm using numpy and complex128
 precision."""
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 import numpy.typing as npt
-
-from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.algorithm.backend.numpy import NumPy
-
-from cssfinder.io.v1_0_0.asset_loader import State
-from cssfinder.project.v1_0_0.cssfproject import AlgoMode, Backend, Precision
-
-
-@BackendBase.register(Backend.NumPy, Precision.Complex128)
-class NumPyC128(NumPy):
-    """Implementation of Gilbert algorithm using numpy and complex128 precision."""
-
-    _visibility: npt.NDArray[np.complex128]
-    _intermediate: npt.NDArray[np.complex128]
-    _corrections: list[tuple[int, int, float]]
-
-    def __init__(self, initial: State, mode: AlgoMode, visibility: float) -> None:
-        super().__init__(initial, mode, visibility)
-        self._visibility = self.visibility * initial.state + (
-            1 - self.visibility
-        ) * np.identity(len(initial.state), dtype=np.complex128)
-        self._intermediate = self.initial.state.copy()
-        self._corrections = []
-
-        self._aa4 = 2 * product(self._visibility, self._intermediate)
-        self._aa6 = product(self._intermediate, self._intermediate)
-        self._visibility_reduced = self._visibility - self._intermediate
-        self._dd1 = product(self._intermediate, self._visibility_reduced)
-
-    @property
-    def state(self) -> npt.NDArray[np.complex128]:
-        """Return current system state with all optimizations applied."""
-        raise NotImplementedError()
-
-    @property
-    def corrections(self) -> list[tuple[int, int, float]]:
-        """Return list of all corrections found during optimization."""
-        raise NotImplementedError()
-
-    @property
-    def corrections_count(self) -> int:
-        """Return number of all corrections found during optimization."""
-        raise NotImplementedError()
-
-    def run_epoch(self, iterations: int, epoch_index: int) -> None:
-        """Run sequence of iterations without stopping to check any stop conditions."""
-
-        depth = self.initial.depth
-        quantity = self.initial.quantity
-        epochs = 20 * depth * depth * quantity
-
-        for iteration_index in range(iterations):
-            alternative_state = random_d_fs(depth, quantity)
-
-            if product(alternative_state, self._visibility_reduced) > self._dd1:
-                alternative_state = optimize_d_fs(
-                    alternative_state, self._visibility_reduced, depth, quantity, epochs
-                )
-
-                aa3 = product(alternative_state, alternative_state)
-                aa2 = 2 * product(self._visibility, alternative_state)
-                aa5 = 2 * product(self._intermediate, alternative_state)
-
-                c = -(-self._aa4 + aa2 + aa5 - 2 * aa3) / (2 * (self._aa6 - aa5 + aa3))
-
-                if 0 <= c <= 1:
-
-                    self._intermediate = (
-                        c * self._intermediate + (1 - c) * alternative_state
-                    )
-
-                    self._visibility_reduced = self._visibility - self._intermediate
-                    self._aa4 = 2 * product(self._visibility, self._intermediate)
-                    self._aa6 = product(self._intermediate, self._intermediate)
-                    self._dd1 = self._aa4 / 2 - self._aa6
-
-                    self._corrections.append(
-                        (
-                            epoch_index * iterations + iteration_index,
-                            len(self._corrections),
-                            float(
-                                product(
-                                    self._visibility_reduced,
-                                    self._visibility_reduced,
-                                )
-                            ),
-                        )
-                    )
-
+from numba import jit
 
 # def create_rho_1(prefix, rho, mode, d1, vis):
 #     rhoa = np.zeros(rho.shape, dtype=np.complex128)
@@ -100,7 +35,7 @@ class NumPyC128(NumPy):
 #     return rhoa
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def product(
     matrix1: npt.NDArray[np.complex128], matrix2: npt.NDArray[np.complex128]
 ) -> np.float64:
@@ -108,7 +43,7 @@ def product(
     return np.trace(np.dot(matrix1, matrix2)).real  # type: ignore
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
     """Normalization of a vector."""
     mtx2 = np.dot(mtx, np.conj(mtx))
@@ -116,7 +51,7 @@ def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
     return mtx / val  # type: ignore
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def get_random_haar(size: int) -> npt.NDArray[np.complex128]:
     """Generate a random vector with Haar measure."""
     real = np.random.normal(0, 1, size)
@@ -124,13 +59,13 @@ def get_random_haar(size: int) -> npt.NDArray[np.complex128]:
     return real + 1j * imaginary
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
     """Build a projection from a vector."""
     return np.outer(mtx1, np.conj(mtx1))
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def random_d_fs(size: int, sub_sys_size: int) -> npt.NDArray[np.complex128]:
     """Random n quDit state."""
     vector = normalize(get_random_haar(size))
@@ -161,7 +96,6 @@ def optimize_d_fs(
     rotated_2 = rotate(rho2, unitary)
 
     for idx in range(epochs):
-
         idx_mod = idx % int(sub_sys_size)
         unitary = random_unitary_d_fs(size, sub_sys_size, idx_mod)
         rotated_2 = rotate(rho2, unitary)
@@ -173,7 +107,6 @@ def optimize_d_fs(
             rotated_2 = rotate(rho2, unitary)
 
         while (new_product_2_3 := product_rot2_3) > product_2_3:
-
             product_2_3 = new_product_2_3
             rotated_2 = rotate(rotated_2, unitary)
             product_rot2_3 = product(rotated_2, rho3)
@@ -192,7 +125,7 @@ def random_unitary_d_fs(
     return mtx
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def _random_unitary_d_fs_val(size: int) -> npt.NDArray[np.complex128]:
     real = np.cos(0.01 * np.pi)
     imag = 1j * np.sin(0.01 * np.pi)
@@ -206,7 +139,7 @@ def _random_unitary_d_fs_val(size: int) -> npt.NDArray[np.complex128]:
 
 # @jit(nopython=True, nogil=True, cache=True)
 # @jit(forceobj=True)
-def expand_d_fs(  # pylint: disable=invalid-name
+def expand_d_fs(
     value: npt.NDArray[np.complex128],
     size: int,
     sub_sys_size: int,
@@ -241,7 +174,7 @@ def kronecker(
     return out_mtx.reshape(output_shape)
 
 
-# @jit(nopython=True, nogil=True, cache=True)
+@jit(nopython=True, nogil=True, cache=True)
 def rotate(
     rho2: npt.NDArray[np.complex128], unitary: npt.NDArray[np.complex128]
 ) -> npt.NDArray[np.complex128]:

@@ -1,3 +1,24 @@
+# Copyright 2023 Krzysztof Wiśniewski <argmaster.world@gmail.com>
+#
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the “Software”), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 """CSSFinder uses its own project format allowing for file based customization of
 parameters used by gilbert algorithm.
 
@@ -8,20 +29,16 @@ This file contains implementation of project configuration in 1.0.0 version.
 from __future__ import annotations
 
 from enum import Enum
-from typing import ClassVar, Optional, Type, TypeVar
+from pathlib import Path
+from typing import Optional, Type, TypeVar
 
-from packaging.version import Version
-from pydantic import BaseModel, ConstrainedStr, EmailStr, Field
+from pydantic import BaseModel, ConstrainedStr, EmailStr, Extra, Field
 
 from cssfinder.log import get_logger
-from cssfinder.project.base import CSSFProjectBase
 
 
-class CSSFProjectV100(CSSFProjectBase):
-    """CSSFProject file specification version 1.0.0."""
-
-    version: ClassVar[Version] = Version("1.0.0")
-    """Project file format version."""
+class CSSFProject(BaseModel):
+    """CSSFProject file specification."""
 
     meta: Meta
     """Project meta information like name and author."""
@@ -30,6 +47,50 @@ class CSSFProjectV100(CSSFProjectBase):
     """Resources used by project, including state matrices and other files."""
 
     algorithm: Algorithm
+
+    _file: Optional[Path] = None
+    """Path to loaded project file."""
+
+    class Config:
+        validate_assignment = True
+        extra = Extra.ignore
+        underscore_attrs_are_private = True
+
+    def set_file_path(self, file: Path) -> None:
+        """Set `cssfproject.json` file path."""
+        self._file = file.expanduser().resolve()
+
+    @property
+    def file(self) -> Path:
+        """Path to `cssfproject.json` file."""
+        if self._file is None:
+            return Path.cwd() / "cssfproject.json"
+        return self._file
+
+    @property
+    def directory(self) -> Path:
+        """Path to directory containing `cssfproject.json` file."""
+        if self._file is None:
+            return Path.cwd()
+        return self._file.parent
+
+    def expand_path(self, path: str) -> str:
+        """Expand all special variables in path string.
+
+        Parameters
+        ----------
+        path : str
+            Path string to expand.
+        project : CSSFProjectBase
+            Project to expand path for, it will be used as source of some special
+            variables.
+
+        Returns
+        -------
+        str
+            Expanded path.
+        """
+        return path.format(project=self)
 
     def info_display(self) -> None:
         """Display configuration content."""
@@ -212,6 +273,7 @@ class Precision(_CIEnum):
     # pylint: enable=invalid-name
 
 
+Algorithm.update_forward_refs()  # type: ignore
 Resources.update_forward_refs()  # type: ignore
 Meta.update_forward_refs()  # type: ignore
-CSSFProjectV100.update_forward_refs()  # type: ignore
+CSSFProject.update_forward_refs()  # type: ignore

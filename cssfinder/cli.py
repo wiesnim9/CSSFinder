@@ -1,3 +1,24 @@
+# Copyright 2023 Krzysztof Wiśniewski <argmaster.world@gmail.com>
+#
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the “Software”), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 """This module contains implementation of CSSFinder command line interface."""
 
 from __future__ import annotations
@@ -9,21 +30,14 @@ import click
 import pendulum
 
 import cssfinder
-from cssfinder.api import run
-from cssfinder.io.v1_0_0.asset_loader import AssetLoader
+from cssfinder.algorithm.gilbert import Gilbert
+from cssfinder.io.asset_loader import AssetLoader
 from cssfinder.log import enable_logging, get_logger
 from cssfinder.project import (
     InvalidCSSFProjectContent,
     MalformedProjectFileError,
     load_project_from,
 )
-from cssfinder.project.base import (
-    CSSFProjectFileMissingVersion,
-    CSSFProjectInvalidVersion,
-    CSSFProjectVersionNotSupported,
-    ProjectFormatTooOld,
-)
-from cssfinder.task import Task
 
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
@@ -32,7 +46,7 @@ from cssfinder.task import Task
     "--verbose",
     default=0,
     count=True,
-    help="Control verbosity of logging, by default critical only, use "
+    help="Control verbosity of logging, by default+ critical only, use "
     "-v, -vv, -vvv to gradually increase it.",
 )
 @click.version_option(cssfinder.__version__, "-V", "--version", prog_name="cssfinder")
@@ -65,7 +79,7 @@ def _project(path: str, force_squash: bool) -> None:
     try:
         project = load_project_from(path)
         logger.info(
-            "Loaded project {0} by {1} <{2}>.",
+            "Loaded project %r by %r <%r>.",
             project.meta.name,
             project.meta.author,
             project.meta.email,
@@ -85,36 +99,23 @@ def _project(path: str, force_squash: bool) -> None:
         logger.critical("Fix it and try again.")
         raise SystemExit(302_000) from exc
 
-    except ProjectFormatTooOld as exc:
-        logger.critical(
-            "Loaded project version ({0}) is too old to use it for execution.", exc.got
-        )
-        logger.critical("At least version {0} is required.", exc.required)
-        raise SystemExit(303_000) from exc
-
-    except CSSFProjectFileMissingVersion as exc:
-        logger.critical("Version field is missing in your {0!r} project file.", path)
-        raise SystemExit(400_000) from exc
-
-    except CSSFProjectInvalidVersion as exc:
-        logger.critical(
-            "Malformed version string {0!r} is your {1!r} project file.",
-            exc.version,
-            path,
-        )
-        raise SystemExit(401_000) from exc
-
-    except CSSFProjectVersionNotSupported as exc:
-        logger.critical(
-            "Selected project file format version {0} is not supported.", exc.version
-        )
-        raise SystemExit(402_000) from exc
-
     project.info_display()
 
     asset_loader = AssetLoader(project)
     state = asset_loader.load_initial_state(force_squash)
-    print(state)
+
+    algorithm = Gilbert(
+        state,
+        mode=project.algorithm.mode,
+        backend=project.algorithm.backend,
+        precision=project.algorithm.precision,
+        visibility=project.algorithm.visibility,
+    )
+    algorithm.run(
+        epochs=project.algorithm.max_epochs,
+        iterations=project.algorithm.iters_per_epoch,
+        max_corrections=project.algorithm.max_corrections,
+    )
 
     raise SystemExit(0)
 
@@ -243,15 +244,4 @@ def file(  # pylint: disable=too-many-arguments
     logger.debug("      size        =   {0!r}", size)
     logger.debug("  sub_sys_size    =   {0!r}", sub_sys_size)
 
-    task = Task.new(
-        mode=mode,
-        visibility=vis,
-        steps=steps,
-        correlations=cors,
-        input_dir=input_dir,
-        output_dir=output,
-        size=size if size is None else int(size),
-        sub_sys_size=sub_sys_size if sub_sys_size is None else int(sub_sys_size),
-        data_type=data_type,
-    )
-    run(task)
+    raise NotImplementedError(data_type)

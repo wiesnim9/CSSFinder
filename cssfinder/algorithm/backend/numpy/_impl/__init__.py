@@ -19,27 +19,8 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""Backend is an implementation of Gilbert algorithm implemented with specific tools and
-supporting various precisions of operation."""
+"""Groups modules containing implementation of Gilbert algorithm utilities with
+different precisions."""
 
 
 from __future__ import annotations
-
-from typing import Type
-
-from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
-from cssfinder.project.cssfproject import Backend, Precision
-
-
-def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
-    """Select one of the backends with fixed precision."""
-    if backend == Backend.NumPy:
-        if precision == Precision.Complex128:
-            return NumPyC128
-
-    raise UnsupportedBackendError(f"Backend {backend.name!r} not supported.")
-
-
-class UnsupportedBackendError(Exception):
-    """Raised for unsupported backend type."""

@@ -37,6 +37,7 @@ typing-extensions = "^4.4.0"
 snakeviz = "^2.1.1"
 poethepoet = "^0.18.1"
 poetry = "^1.3.2"
+jinja2 = "^3.1.2"
 
 [tool.poetry.scripts]
 cssfinder = "cssfinder.cli:main"
@@ -46,6 +47,7 @@ cssf = "cssfinder.cli:main"
 install-hooks = "pre-commit install --install-hooks --overwrite"
 run-hooks = "pre-commit run --all-files -v"
 build = "poetry build --format=wheel"
+gen-numpy-impl = { script = "scripts.gen_numpy_impl:main" }
 
 [build-system]
 requires = ["poetry-core"]
@@ -221,7 +223,7 @@ show_absolute_path = true
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
-extension-pkg-allow-list = ["pydantic"]
+extension-pkg-allow-list = ["pydantic", "black"]
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code. (This is an alternative name to extension-pkg-allow-list

@@ -19,9 +19,24 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm."""
+"""Numpy backend with fixed precision of complex 128-bit."""
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+from typing import Type, cast
+
+import numpy as np
+
+from cssfinder.algorithm.backend.numpy._impl import _complex64
+from cssfinder.algorithm.backend.numpy.base import NumPyBase
+from cssfinder.algorithm.backend.numpy.impl import Implementation
+
+
+class NumPyC64(NumPyBase[np.complex64, np.float32]):
+    """Concrete numpy based backend for Gilbert algorithm using complex128 type."""
+
+    impl: Implementation[np.complex64, np.float32] = cast(
+        Implementation[np.complex64, np.float32], _complex64
+    )
+    primary_t: Type[np.complex64] = np.complex64
+    secondary_t: Type[np.float32] = np.float32

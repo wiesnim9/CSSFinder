@@ -29,6 +29,9 @@ from typing import Type
 
 from cssfinder.algorithm.backend.base import BackendBase
 from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
+from cssfinder.algorithm.backend.numpy.complex64 import NumPyC64
+from cssfinder.algorithm.backend.numpy.float64 import NumPyF64
+from cssfinder.algorithm.backend.numpy.float32 import NumPyF32
 from cssfinder.project.cssfproject import Backend, Precision
 
 
@@ -37,8 +40,16 @@ def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
     if backend == Backend.NumPy:
         if precision == Precision.Complex128:
             return NumPyC128
+        if precision == Precision.Complex64:
+            return NumPyC64
+        if precision == Precision.Float64:
+            return NumPyF64
+        if precision == Precision.Float32:
+            return NumPyF32
 
-    raise UnsupportedBackendError(f"Backend {backend.name!r} not supported.")
+    raise UnsupportedBackendError(
+        f"Backend {backend.name!r} with precision {precision.name!r} not supported."
+    )
 
 
 class UnsupportedBackendError(Exception):

@@ -23,9 +23,9 @@
 Spec
 ----
 
-- Primary precision:    np.complex128
-- Floating precision:   np.float64
-- Complex precision:    np.complex128
+- Primary precision:    {{primary}}
+- Floating precision:   {{floating}}
+- Complex precision:    {{complex}}
 
 """
 
@@ -36,14 +36,24 @@ import numpy.typing as npt
 from numba import jit
 
 
-@jit(forceobj=True)
-def optimize_d_fs(
-    rho2: npt.NDArray[np.complex128],
-    rho3: npt.NDArray[np.complex128],
+{% if debug_dtype_checks %}
+from typing import Any
+
+
+def assert_dtype(ob: Any, dtype: Any) -> None:
+    if ob.dtype != dtype:
+        raise RuntimeError(ob.dtype)
+{% endif %}
+
+
+{% if not is_debug %}@jit(forceobj=True)
+{% endif %}def optimize_d_fs(
+    rho2: npt.NDArray[{{primary}}],
+    rho3: npt.NDArray[{{primary}}],
     depth: int,
     quantity: int,
     epochs: int,
-) -> npt.NDArray[np.complex128]:
+) -> npt.NDArray[{{primary}}]:
     """Optimize implementation for FSnQd mode."""
 
     product_2_3 = product(rho2, rho3)
@@ -68,26 +78,27 @@ def optimize_d_fs(
             rotated_2 = rotate(rotated_2, unitary)
             product_rot2_3 = product(rotated_2, rho3)
 
-    return rotated_2.astype(np.complex128, copy=False)  # type: ignore
+    return rotated_2.astype({{primary}}, copy=False)  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def product(
-    matrix1: npt.NDArray[np.complex128], matrix2: npt.NDArray[np.complex128]
-) -> np.float64:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def product(
+    matrix1: npt.NDArray[{{primary}}], matrix2: npt.NDArray[{{primary}}]
+) -> {{floating}}:
     """Calculate scalar product of two matrices."""
-
+    {% if debug_dtype_checks %}assert_dtype(matrix1, {{primary}}){% endif %}
+    {% if debug_dtype_checks %}assert_dtype(matrix2, {{primary}}){% endif %}
     return np.trace(np.dot(matrix1, matrix2)).real  # type: ignore
 
 
-@jit(forceobj=True, cache=True)
-def random_unitary_d_fs(
+{% if not is_debug %}@jit(forceobj=True, cache=True)
+{% endif %}def random_unitary_d_fs(
     depth: int, quantity: int, idx: int
-) -> npt.NDArray[np.complex128]:
+) -> npt.NDArray[{{primary}}]:
     """N quDits."""
     value = _random_unitary_d_fs_val(depth)
     mtx = expand_d_fs(value, depth, quantity, idx)
-
+    {% if debug_dtype_checks %}assert_dtype(mtx, {{primary}}){% endif %}
     return mtx  # type: ignore
 
 
@@ -96,89 +107,95 @@ _IMAG = 1j * np.sin(0.01 * np.pi)
 _VALUE = _REAL + _IMAG - 1
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[{{primary}}]:
     random_mtx = random_d_fs(depth, 1)
     identity_mtx = np.identity(depth)
+    {% if debug_dtype_checks %}assert_dtype(identity_mtx, np.float64){% endif %}
 
     rand_mul = np.multiply(_VALUE, random_mtx)
+    {% if is_floating %}rand_mul = rand_mul.real{%endif%}
+    {% if debug_dtype_checks %}assert_dtype(rand_mul, {{primary}}){% endif %}
 
     value = np.add(rand_mul, identity_mtx)
-
+    {% if debug_dtype_checks %}assert_dtype(value, {{primary}}){% endif %}
     return value  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def random_d_fs(depth: int, quantity: int) -> npt.NDArray[{{primary}}]:
     """Random n quDit state."""
     vector = normalize(get_random_haar(depth))
+    {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
 
     for _ in range(quantity - 1):
         idx_vector = normalize(get_random_haar(depth))
         vector = np.outer(vector, idx_vector).flatten()
-
+        {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
+    {% if is_floating %}vector = vector.real{%endif%}
+    {% if debug_dtype_checks %}assert_dtype(vector, {{floating}}){% endif %}
     vector = project(vector)
-
+    {% if debug_dtype_checks %}assert_dtype(vector, {{primary}}){% endif %}
     return vector  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def get_random_haar(depth: int) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def get_random_haar(depth: int) -> npt.NDArray[{{complex}}]:
     """Generate a random vector with Haar measure."""
     real = np.random.normal(0, 1, depth)
     imaginary = np.random.normal(0, 1, depth)
     # Complex128 is a correct type returned from this expression.
     # Checked on numpy 1.23.5
-    return (real + 1j * imaginary).astype(np.complex128)  # type: ignore
+    return (real + 1j * imaginary).astype({{complex}})  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def normalize(mtx: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
     """Normalization of a vector."""
-
+    {% if debug_dtype_checks %}assert_dtype(mtx, {{complex}}){% endif %}
     mtx2 = np.dot(mtx, np.conj(mtx))
     val = np.sqrt(np.real(mtx2))
-    retval = mtx / val
-
+    retval = (mtx / val)
+    {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
     return retval  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def project(mtx1: npt.NDArray[{{primary}}]) -> npt.NDArray[{{primary}}]:
     """Build a projection from a vector."""
-
+    {% if debug_dtype_checks %}assert_dtype(mtx1, {{primary}}){% endif %}
     retval = np.outer(mtx1, np.conj(mtx1))
-
+    {% if debug_dtype_checks %}assert_dtype(retval, {{primary}}){% endif %}
     return retval  # type: ignore
 
 
-@jit(forceobj=True, cache=True)
-def expand_d_fs(
-    value: npt.NDArray[np.complex128],
+{% if not is_debug %}@jit(forceobj=True, cache=True)
+{% endif %}def expand_d_fs(
+    value: npt.NDArray[{{primary}}],
     depth: int,
     quantity: int,
     idx: int,
-) -> npt.NDArray[np.complex128]:
+) -> npt.NDArray[{{primary}}]:
     """Expand an operator to n quDits."""
-
+    {% if debug_dtype_checks %}assert_dtype(value, {{primary}}){% endif %}
     depth_1 = int(depth**idx)
-    identity_1 = np.identity(depth_1).astype(np.complex128, copy=False)
+    identity_1 = np.identity(depth_1).astype({{primary}}, copy=False)
 
     depth_2 = int(depth ** (quantity - idx - 1))
-    identity_2 = np.identity(depth_2).astype(np.complex128, copy=False)
+    identity_2 = np.identity(depth_2).astype({{primary}}, copy=False)
 
     kronecker_1 = kronecker(identity_1, value)
     kronecker_2 = kronecker(kronecker_1, identity_2)
 
-    retval = kronecker_2.astype(np.complex128, copy=False)
-
+    retval = kronecker_2.astype({{primary}}, copy=False)
+    {% if debug_dtype_checks %}assert_dtype(retval, {{primary}}){% endif %}
     return retval  # type: ignore
 
 
-@jit(forceobj=True, cache=True)
-def kronecker(
-    mtx: npt.NDArray[np.complex128], mtx1: npt.NDArray[np.complex128]
-) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(forceobj=True, cache=True)
+{% endif %}def kronecker(
+    mtx: npt.NDArray[{{primary}}], mtx1: npt.NDArray[{{primary}}]
+) -> npt.NDArray[{{primary}}]:
     """Kronecker Product."""
     ddd1 = len(mtx)
     ddd2 = len(mtx1)
@@ -187,18 +204,19 @@ def kronecker(
     dot_0_1 = np.tensordot(mtx, mtx1, 0)
     out_mtx = np.swapaxes(dot_0_1, 1, 2)
 
-    retval = out_mtx.reshape(output_shape).astype(np.complex128, copy=False)
-
+    retval = out_mtx.reshape(output_shape).astype({{primary}}, copy=False)
+    {% if debug_dtype_checks %}assert_dtype(retval, {{primary}}){% endif %}
     return retval  # type: ignore
 
 
-@jit(nopython=True, nogil=True, cache=True)
-def rotate(
-    rho2: npt.NDArray[np.complex128], unitary: npt.NDArray[np.complex128]
-) -> npt.NDArray[np.complex128]:
+{% if not is_debug %}@jit(nopython=True, nogil=True, cache=True)
+{% endif %}def rotate(
+    rho2: npt.NDArray[{{primary}}], unitary: npt.NDArray[{{primary}}]
+) -> npt.NDArray[{{primary}}]:
     """Sandwich an operator with a unitary."""
-
+    {% if debug_dtype_checks %}assert_dtype(rho2, {{primary}}){% endif %}
+    {% if debug_dtype_checks %}assert_dtype(unitary, {{primary}}){% endif %}
     rho2a = np.dot(rho2, np.conj(unitary).T)  # matmul replaced with dot
     rho2a = np.dot(unitary, rho2a)  # matmul replaced with dot
-
+    {% if debug_dtype_checks %}assert_dtype(rho2a, {{primary}}){% endif %}
     return rho2a  # type: ignore

@@ -23,7 +23,7 @@
 Spec
 ----
 
-- Primary precision:    np.complex128
+- Primary precision:    np.float64
 - Floating precision:   np.float64
 - Complex precision:    np.complex128
 
@@ -38,12 +38,12 @@ from numba import jit
 
 @jit(forceobj=True)
 def optimize_d_fs(
-    rho2: npt.NDArray[np.complex128],
-    rho3: npt.NDArray[np.complex128],
+    rho2: npt.NDArray[np.float64],
+    rho3: npt.NDArray[np.float64],
     depth: int,
     quantity: int,
     epochs: int,
-) -> npt.NDArray[np.complex128]:
+) -> npt.NDArray[np.float64]:
     """Optimize implementation for FSnQd mode."""
 
     product_2_3 = product(rho2, rho3)
@@ -68,12 +68,12 @@ def optimize_d_fs(
             rotated_2 = rotate(rotated_2, unitary)
             product_rot2_3 = product(rotated_2, rho3)
 
-    return rotated_2.astype(np.complex128, copy=False)  # type: ignore
+    return rotated_2.astype(np.float64, copy=False)  # type: ignore
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def product(
-    matrix1: npt.NDArray[np.complex128], matrix2: npt.NDArray[np.complex128]
+    matrix1: npt.NDArray[np.float64], matrix2: npt.NDArray[np.float64]
 ) -> np.float64:
     """Calculate scalar product of two matrices."""
 
@@ -81,9 +81,7 @@ def product(
 
 
 @jit(forceobj=True, cache=True)
-def random_unitary_d_fs(
-    depth: int, quantity: int, idx: int
-) -> npt.NDArray[np.complex128]:
+def random_unitary_d_fs(depth: int, quantity: int, idx: int) -> npt.NDArray[np.float64]:
     """N quDits."""
     value = _random_unitary_d_fs_val(depth)
     mtx = expand_d_fs(value, depth, quantity, idx)
@@ -97,11 +95,12 @@ _VALUE = _REAL + _IMAG - 1
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex128]:
+def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.float64]:
     random_mtx = random_d_fs(depth, 1)
     identity_mtx = np.identity(depth)
 
     rand_mul = np.multiply(_VALUE, random_mtx)
+    rand_mul = rand_mul.real
 
     value = np.add(rand_mul, identity_mtx)
 
@@ -109,13 +108,15 @@ def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex128]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
+def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.float64]:
     """Random n quDit state."""
     vector = normalize(get_random_haar(depth))
 
     for _ in range(quantity - 1):
         idx_vector = normalize(get_random_haar(depth))
         vector = np.outer(vector, idx_vector).flatten()
+
+    vector = vector.real
 
     vector = project(vector)
 
@@ -144,7 +145,7 @@ def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
+def project(mtx1: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """Build a projection from a vector."""
 
     retval = np.outer(mtx1, np.conj(mtx1))
@@ -154,31 +155,31 @@ def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
 
 @jit(forceobj=True, cache=True)
 def expand_d_fs(
-    value: npt.NDArray[np.complex128],
+    value: npt.NDArray[np.float64],
     depth: int,
     quantity: int,
     idx: int,
-) -> npt.NDArray[np.complex128]:
+) -> npt.NDArray[np.float64]:
     """Expand an operator to n quDits."""
 
     depth_1 = int(depth**idx)
-    identity_1 = np.identity(depth_1).astype(np.complex128, copy=False)
+    identity_1 = np.identity(depth_1).astype(np.float64, copy=False)
 
     depth_2 = int(depth ** (quantity - idx - 1))
-    identity_2 = np.identity(depth_2).astype(np.complex128, copy=False)
+    identity_2 = np.identity(depth_2).astype(np.float64, copy=False)
 
     kronecker_1 = kronecker(identity_1, value)
     kronecker_2 = kronecker(kronecker_1, identity_2)
 
-    retval = kronecker_2.astype(np.complex128, copy=False)
+    retval = kronecker_2.astype(np.float64, copy=False)
 
     return retval  # type: ignore
 
 
 @jit(forceobj=True, cache=True)
 def kronecker(
-    mtx: npt.NDArray[np.complex128], mtx1: npt.NDArray[np.complex128]
-) -> npt.NDArray[np.complex128]:
+    mtx: npt.NDArray[np.float64], mtx1: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """Kronecker Product."""
     ddd1 = len(mtx)
     ddd2 = len(mtx1)
@@ -187,15 +188,15 @@ def kronecker(
     dot_0_1 = np.tensordot(mtx, mtx1, 0)
     out_mtx = np.swapaxes(dot_0_1, 1, 2)
 
-    retval = out_mtx.reshape(output_shape).astype(np.complex128, copy=False)
+    retval = out_mtx.reshape(output_shape).astype(np.float64, copy=False)
 
     return retval  # type: ignore
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def rotate(
-    rho2: npt.NDArray[np.complex128], unitary: npt.NDArray[np.complex128]
-) -> npt.NDArray[np.complex128]:
+    rho2: npt.NDArray[np.float64], unitary: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
     """Sandwich an operator with a unitary."""
 
     rho2a = np.dot(rho2, np.conj(unitary).T)  # matmul replaced with dot

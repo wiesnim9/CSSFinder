@@ -1,0 +1,29 @@
+{
+    "version": "1.0.0",
+    "meta": {
+        "author": "Example",
+        "email": "example@example.com",
+        "name": "5qubits",
+        "description": "Project description",
+        "version": "1.0.0"
+    },
+    "resources": {
+        "initial_state": {
+            "file": "{project.directory}/proj_in.mtx",
+            "depth": null,
+            "quantity": null
+        },
+        "symmetries": null,
+        "projection": null
+    },
+    "algorithm": {
+        "type": "Gilbert",
+        "mode": "SBiPi",
+        "backend": "numpy",
+        "precision": "full",
+        "visibility": 0.4,
+        "max_epochs": 1000,
+        "iters_per_epoch": 1000,
+        "max_corrections": 1000
+    }
+}

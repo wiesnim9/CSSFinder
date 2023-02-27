@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
 import click
 import pendulum
@@ -54,6 +54,7 @@ from cssfinder.project import (
 def main(verbose: int) -> None:
     """CSSFinder is a script for finding closest separable states."""
     configure_logger(verbosity=verbose, logger_name="cssfinder", use_rich=False)
+    logging.getLogger("numba").setLevel(logging.ERROR)
     logging.info("CSSFinder started at %r", pendulum.now())
 
     if verbose >= 2:

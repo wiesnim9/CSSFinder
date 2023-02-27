@@ -28,6 +28,7 @@ from __future__ import annotations
 from typing import Type
 
 from cssfinder.algorithm.backend.base import BackendBase
+from cssfinder.algorithm.backend.numpy.complex64 import NumPyC64
 from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
 from cssfinder.project.cssfproject import Backend, Precision
 
@@ -35,10 +36,14 @@ from cssfinder.project.cssfproject import Backend, Precision
 def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
     """Select one of the backends with fixed precision."""
     if backend == Backend.NumPy:
-        if precision == Precision.Complex128:
+        if precision == Precision.DOUBLE:
             return NumPyC128
+        if precision == Precision.FULL:
+            return NumPyC64
 
-    raise UnsupportedBackendError(f"Backend {backend.name!r} not supported.")
+    raise UnsupportedBackendError(
+        f"Backend {backend.name!r} with precision {precision.name!r} not supported."
+    )
 
 
 class UnsupportedBackendError(Exception):

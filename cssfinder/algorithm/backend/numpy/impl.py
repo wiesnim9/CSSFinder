@@ -24,79 +24,84 @@ backends."""
 
 from __future__ import annotations
 
+from typing import Generic, TypeVar
+
 import numpy as np
 import numpy.typing as npt
 from typing_extensions import Protocol
 
+PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
+SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
 
-class Implementation(Protocol):
+
+class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
     """Implementation of Gilbert algorithm utilities with specific precision."""
 
     @staticmethod
     def product(
-        matrix1: npt.NDArray[np.complex128], matrix2: npt.NDArray[np.complex128]
-    ) -> np.float64:
+        matrix1: npt.NDArray[PRIMARY], matrix2: npt.NDArray[PRIMARY]
+    ) -> SECONDARY_co:
         """Calculate scalar product of two matrices."""
         ...
 
     @staticmethod
-    def normalize(mtx: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
+    def normalize(mtx: npt.NDArray[PRIMARY]) -> npt.NDArray[PRIMARY]:
         """Normalization of a vector."""
         ...
 
     @staticmethod
-    def get_random_haar(depth: int) -> npt.NDArray[np.complex128]:
+    def get_random_haar(depth: int) -> npt.NDArray[PRIMARY]:
         """Generate a random vector with Haar measure."""
         ...
 
     @staticmethod
-    def project(mtx1: npt.NDArray[np.complex128]) -> npt.NDArray[np.complex128]:
+    def project(mtx1: npt.NDArray[PRIMARY]) -> npt.NDArray[PRIMARY]:
         """Build a projection from a vector."""
         ...
 
     @staticmethod
-    def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
+    def random_d_fs(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
         """Random n quDit state."""
         ...
 
     @staticmethod
     def optimize_d_fs(
-        rho2: npt.NDArray[np.complex128],
-        rho3: npt.NDArray[np.complex128],
+        rho2: npt.NDArray[PRIMARY],
+        rho3: npt.NDArray[PRIMARY],
         depth: int,
         quantity: int,
         epochs: int,
-    ) -> npt.NDArray[np.complex128]:
+    ) -> npt.NDArray[PRIMARY]:
         """Optimize implementation for FSnQd mode."""
         ...
 
     @staticmethod
     def random_unitary_d_fs(
         depth: int, quantity: int, idx: int
-    ) -> npt.NDArray[np.complex128]:
+    ) -> npt.NDArray[PRIMARY]:
         """N quDits."""
         ...
 
     @staticmethod
     def expand_d_fs(  # pylint: disable=invalid-name
-        value: npt.NDArray[np.complex128],
+        value: npt.NDArray[PRIMARY],
         depth: int,
         quantity: int,
         idx: int,
-    ) -> npt.NDArray[np.complex128]:
+    ) -> npt.NDArray[PRIMARY]:
         """Expand an operator to n quDits."""
         ...
 
     @staticmethod
     def kronecker(
-        mtx: npt.NDArray[np.complex128], mtx1: npt.NDArray[np.complex128]
-    ) -> npt.NDArray[np.complex128]:
+        mtx: npt.NDArray[PRIMARY], mtx1: npt.NDArray[PRIMARY]
+    ) -> npt.NDArray[PRIMARY]:
         """Kronecker Product."""
         ...
 
     @staticmethod
     def rotate(
-        rho2: npt.NDArray[np.complex128], unitary: npt.NDArray[np.complex128]
-    ) -> npt.NDArray[np.complex128]:
+        rho2: npt.NDArray[PRIMARY], unitary: npt.NDArray[PRIMARY]
+    ) -> npt.NDArray[PRIMARY]:
         """Sandwich an operator with a unitary."""
         ...

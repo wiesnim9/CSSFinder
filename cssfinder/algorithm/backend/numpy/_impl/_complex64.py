@@ -17,16 +17,23 @@
 # HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+#
+# ------------------------------------------------------------------------------------ #
+#                                                                                      #
+#   THIS FILE WAS AUTOMATICALLY GENERATED FROM TEMPLATE. DO NOT MODIFY.                #
+#                                                                                      #
+#   To modify this file, modify `scripts/templates/numpy.pyjinja2` and                 #
+#   use `poe gen-numpy-impl` to generate python files.                                 #
+#                                                                                      #
+# ------------------------------------------------------------------------------------ #
+#
 """This module contains implementation of backend operations in numpy.
 
 Spec
 ----
 
-- Primary precision:    np.complex64
 - Floating precision:   np.float32
 - Complex precision:    np.complex64
-
 """
 
 from __future__ import annotations
@@ -77,7 +84,9 @@ def product(
 ) -> np.float32:
     """Calculate scalar product of two matrices."""
 
-    return np.trace(np.dot(matrix1, matrix2)).real  # type: ignore
+    retval = np.trace(np.dot(matrix1, matrix2)).real
+
+    return retval  # type: ignore
 
 
 @jit(forceobj=True, cache=True)
@@ -93,13 +102,14 @@ def random_unitary_d_fs(
 
 _REAL = np.cos(0.01 * np.pi)
 _IMAG = 1j * np.sin(0.01 * np.pi)
-_VALUE = _REAL + _IMAG - 1
+_VALUE = (_REAL + _IMAG - 1).astype(np.complex64)
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex64]:
     random_mtx = random_d_fs(depth, 1)
-    identity_mtx = np.identity(depth)
+
+    identity_mtx = np.identity(depth).astype(np.float32)
 
     rand_mul = np.multiply(_VALUE, random_mtx)
 
@@ -137,7 +147,9 @@ def normalize(mtx: npt.NDArray[np.complex64]) -> npt.NDArray[np.complex64]:
     """Normalization of a vector."""
 
     mtx2 = np.dot(mtx, np.conj(mtx))
+
     val = np.sqrt(np.real(mtx2))
+
     retval = mtx / val
 
     return retval  # type: ignore
@@ -162,17 +174,16 @@ def expand_d_fs(
     """Expand an operator to n quDits."""
 
     depth_1 = int(depth**idx)
-    identity_1 = np.identity(depth_1).astype(np.complex64, copy=False)
+    identity_1 = np.identity(depth_1, dtype=np.complex64)
 
     depth_2 = int(depth ** (quantity - idx - 1))
-    identity_2 = np.identity(depth_2).astype(np.complex64, copy=False)
+    identity_2 = np.identity(depth_2, dtype=np.complex64)
 
     kronecker_1 = kronecker(identity_1, value)
+
     kronecker_2 = kronecker(kronecker_1, identity_2)
 
-    retval = kronecker_2.astype(np.complex64, copy=False)
-
-    return retval  # type: ignore
+    return kronecker_2  # type: ignore
 
 
 @jit(forceobj=True, cache=True)
@@ -184,7 +195,9 @@ def kronecker(
     ddd2 = len(mtx1)
 
     output_shape = (ddd1 * ddd2, ddd1 * ddd2)
+
     dot_0_1 = np.tensordot(mtx, mtx1, 0)
+
     out_mtx = np.swapaxes(dot_0_1, 1, 2)
 
     retval = out_mtx.reshape(output_shape).astype(np.complex64, copy=False)

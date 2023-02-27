@@ -16,11 +16,10 @@ numpy = "^1.23.0"
 numba = "^0.56.4"
 pendulum = "^2.1.2"
 scipy = "^1.9.3"
-pydantic = "^1.10.5"
-packaging = "^23.0"
-email-validator = "^1.3.1"
+pydantic = { extras = ["email"], version = "^1.10.5" }
 typing-extensions = "^4.5.0"
 rich = "^13.3.1"
+pylint = "^2.16.2"
 
 [tool.poetry.group.dev.dependencies] # ANCHOR: tool.poetry.dev-dependencies
 black = "^22.12.0"
@@ -73,7 +72,7 @@ line_length = 88
 [tool.black] # ANCHOR: tool.black
 # https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-format
 line-length = 88
-target-version = ['py39']
+target-version = ['py38', 'py39', 'py310', 'py311']
 extend-exclude = "(external)"
 
 [tool.docformatter]
@@ -88,11 +87,11 @@ blank = true
 #            https://mypy.readthedocs.io/en/stable/command_line.html           #
 #          https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html          #
 # ---------------------------------------------------------------------------- #
-python_version = "3.9"
+python_version = "3.8"
 # A regular expression that matches file names, directory names and paths which
 # mypy should ignore while recursively discovering files to check. Use forward
 #slashes (/) as directory separators on all platforms.
-exclude = ["external", ".tox"]
+exclude = ["external", ".tox", ".venv", ".vscode"]
 # ---------------------------------------------------------------------------- #
 #                               Import discovery                               #
 # ---------------------------------------------------------------------------- #
@@ -223,7 +222,7 @@ show_absolute_path = true
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
-extension-pkg-allow-list = ["pydantic", "black"]
+extension-pkg-allow-list = ["pydantic"]
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code. (This is an alternative name to extension-pkg-allow-list
@@ -250,7 +249,7 @@ ignore-patterns = ["^\\.#"]
 # for modules/projects where namespaces are manipulated during runtime and thus
 # existing member attributes cannot be deduced by static analysis). It supports
 # qualified module names, as well as Unix pattern matching.
-# ignored-modules =
+ignored-modules = ["black"]
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
 # init-hook =
@@ -417,7 +416,7 @@ min-public-methods = 0
 
 [tool.pylint.exceptions] # ANCHOR: tool.pylint.exceptions
 # Exceptions that will emit a warning when caught.
-overgeneral-exceptions = ["BaseException", "Exception"]
+overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
 
 [tool.pylint.format] # ANCHOR: tool.pylint.format
 # Expected format of line ending, e.g. empty (any line ending), LF or CRLF.

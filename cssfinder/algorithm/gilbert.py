@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Optional
 
 import numpy as np
@@ -58,6 +59,7 @@ class Gilbert:
 
     def run(self, epochs: int, iterations: int, max_corrections: int) -> None:
         """Run epochs of iterations each, or up to max_corrections found."""
+        start = perf_counter()
         total_iterations = epochs * iterations
 
         for epoch_index in range(epochs):
@@ -67,7 +69,9 @@ class Gilbert:
                 epochs,
                 ((epoch_index + 1) / epochs) * 100,
                 self.backend.corrections_count,
-                self.backend.corrections[-1][2] if self.backend.corrections_count > 0 else None
+                self.backend.corrections[-1][2]
+                if self.backend.corrections_count > 0
+                else None,
             )
             # Run N iterations of algorithm without checking stop conditions.
             self.backend.run_epoch(iterations, epoch_index)
@@ -89,6 +93,9 @@ class Gilbert:
 
         self._state = self.backend.state
         self._corrections = self.backend.corrections
+
+        end = perf_counter()
+        logging.info("Elapsed time: %r.", end - start)
 
     @property
     def state(self) -> npt.NDArray[np.complex128]:

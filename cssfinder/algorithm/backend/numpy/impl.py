@@ -23,13 +23,14 @@
 backends."""
 
 from __future__ import annotations
+
 from typing import Generic, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 from typing_extensions import Protocol
 
-PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64, np.float64, np.float32)
+PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
 
 

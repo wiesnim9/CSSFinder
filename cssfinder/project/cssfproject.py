@@ -263,16 +263,10 @@ class Precision(_CIEnum):
 
     # pylint: disable=invalid-name
 
-    Float64 = "Float64"
-    """64bit floating point without complex values."""
-
-    Float32 = "Float32"
-    """32bit floating point without complex values."""
-
-    Complex128 = "Complex128"
+    DOUBLE = "double"
     """64 bit floating point real part with 64 bit floating point complex value."""
 
-    Complex64 = "Complex64"
+    FULL = "full"
     """32 bit floating point real part with 32 bit floating point complex value."""
 
     # pylint: enable=invalid-name

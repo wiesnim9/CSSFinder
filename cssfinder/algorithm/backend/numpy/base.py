@@ -23,11 +23,11 @@
 specific precision."""
 
 from __future__ import annotations
+
 from typing import Generic, Type, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
-
 from numba import jit
 
 from cssfinder.algorithm.backend.base import BackendBase
@@ -35,8 +35,7 @@ from cssfinder.algorithm.backend.numpy.impl import Implementation
 from cssfinder.io.asset_loader import State
 from cssfinder.project.cssfproject import AlgoMode
 
-
-PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64, np.float64, np.float32)
+PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
 
 

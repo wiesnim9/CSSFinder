@@ -80,10 +80,8 @@ class AssetLoader:
 
             if old_quantity is not None:
                 logging.warning(
-                    (
-                        "State quantity (%r) was ignored, as depth is None, "
-                        + "quantity of %r was deduced."
-                    ),
+                    "State quantity (%r) was ignored, as depth is None, quantity of %r \
+                        was deduced.",
                     old_quantity,
                     quantity,
                 )

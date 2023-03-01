@@ -152,11 +152,12 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
 {% endif %}def random_d_fs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Random n quDit state."""
-    vector = normalize(get_random_haar(depth))
+    rand_vectors = get_random_haar(depth, quantity)
+    vector = normalize(rand_vectors[0])
     {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
 
-    for _ in range(quantity - 1):
-        idx_vector = normalize(get_random_haar(depth))
+    for i in range(quantity - 1):
+        idx_vector = normalize(rand_vectors[i])
         {% if debug_dtype_checks %}assert_dtype(idx_vector, {{complex}}){% endif %}
 
         vector = np.outer(vector, idx_vector).flatten()
@@ -169,13 +170,22 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def get_random_haar(depth: int) -> npt.NDArray[{{complex}}]:
+{% endif %}def get_random_haar(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Generate a random vector with Haar measure."""
-    real = np.random.normal(0, 1, depth)
-    imaginary = np.random.normal(0, 1, depth)
-    # Complex128 is a correct type returned from this expression.
-    # Checked on numpy 1.23.5
-    return (real + 1j * imaginary).astype({{complex}})  # type: ignore
+
+    real = np.random.uniform(0, 1, (quantity, depth))
+    imag = np.random.uniform(0, 1, (quantity, depth))
+
+    retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+    {% if is_32bit %}
+    {# np.random.uniform return np.float64 so cast is only needed when using complex64, #}
+    {# as real * imag results in np.complex128 type. #}
+    retval = (retval).astype({{complex}})
+    {% endif %}
+
+    {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
+
+    return retval  # type: ignore
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)

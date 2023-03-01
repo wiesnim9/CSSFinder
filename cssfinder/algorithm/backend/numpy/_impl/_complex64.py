@@ -57,11 +57,13 @@ def optimize_d_fs(
 
     # To make sure rotated_2 is not unbound
     unitary = random_unitary_d_fs(depth, quantity, 0)
+
     rotated_2 = rotate(rho2, unitary)
 
     for idx in range(epochs):
         idx_mod = idx % int(quantity)
         unitary = random_unitary_d_fs(depth, quantity, idx_mod)
+
         rotated_2 = rotate(rho2, unitary)
 
         product_rot2_3 = product(rotated_2, rho3)
@@ -73,6 +75,7 @@ def optimize_d_fs(
         while (new_product_2_3 := product_rot2_3) > product_2_3:
             product_2_3 = new_product_2_3
             rotated_2 = rotate(rotated_2, unitary)
+
             product_rot2_3 = product(rotated_2, rho3)
 
     return rotated_2.astype(np.complex64, copy=False)  # type: ignore
@@ -95,6 +98,7 @@ def random_unitary_d_fs(
 ) -> npt.NDArray[np.complex64]:
     """N quDits."""
     value = _random_unitary_d_fs_val(depth)
+
     mtx = expand_d_fs(value, depth, quantity, idx)
 
     return mtx  # type: ignore
@@ -121,10 +125,12 @@ def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex64]:
 @jit(nopython=True, nogil=True, cache=True)
 def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
     """Random n quDit state."""
-    vector = normalize(get_random_haar(depth))
+    rand_vectors = get_random_haar(depth, quantity)
+    vector = normalize(rand_vectors[0])
 
-    for _ in range(quantity - 1):
-        idx_vector = normalize(get_random_haar(depth))
+    for i in range(quantity - 1):
+        idx_vector = normalize(rand_vectors[i])
+
         vector = np.outer(vector, idx_vector).flatten()
 
     vector = project(vector)
@@ -133,13 +139,17 @@ def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def get_random_haar(depth: int) -> npt.NDArray[np.complex64]:
+def get_random_haar(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
     """Generate a random vector with Haar measure."""
-    real = np.random.normal(0, 1, depth)
-    imaginary = np.random.normal(0, 1, depth)
-    # Complex128 is a correct type returned from this expression.
-    # Checked on numpy 1.23.5
-    return (real + 1j * imaginary).astype(np.complex64)  # type: ignore
+
+    real = np.random.uniform(0, 1, (quantity, depth))
+    imag = np.random.uniform(0, 1, (quantity, depth))
+
+    retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+
+    retval = (retval).astype(np.complex64)
+
+    return retval  # type: ignore
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -191,6 +201,7 @@ def kronecker(
     mtx: npt.NDArray[np.complex64], mtx1: npt.NDArray[np.complex64]
 ) -> npt.NDArray[np.complex64]:
     """Kronecker Product."""
+
     ddd1 = len(mtx)
     ddd2 = len(mtx1)
 
@@ -212,6 +223,7 @@ def rotate(
     """Sandwich an operator with a unitary."""
 
     rho2a = np.dot(rho2, np.conj(unitary).T)  # matmul replaced with dot
+
     rho2a = np.dot(unitary, rho2a)  # matmul replaced with dot
 
     return rho2a  # type: ignore

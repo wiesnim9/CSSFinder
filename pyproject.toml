@@ -19,11 +19,10 @@ scipy = "^1.9.3"
 pydantic = { extras = ["email"], version = "^1.10.5" }
 typing-extensions = "^4.5.0"
 rich = "^13.3.1"
-pylint = "^2.16.2"
 
 [tool.poetry.group.dev.dependencies] # ANCHOR: tool.poetry.dev-dependencies
 black = "^22.12.0"
-pylint = "^2.15.9"
+pylint = "^2.16.2"
 isort = "^5.11.4"
 docformatter = { extras = ["tomli"], version = "^1.5.1" }
 pytest = "^7.2.0"
@@ -489,7 +488,7 @@ confidence = [
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
-disable = ["logging-too-many-args", "unnecessary-ellipsis"]
+disable = ["logging-too-many-args", "unnecessary-ellipsis", "duplicate-code"]
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where it

@@ -125,10 +125,12 @@ def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex128]:
 @jit(nopython=True, nogil=True, cache=True)
 def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
     """Random n quDit state."""
-    vector = normalize(get_random_haar(depth))
+    rand_vectors = get_random_haar(depth, quantity)
+    vector = normalize(rand_vectors[0])
 
-    for _ in range(quantity - 1):
-        idx_vector = normalize(get_random_haar(depth))
+    for i in range(quantity - 1):
+        idx_vector = normalize(rand_vectors[i])
+
         vector = np.outer(vector, idx_vector).flatten()
 
     vector = project(vector)
@@ -137,13 +139,15 @@ def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
 
 
 @jit(nopython=True, nogil=True, cache=True)
-def get_random_haar(depth: int) -> npt.NDArray[np.complex128]:
+def get_random_haar(depth: int, quantity: int) -> npt.NDArray[np.complex128]:
     """Generate a random vector with Haar measure."""
-    real = np.random.normal(0, 1, depth)
-    imaginary = np.random.normal(0, 1, depth)
-    # Complex128 is a correct type returned from this expression.
-    # Checked on numpy 1.23.5
-    return (real + 1j * imaginary).astype(np.complex128)  # type: ignore
+
+    real = np.random.uniform(0, 1, (quantity, depth))
+    imag = np.random.uniform(0, 1, (quantity, depth))
+
+    retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+
+    return retval  # type: ignore
 
 
 @jit(nopython=True, nogil=True, cache=True)

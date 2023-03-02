@@ -32,8 +32,8 @@ from numba import jit
 
 from cssfinder.algorithm.backend.base import BackendBase
 from cssfinder.algorithm.backend.numpy.impl import Implementation
+from cssfinder.cssfproject import AlgoMode
 from cssfinder.io.asset_loader import State
-from cssfinder.project.cssfproject import AlgoMode
 
 PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
@@ -140,17 +140,14 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         aa2: SECONDARY_co = 2 * self.impl.product(self._visibility, alternative_state)
         aa5: SECONDARY_co = 2 * self.impl.product(self._intermediate, alternative_state)
 
-        param: SECONDARY_co = -(-self._aa4 + aa2 + aa5 - 2 * aa3) / (
-            2 * (self._aa6 - aa5 + aa3)
-        )
+        bb2: SECONDARY_co = -self._aa4 + aa2 + aa5 - 2 * aa3
+        bb3: SECONDARY_co = self._aa6 - aa5 + aa3
+        cc1: SECONDARY_co = -bb2 / (2 * bb3)
 
-        if 0 <= param <= 1:
-            inv_alternative_state: npt.NDArray[PRIMARY] = cast(
-                npt.NDArray[PRIMARY], ((1 - param) * alternative_state)
-            )
+        if 0 <= cc1 <= 1:
             self._intermediate = cast(
                 npt.NDArray[PRIMARY],
-                (param * self._intermediate) + inv_alternative_state,
+                (cc1 * self._intermediate) + ((1 - cc1) * alternative_state),
             )
 
             self._visibility_reduced = cast(

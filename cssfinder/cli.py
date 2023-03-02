@@ -31,14 +31,14 @@ import click
 import pendulum
 
 import cssfinder
-from cssfinder.algorithm.gilbert import Gilbert
-from cssfinder.io.asset_loader import AssetLoader
-from cssfinder.log import configure_logger
-from cssfinder.project import (
+from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
+from cssfinder.api import run_project_file
+from cssfinder.cssfproject import (
     InvalidCSSFProjectContent,
     MalformedProjectFileError,
-    load_project_from,
+    ProjectFileNotFound,
 )
+from cssfinder.log import configure_logger
 
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
@@ -72,20 +72,18 @@ def main(verbose: int) -> None:
 
 @main.command("project")
 @click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
-@click.option("--force-squash", is_flag=True, default=False)
-def _project(path: str, force_squash: bool) -> None:
+@click.option("--tasks", "-t", multiple=True)
+def _project(path: str, tasks: Optional[list[str]]) -> None:
     """Use project file to determine runtime configuration."""
 
+    if not tasks:
+        tasks = None
+
     try:
-        project = load_project_from(path)
-        logging.info(
-            "Loaded project %r by %r <%r>.",
-            project.meta.name,
-            project.meta.author,
-            project.meta.email,
-        )
-    except FileNotFoundError as exc:
-        logging.critical("Project file not found.")
+        run_project_file(path, tasks)
+
+    except ProjectFileNotFound as exc:
+        logging.critical("Project file not found. %s", exc.args[0])
         raise SystemExit(300_000) from exc
 
     except MalformedProjectFileError as exc:
@@ -99,26 +97,13 @@ def _project(path: str, force_squash: bool) -> None:
         logging.critical("Fix it and try again.")
         raise SystemExit(302_000) from exc
 
-    project.info_display()
+    except SaveStateHookError as exc:
+        logging.exception(exc)
+        raise SystemExit(303_000) from exc
 
-    asset_loader = AssetLoader(project)
-    state = asset_loader.load_initial_state(force_squash)
-
-    algorithm = Gilbert(
-        state,
-        mode=project.algorithm.mode,
-        backend=project.algorithm.backend,
-        precision=project.algorithm.precision,
-        visibility=project.algorithm.visibility,
-    )
-    algorithm.run(
-        epochs=project.algorithm.max_epochs,
-        iterations=project.algorithm.iters_per_epoch,
-        max_corrections=project.algorithm.max_corrections,
-    )
-
-    asset_loader.save_output_state(algorithm.state)
-    asset_loader.save_output_corrections(algorithm.corrections)
+    except SaveCorrectionsHookError as exc:
+        logging.exception(exc)
+        raise SystemExit(303_000) from exc
 
     raise SystemExit(0)
 

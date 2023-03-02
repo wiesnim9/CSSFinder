@@ -19,32 +19,25 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""Backend is an implementation of Gilbert algorithm implemented with specific tools and
-supporting various precisions of operation."""
-
+"""This module contains utility enums used within the cssfinder project."""
 
 from __future__ import annotations
 
-from typing import Type
+from enum import Enum
+from typing import TYPE_CHECKING
 
-from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.algorithm.backend.numpy.complex64 import NumPyC64
-from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
-from cssfinder.cssfproject import Backend, Precision
-
-
-def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
-    """Select one of the backends with fixed precision."""
-    if backend == Backend.NumPy:
-        if precision == Precision.DOUBLE:
-            return NumPyC128
-        if precision == Precision.SINGLE:
-            return NumPyC64
-
-    raise UnsupportedBackendError(
-        f"Backend {backend.name!r} with precision {precision.name!r} not supported."
-    )
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 
-class UnsupportedBackendError(Exception):
-    """Raised for unsupported backend type."""
+class CaseInsensitiveEnum(Enum):
+    """Case insensitive enum base class."""
+
+    @classmethod
+    def _missing_(cls, value: object) -> Self:
+        name = str(value)
+        for member in cls:
+            if member.name.casefold() == name.casefold():
+                return member
+
+        raise AttributeError(f"No enum value matches name {name!r}.")

@@ -30,8 +30,8 @@ from typing import Type, TypeVar
 import numpy as np
 import numpy.typing as npt
 
+from cssfinder.cssfproject import AlgoMode, Backend, Precision
 from cssfinder.io.asset_loader import State
-from cssfinder.project.cssfproject import AlgoMode, Backend, Precision
 
 BackendT = TypeVar("BackendT", bound="BackendBase")
 

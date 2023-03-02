@@ -7,23 +7,54 @@
         "description": "Project description",
         "version": "1.0.0"
     },
-    "resources": {
-        "initial_state": {
-            "file": "{project.directory}/5qubits_in.mtx",
-            "depth": null,
-            "quantity": null
-        },
-        "symmetries": null,
-        "projection": null
+    "execution": {
+        "process_pool_size": "auto"
     },
-    "algorithm": {
-        "type": "Gilbert",
-        "mode": "FSnQd",
-        "backend": "numpy",
-        "precision": "full",
-        "visibility": 0.4,
-        "max_epochs": 1000,
-        "iters_per_epoch": 20000,
-        "max_corrections": 1000
+    "tasks": {
+        "0": {
+            "gilbert": {
+                "mode": "FSnQd",
+                "backend": {
+                    "name": "numpy",
+                    "precision": "single"
+                },
+                "runtime": {
+                    "visibility": 0.4,
+                    "max_epochs": 1000,
+                    "iters_per_epoch": 2000,
+                    "max_corrections": 1000
+                },
+                "state": {
+                    "file": "{project.directory}/5qubits_in.mtx",
+                    "depth": null,
+                    "quantity": null
+                },
+                "resources": {
+                    "symmetries": null,
+                    "projection": null
+                }
+            }
+        },
+        "1": {
+            "gilbert": {
+                "mode": {
+                    "$ref": "#/tasks/0/gilbert/mode"
+                },
+                "backend": {
+                    "$ref": "#/tasks/0/gilbert/backend"
+                },
+                "runtime": {
+                    "$ref": "#/tasks/0/gilbert/runtime"
+                },
+                "state": {
+                    "file": "{project.directory}/5qubits_in.mtx",
+                    "depth": null,
+                    "quantity": null
+                },
+                "resources": {
+                    "$ref": "#/tasks/0/gilbert/resources"
+                }
+            }
+        }
     }
 }

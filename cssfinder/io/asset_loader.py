@@ -24,33 +24,50 @@ compatible with CSSFProject in version 1.0.0."""
 
 from __future__ import annotations
 
-import json
 import logging
 import math
-import operator
 from dataclasses import dataclass
-from functools import reduce
+from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
+from pydantic import BaseModel
 
 from cssfinder.constants import PRIMES
+from cssfinder.cssfproject import GilbertCfg
 from cssfinder.io.matrix import MatrixIO
-from cssfinder.project.cssfproject import CSSFProject
 
 
-class AssetLoader:
-    """Provides interface for loading project assets from files."""
+class GilbertAssets(BaseModel):
+    """Container class for assets used by gilbert algorithm."""
 
-    def __init__(self, project: CSSFProject) -> None:
-        self.project = project
+    state: State
+    """Initial state for algorithm."""
 
-    def load_initial_state(self, force_squash: bool = False) -> State:
+    symmetries: Optional[list[npt.NDArray[np.complex128]]]
+    """List of symmetries of state."""
+
+    projection: Optional[npt.NDArray[np.complex128]]
+    """Projection to apply to state."""
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class GilbertAssetLoader:
+    """Loader of Gilbert algorithm assets."""
+
+    def load_assets(self, gilbert_cfg: GilbertCfg) -> GilbertAssets:
         """Load initial state from file indicated by cssfproject configuration."""
+        return GilbertAssets(
+            state=self._load_state(gilbert_cfg),
+            symmetries=self._load_symmetries(gilbert_cfg),
+            projection=self._load_projection(gilbert_cfg),
+        )
 
-        state_props = self.project.resources.initial_state
-        # Replace magic variables with dynamically determined values
-        state_matrix_file_path = self.project.expand_path(state_props.file)
+    def _load_state(self, gilbert_cfg: GilbertCfg) -> State:
+        state_props = gilbert_cfg.get_state()
+        state_matrix_file_path = state_props.file
 
         loader = MatrixIO.new(state_matrix_file_path)
         mtx = loader.load().astype(np.complex128)
@@ -58,25 +75,18 @@ class AssetLoader:
             "Loaded matrix from %r of shape %r", state_matrix_file_path, mtx.shape
         )
 
-        # Forcefully reshape array to match shape criterion
-        if force_squash:
-            total_size = reduce(operator.mul, mtx.shape)
-            one_axis_size = np.sqrt(total_size)
-            mtx = mtx.reshape((one_axis_size, one_axis_size))
-
         # We are expecting loaded ndarray to be a square matrix, all other numbers of
         # dimensions cause crash.
         self._check_matrix_shape(mtx)
 
         total_size = len(mtx)
-
         depth, quantity = state_props.depth, state_props.quantity
 
         # Depth and quantity are optional and we can determine first matching pair
         # of those values based on number of rows in matrix
         if depth is None:
             old_quantity = quantity
-            depth, quantity = self.detect_depth_and_quantity(total_size)
+            depth, quantity = self._detect_depth_and_quantity(total_size)
 
             if old_quantity is not None:
                 logging.warning(
@@ -87,7 +97,7 @@ class AssetLoader:
                 )
 
         elif quantity is None:
-            quantity = self.detect_system_quantity(depth, total_size)
+            quantity = self._detect_system_quantity(depth, total_size)
 
         logging.info(
             "Matrix represents system with depth = %r, quantity = %r", depth, quantity
@@ -125,7 +135,7 @@ class AssetLoader:
             logging.critical("Expected square matrix, but received shape %r", mtx.shape)
             raise IncorrectMatrixShape(mtx)
 
-    def detect_depth_and_quantity(self, total: int) -> tuple[int, int]:
+    def _detect_depth_and_quantity(self, total: int) -> tuple[int, int]:
         """Detect both system depth and system quantity.
 
         Parameters
@@ -159,7 +169,7 @@ class AssetLoader:
             "Couldn't determine size of system, prime number range exceeded."
         )
 
-    def detect_system_quantity(self, depth: int, total: int) -> int:
+    def _detect_system_quantity(self, depth: int, total: int) -> int:
         """Detect system quantity (number of subsystems).
 
         Parameters
@@ -190,49 +200,17 @@ class AssetLoader:
             "False.",
         )
 
-    def load_symmetries(self) -> None:
+    def _load_symmetries(
+        self, gilbert_cfg: GilbertCfg
+    ) -> Optional[list[npt.NDArray[np.complex128]]]:
         """Load matrices describing symmetries of system state."""
+        return None
 
-    def load_projection(self) -> None:
+    def _load_projection(
+        self, gilbert_cfg: GilbertCfg
+    ) -> Optional[npt.NDArray[np.complex128]]:
         """Load matrix describing projection of system state."""
-
-    def save_output_state(self, state: npt.NDArray[np.complex128]) -> None:
-        """Save state in project output state file `state.mtx` in `output` directory of
-        your project.
-
-        Parameters
-        ----------
-        state : npt.NDArray[np.complex128]
-            State matrix to save.
-        """
-        dest = self.project.output / "state.mtx"
-        logging.debug(
-            "Saving output state to %r with matrix size %r",
-            dest.as_posix(),
-            state.shape,
-        )
-        mtx_io = MatrixIO.new(dest)
-        mtx_io.dump(state)
-
-    def save_output_corrections(
-        self, corrections: list[tuple[int, int, float]]
-    ) -> None:
-        """Save corrections in project output state file `corrections.json` in `output`
-        directory of your project.
-
-        Parameters
-        ----------
-        corrections : npt.NDArray[np.complex128]
-            State matrix to save.
-        """
-        dest = self.project.output / "corrections.json"
-        logging.debug(
-            "Saving output state to %r with total corrections %r",
-            dest.as_posix(),
-            len(corrections),
-        )
-        with dest.open("w", encoding="utf-8") as file:
-            json.dump(corrections, file, indent=2)
+        return None
 
 
 @dataclass
@@ -245,7 +223,7 @@ class State:
     depth: int
     """Depth of system, ie.
 
-    (D)imensions in qu(D)it. (d)
+    Dimensions in qu(D)it. (d)
     """
 
     quantity: int
@@ -273,3 +251,6 @@ class NotExpectedVector(IncorrectMatrixShape):
 
 class NotExpectedScalar(IncorrectMatrixShape):
     """Raised when got scalar instead of matrix."""
+
+
+GilbertAssets.update_forward_refs()

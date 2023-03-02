@@ -25,14 +25,14 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import numpy.typing as npt
 
 from cssfinder.algorithm import backend as _backend
+from cssfinder.cssfproject import AlgoMode, Backend, Precision
 from cssfinder.io.asset_loader import State
-from cssfinder.project.cssfproject import AlgoMode, Backend, Precision
 
 
 class Gilbert:
@@ -57,7 +57,15 @@ class Gilbert:
         self._state: Optional[npt.NDArray[np.complex128]] = None
         self._corrections: Optional[list[tuple[int, int, float]]] = None
 
-    def run(self, epochs: int, iterations: int, max_corrections: int) -> None:
+    def run(
+        self,
+        epochs: int,
+        iterations: int,
+        max_corrections: int,
+        *,
+        save_state_hook: Callable[[npt.NDArray[np.complex128]], None],
+        save_corrections_hook: Callable[[list[tuple[int, int, float]]], None],
+    ) -> None:
         """Run epochs of iterations each, or up to max_corrections found."""
         start = perf_counter()
         total_iterations = epochs * iterations
@@ -76,6 +84,23 @@ class Gilbert:
             # Run N iterations of algorithm without checking stop conditions.
             self.backend.run_epoch(iterations, epoch_index)
 
+            self._state = self.backend.state
+            self._corrections = self.backend.corrections
+
+            try:
+                save_state_hook(self._state)
+            except Exception as exc:
+                logging.critical("Exception occurred within save_state_hook() call.")
+                raise SaveStateHookError() from exc
+
+            try:
+                save_corrections_hook(self._corrections)
+            except Exception as exc:
+                logging.critical(
+                    "Exception occurred within save_corrections_hook() call."
+                )
+                raise SaveCorrectionsHookError() from exc
+
             iterations_executed = (epoch_index + 1) * iterations
             logging.debug(
                 "Executed %r iterations, total %r / %r (%.2f)",
@@ -91,9 +116,6 @@ class Gilbert:
                 )
                 break
 
-        self._state = self.backend.state
-        self._corrections = self.backend.corrections
-
         end = perf_counter()
         logging.info("Elapsed time: %r.", end - start)
 
@@ -101,7 +123,7 @@ class Gilbert:
     def state(self) -> npt.NDArray[np.complex128]:
         """Returns correction from saturated algorithm."""
         if self._state is None:
-            raise AlgorithmNotSaturatedError("Run algorithm first to obtain state!")
+            raise AlgorithmNotSaturatedError("Run algorithm first, to obtain state!")
         return self._state
 
     @property
@@ -121,3 +143,15 @@ class AlgorithmError(Exception):
 class AlgorithmNotSaturatedError(Exception):
     """Raised when action was performed on which required algorithm to finish execution
     on instance which was not run."""
+
+
+class HookError(Exception):
+    """Base class for hook error wrappers."""
+
+
+class SaveStateHookError(HookError):
+    """Wrapper for exceptions raised by save_state_hook."""
+
+
+class SaveCorrectionsHookError(HookError):
+    """Wrapper for exceptions raised by save_state_hook."""

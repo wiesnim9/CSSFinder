@@ -57,7 +57,9 @@ class CSSFProject(CommonBaseModel):
 
     _is_evaluated: bool = False
 
-    def __init__(self, meta: Meta, tasks: list[Task] | dict[str, Task]) -> None:
+    def __init__(
+        self, meta: Meta, tasks: list[Task] | dict[str, Task], *_: Any, **_k: Any
+    ) -> None:
         super().__init__(meta=meta, tasks=tasks)
 
     @validator("tasks", pre=True, always=True)

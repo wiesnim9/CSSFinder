@@ -159,8 +159,8 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
             self._corrections.append(
                 (
-                    epoch_index * iterations + iteration_index,
-                    len(self._corrections),
+                    epoch_index * iterations + iteration_index + 1,
+                    len(self._corrections) + 1,
                     float(
                         self.impl.product(
                             self._visibility_reduced,

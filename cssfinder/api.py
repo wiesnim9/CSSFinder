@@ -31,7 +31,11 @@ from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.hooks import save_corrections_hook, save_matrix_hook
 from cssfinder.io.asset_loader import GilbertAssetLoader
 from cssfinder.io.output_loader import GilbertOutputLoader
-from cssfinder.report import create_corrections_plot
+from cssfinder.report import (
+    create_corrections_plot,
+    create_iteration_linear_plot,
+    display_short_report,
+)
 
 
 def run_project_from(
@@ -119,7 +123,18 @@ def create_report(project: CSSFProject, task: str) -> None:
     task_object, *_ = tasks
 
     corrections = GilbertOutputLoader().load_corrections(task_object)
-    create_corrections_plot(corrections)
+
+    axes = create_corrections_plot(corrections)
+    axes.figure.set_figwidth(10)
+    axes.figure.set_figheight(10)
+    axes.figure.savefig((task_object.output / "decay.png").as_posix(), dpi=300)
+
+    axes = create_iteration_linear_plot(corrections)
+    axes.figure.set_figwidth(10)
+    axes.figure.set_figheight(10)
+    axes.figure.savefig((task_object.output / "iterations.png").as_posix(), dpi=300)
+
+    display_short_report(corrections.to_numpy())
 
 
 class AmbiguousTaskKeyError(KeyError):

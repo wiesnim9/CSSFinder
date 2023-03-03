@@ -30,9 +30,11 @@ from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.hooks import save_corrections_hook, save_matrix_hook
 from cssfinder.io.asset_loader import GilbertAssetLoader
+from cssfinder.io.output_loader import GilbertOutputLoader
+from cssfinder.report import create_corrections_plot
 
 
-def run_project_file(
+def run_project_from(
     project_file_path: Path | str, tasks: Optional[list[str]] = None
 ) -> None:
     """Load project and run all tasks."""
@@ -54,15 +56,14 @@ def run_project(project: CSSFProject, tasks: Optional[list[str]] = None) -> None
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
     logging.info("%s", "\n    |  " + message)
 
-    for name, task in project.tasks.items():
-        if tasks is None or name in tasks:
-            run_task(task, project.output / name)
+    for task in project.select_tasks(tasks):
+        run_task(task)
 
 
-def run_task(task: Task, task_output_dir: Path) -> None:
+def run_task(task: Task) -> None:
     """Run task until completed."""
     if task.gilbert:
-        run_gilbert(task.gilbert, task_output_dir)
+        run_gilbert(task.gilbert, task.output)
 
 
 def run_gilbert(config: GilbertCfg, task_output_dir: Path) -> None:
@@ -75,8 +76,8 @@ def run_gilbert(config: GilbertCfg, task_output_dir: Path) -> None:
     algorithm = Gilbert(
         assets.state,
         mode=config.mode,
-        backend=config.backend.name,
-        precision=config.backend.precision,
+        backend=config.get_backend().name,
+        precision=config.get_backend().precision,
         visibility=config.runtime.visibility,
     )
     algorithm.run(
@@ -88,3 +89,38 @@ def run_gilbert(config: GilbertCfg, task_output_dir: Path) -> None:
             task_output_dir / "corrections.json"
         ),
     )
+
+
+def create_report_from(project_file_path: Path | str, task: str) -> None:
+    """Load project (`cssfproject.json`) and create report for task selected by
+    pattern."""
+    project = CSSFProject.load_project(project_file_path)
+    logging.info(
+        "Loaded project %r by %r <%r>.",
+        project.meta.name,
+        project.meta.author,
+        project.meta.email,
+    )
+    create_report(project, task)
+
+
+def create_report(project: CSSFProject, task: str) -> None:
+    """Create report for task selected by pattern from project object."""
+
+    tasks = project.select_tasks([task])
+
+    if len(tasks) > 1:
+        matched_tasks_names = [t.name for t in tasks]
+        raise AmbiguousTaskKeyError(
+            f"Pattern {task!r} matches more than one task ({len(tasks)}): "
+            f"{matched_tasks_names!r}"
+        )
+
+    task_object, *_ = tasks
+
+    corrections = GilbertOutputLoader().load_corrections(task_object)
+    create_corrections_plot(corrections)
+
+
+class AmbiguousTaskKeyError(KeyError):
+    """Raised during report creation when name pattern selects more than one task."""

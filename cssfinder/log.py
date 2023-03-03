@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from logging import LogRecord, handlers
+from logging import LogRecord, getLogger, handlers
 from pathlib import Path
 from typing import Any, Optional
 
@@ -124,6 +124,12 @@ def configure_logger(
     # Console logging handler - variable log level
     stream_handler = _create_stream_handler(verbosity, use_rich)
     logger.addHandler(stream_handler)
+
+    matplotlib_logger = getLogger("matplotlib")
+    matplotlib_logger.setLevel(logging.WARNING)
+
+    pandas_logger = getLogger("pandas")
+    pandas_logger.setLevel(logging.WARNING)
 
 
 def _create_stream_handler(verbosity: int, use_rich: bool) -> logging.Handler:

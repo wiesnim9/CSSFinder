@@ -32,7 +32,7 @@ import pendulum
 
 import cssfinder
 from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
-from cssfinder.api import run_project_file
+from cssfinder.api import AmbiguousTaskKeyError, create_report_from, run_project_from
 from cssfinder.cssfproject import (
     InvalidCSSFProjectContent,
     MalformedProjectFileError,
@@ -70,17 +70,29 @@ def main(verbose: int) -> None:
         )
 
 
-@main.command("project")
+@main.group("project")
+@click.pass_context
 @click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
-@click.option("--tasks", "-t", multiple=True)
-def _project(path: str, tasks: Optional[list[str]]) -> None:
-    """Use project file to determine runtime configuration."""
+def _project(ctx: click.Context, path: str) -> None:
+    ctx.obj = path
+
+
+@_project.command("run")
+@click.option(
+    "--tasks",
+    "-t",
+    multiple=True,
+    help="Use to specify names of tasks to run. When omitted, all tasks are executed.",
+)
+@click.pass_obj
+def _run(path: str, tasks: Optional[list[str]]) -> None:
+    """Run tasks from the project."""
 
     if not tasks:
         tasks = None
 
     try:
-        run_project_file(path, tasks)
+        run_project_from(path, tasks)
 
     except ProjectFileNotFound as exc:
         logging.critical("Project file not found. %s", exc.args[0])
@@ -106,6 +118,24 @@ def _project(path: str, tasks: Optional[list[str]]) -> None:
         raise SystemExit(303_000) from exc
 
     raise SystemExit(0)
+
+
+@_project.command("task-report")
+@click.argument(
+    "task",
+)
+@click.pass_obj
+def _task_report(path: Path, task: str) -> None:
+    """Create short report for task.
+
+    TASK - name pattern matching exactly one task, for which report should be created.
+    """
+    try:
+        create_report_from(path, task)
+
+    except AmbiguousTaskKeyError as exc:
+        logging.critical(exc.args[0])
+        raise SystemExit(304_00) from exc
 
 
 @main.command()

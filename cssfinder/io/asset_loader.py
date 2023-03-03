@@ -31,14 +31,14 @@ from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel
 
+from cssfinder.base_model import CommonBaseModel
 from cssfinder.constants import PRIMES
 from cssfinder.cssfproject import GilbertCfg
 from cssfinder.io.matrix import MatrixIO
 
 
-class GilbertAssets(BaseModel):
+class GilbertAssets(CommonBaseModel):
     """Container class for assets used by gilbert algorithm."""
 
     state: State
@@ -49,9 +49,6 @@ class GilbertAssets(BaseModel):
 
     projection: Optional[npt.NDArray[np.complex128]]
     """Projection to apply to state."""
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class GilbertAssetLoader:
@@ -201,13 +198,13 @@ class GilbertAssetLoader:
         )
 
     def _load_symmetries(
-        self, gilbert_cfg: GilbertCfg
+        self, gilbert_cfg: GilbertCfg  # pylint: disable=unused-argument
     ) -> Optional[list[npt.NDArray[np.complex128]]]:
         """Load matrices describing symmetries of system state."""
         return None
 
     def _load_projection(
-        self, gilbert_cfg: GilbertCfg
+        self, gilbert_cfg: GilbertCfg  # pylint: disable=unused-argument
     ) -> Optional[npt.NDArray[np.complex128]]:
         """Load matrix describing projection of system state."""
         return None

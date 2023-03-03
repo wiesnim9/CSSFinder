@@ -28,20 +28,22 @@ This file contains implementation of project configuration in 1.0.0 version.
 
 from __future__ import annotations
 
+import fnmatch
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 import jsonref
-from pydantic import BaseModel, ConstrainedStr, EmailStr, Extra, Field, validator
+from pydantic import ConstrainedStr, EmailStr, Field, validator
 
+from cssfinder.base_model import CommonBaseModel
 from cssfinder.enums import CaseInsensitiveEnum
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
 
-class CSSFProject(BaseModel):
+class CSSFProject(CommonBaseModel):
     """CSSFProject file specification."""
 
     meta: Meta
@@ -55,10 +57,8 @@ class CSSFProject(BaseModel):
 
     _is_evaluated: bool = False
 
-    class Config:
-        validate_assignment = True
-        extra = Extra.ignore
-        underscore_attrs_are_private = True
+    def __init__(self, meta: Meta, tasks: list[Task] | dict[str, Task]) -> None:
+        super().__init__(meta=meta, tasks=tasks)
 
     @validator("tasks", pre=True, always=True)
     @classmethod
@@ -73,8 +73,12 @@ class CSSFProject(BaseModel):
 
     def eval_dynamic(self) -> None:
         """Evaluate dynamic path expressions."""
+        if self._is_evaluated:
+            return
+
         for task_name, task in self.tasks.items():
             task.eval_dynamic(self, task_name, task)
+
         self._is_evaluated = True
 
     def set_file_path(self, file: Path) -> None:
@@ -156,8 +160,21 @@ class CSSFProject(BaseModel):
 
         project = cls(**content)
         project.set_file_path(file_path)
+        project.eval_dynamic()
 
         return project
+
+    def select_tasks(self, patterns: Optional[list[str]] = None) -> list[Task]:
+        """Select all tasks matching list of patterns."""
+        if patterns is None:
+            return list(self.tasks.values())
+
+        keys = set()
+
+        for pattern in patterns:
+            keys.update(fnmatch.filter(self.tasks.keys(), pattern))
+
+        return [self.tasks[k] for k in keys]
 
 
 class InvalidCSSFProjectContent(ValueError):
@@ -172,7 +189,7 @@ class ProjectFileNotFound(FileNotFoundError):
     """Raised when project file can't be found in expected place."""
 
 
-class Meta(BaseModel):
+class Meta(CommonBaseModel):
     """Project meta information."""
 
     author: str
@@ -201,26 +218,47 @@ class SemVerStr(ConstrainedStr):
     )
 
 
-class Task(BaseModel):
+class Task(CommonBaseModel):
     """This represents algorithm task."""
 
     gilbert: Optional[GilbertCfg] = Field(default=None)
     """Configuration of gilbert algorithm."""
 
+    _output: Path = Field(default=Path.cwd())
+    """Path default output directory."""
+
+    _task_name: str = Field(default="")
+    """Name of task assigned to it in project."""
+
+    @property
+    def output(self) -> Path:
+        """Path to output directory of task."""
+        return self._output
+
+    @property
+    def name(self) -> str:
+        """Name of this task in project."""
+        return self._task_name
+
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
         """Evaluate dynamic path expressions."""
         if self.gilbert is not None:
             self.gilbert.eval_dynamic(project, task_name, task)
+            self._output = project.output / task_name
+            self._task_name = task_name
 
 
-class GilbertCfg(BaseModel):
+class GilbertCfg(CommonBaseModel):
     """Gilbert algorithm configuration container class."""
 
     mode: AlgoMode
     """Algorithm mode to use."""
 
-    backend: BackendCfg
-    """Configuration of backend which will be used for execution."""
+    backend: Optional[BackendCfg] = Field(default=None)
+    """Configuration of backend which will be used for execution.
+
+    When backend configuration is not specified, numpy with double precision is used.
+    """
 
     state: State | str | Path
     """Path to file containing initial state matrix."""
@@ -228,8 +266,34 @@ class GilbertCfg(BaseModel):
     runtime: RuntimeCfg
     """Configuration of runtime limits and parameters influencing algorithm run time."""
 
-    resources: Resources
+    resources: Optional[Resources] = Field(default=None)
     """Additional resources which may be used by algorithm."""
+
+    @validator("resources", pre=True)
+    @classmethod
+    def _use_default_resources(cls, value: Optional[Resources]) -> Resources:
+        if value is None:
+            return Resources()
+        return value
+
+    @validator("backend", pre=True)
+    @classmethod
+    def _use_default_backend(cls, value: Optional[BackendCfg]) -> BackendCfg:
+        if value is None:
+            return BackendCfg(name=Backend.NumPy, precision=Precision.DOUBLE)
+        return value
+
+    def get_backend(self) -> BackendCfg:
+        """Return resources object."""
+        if self.backend is None:
+            raise TypeError("Missing backend object.")
+        return self.backend
+
+    def get_resources(self) -> Resources:
+        """Return resources object."""
+        if self.resources is None:
+            raise TypeError("Missing resources object.")
+        return self.resources
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
         """Evaluate dynamic path expressions."""
@@ -241,7 +305,7 @@ class GilbertCfg(BaseModel):
             self.state = State(file=self.state.expanduser().resolve().as_posix())
 
         self.state.eval_dynamic(project, task_name, task)
-        self.resources.eval_dynamic(project, task_name, task)
+        self.get_resources().eval_dynamic(project, task_name, task)
 
     def get_state(self) -> State:
         """Return initial state information."""
@@ -269,13 +333,14 @@ class AlgoMode(CaseInsensitiveEnum):
     # pylint: enable=invalid-name
 
 
-class BackendCfg(BaseModel):
+class BackendCfg(CommonBaseModel):
     """Container class grouping configuration of backend used by Gilbert algorithm."""
 
     name: Backend
     """Name of backend to use."""
 
     precision: Precision
+    """Specify precision of calculations."""
 
 
 class Backend(CaseInsensitiveEnum):
@@ -302,7 +367,7 @@ class Precision(CaseInsensitiveEnum):
     # pylint: enable=invalid-name
 
 
-class State(BaseModel):
+class State(CommonBaseModel):
     """State configuration."""
 
     file: str
@@ -325,7 +390,7 @@ class State(BaseModel):
         self.file = self.file.format(project=project, task_name=task_name, task=task)
 
 
-class RuntimeCfg(BaseModel):
+class RuntimeCfg(CommonBaseModel):
     """Configuration of runtime limits and parameters influencing algorithm run time."""
 
     visibility: float = Field(ge=0.0, le=1.0)
@@ -355,7 +420,7 @@ class RuntimeCfg(BaseModel):
     """
 
 
-class Resources(BaseModel):
+class Resources(CommonBaseModel):
     """Project resources."""
 
     symmetries: Optional[list[str]] = Field(default=None)

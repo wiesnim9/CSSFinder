@@ -18,27 +18,20 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Utilities for runtime report creation."""
+"""This module contains classes deriving from BaseModel used as base classes in
+cssfinder code."""
 
 from __future__ import annotations
 
-import pandas as pd
-from matplotlib import pyplot as plt
+from pydantic import BaseModel, Extra
 
 
-def create_corrections_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create corrections plot from data in DataFrame.
+class CommonBaseModel(BaseModel):
+    """Universal base class for most of model classes which contains commonly used model
+    configuration."""
 
-    DataFrame object must have 2 columns: "iteration" and "value".
-    """
-    axes = plt.subplot()
-
-    axes.plot(corrections[["index"]], corrections[["value"]])
-    axes.grid(True)
-
-    axes.set_xlabel("Correction index")
-    axes.set_ylabel("Correction value")
-
-    axes.set_title("Distance decay")
-
-    return axes
+    class Config:
+        validate_assignment = True
+        extra = Extra.ignore
+        underscore_attrs_are_private = True
+        arbitrary_types_allowed = True

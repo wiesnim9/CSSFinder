@@ -18,27 +18,26 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Utilities for runtime report creation."""
+"""Contains class for loading output of Gilbert algorithm."""
 
 from __future__ import annotations
 
 import pandas as pd
-from matplotlib import pyplot as plt
+
+from cssfinder.cssfproject import Task
 
 
-def create_corrections_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create corrections plot from data in DataFrame.
+class GilbertOutputLoader:
+    """Loader of Gilbert output files."""
 
-    DataFrame object must have 2 columns: "iteration" and "value".
-    """
-    axes = plt.subplot()
+    def load_corrections(self, task: Task) -> pd.DataFrame:
+        """Load corrections saved from executed task.
 
-    axes.plot(corrections[["index"]], corrections[["value"]])
-    axes.grid(True)
+        DataFrame object will have 3 columns: "iteration", "index" and "value".
+        """
+        data_frame = pd.read_json(task.output / "corrections.json")
+        data_frame.rename(  # pylint: disable=no-member
+            columns={0: "iteration", 1: "index", 2: "value"}, inplace=True
+        )
 
-    axes.set_xlabel("Correction index")
-    axes.set_ylabel("Correction value")
-
-    axes.set_title("Distance decay")
-
-    return axes
+        return data_frame

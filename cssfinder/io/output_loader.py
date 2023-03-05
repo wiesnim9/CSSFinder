@@ -37,7 +37,7 @@ class GilbertOutputLoader:
 
         DataFrame object will have 3 columns: "iteration", "index" and "value".
         """
-        # pylint: disable
+
         data_frame: pd.DataFrame = cast(
             pd.DataFrame, pd.read_json(task.output / "corrections.json")
         )
@@ -45,5 +45,4 @@ class GilbertOutputLoader:
         data_frame.rename(
             columns={0: "iteration", 1: "index", 2: "value"}, inplace=True
         )
-        # pylint: enable
         return data_frame

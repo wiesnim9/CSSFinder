@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -41,7 +42,16 @@ from cssfinder.cssfproject import (
 from cssfinder.log import configure_logger
 
 
+@dataclass
+class Ctx:
+    """Command line context wrapper class."""
+
+    is_debug: bool = False
+    project_path: Optional[str] = None
+
+
 @click.group(invoke_without_command=True, no_args_is_help=True)
+@click.pass_context
 @click.option(
     "-v",
     "--verbose",
@@ -51,8 +61,11 @@ from cssfinder.log import configure_logger
     "-v, -vv, -vvv to gradually increase it.",
 )
 @click.version_option(cssfinder.__version__, "-V", "--version", prog_name="cssfinder")
-def main(verbose: int) -> None:
+@click.option("--debug", is_flag=True, default=False)
+def main(ctx: click.Context, verbose: int, debug: bool) -> None:
     """CSSFinder is a script for finding closest separable states."""
+    ctx.obj = Ctx(is_debug=debug)
+
     configure_logger(verbosity=verbose, logger_name="cssfinder", use_rich=False)
     logging.getLogger("numba").setLevel(logging.ERROR)
     logging.info("CSSFinder started at %r", pendulum.now())
@@ -74,7 +87,7 @@ def main(verbose: int) -> None:
 @click.pass_context
 @click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
 def _project(ctx: click.Context, path: str) -> None:
-    ctx.obj = path
+    ctx.obj.project_path = path
 
 
 @_project.command("run")
@@ -85,14 +98,17 @@ def _project(ctx: click.Context, path: str) -> None:
     help="Use to specify names of tasks to run. When omitted, all tasks are executed.",
 )
 @click.pass_obj
-def _run(path: str, tasks: Optional[list[str]]) -> None:
+def _run(ctx: Ctx, tasks: Optional[list[str]]) -> None:
     """Run tasks from the project."""
 
     if not tasks:
         tasks = None
 
+    if ctx.project_path is None:
+        raise RuntimeError("ctx.project_path shall not be None.")
+
     try:
-        run_project_from(path, tasks)
+        run_project_from(ctx.project_path, tasks, is_debug=ctx.is_debug)
 
     except ProjectFileNotFound as exc:
         logging.critical("Project file not found. %s", exc.args[0])

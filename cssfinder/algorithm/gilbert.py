@@ -45,14 +45,19 @@ class Gilbert:
         backend: Backend,
         precision: Precision,
         visibility: float,
+        *,
+        is_debug: bool = False,
     ) -> None:
         self.initial = initial
         self.mode = mode
         self.precision = precision
         self.visibility = visibility
+        self.is_debug = is_debug
 
         backend_type = _backend.new(backend, self.precision)
-        self.backend = backend_type(self.initial, self.mode, self.visibility)
+        self.backend = backend_type(
+            self.initial, self.mode, self.visibility, is_debug=self.is_debug
+        )
 
         self._state: Optional[npt.NDArray[np.complex128]] = None
         self._corrections: Optional[list[tuple[int, int, float]]] = None

@@ -24,6 +24,7 @@ specific precision."""
 
 from __future__ import annotations
 
+from types import MethodType
 from typing import Generic, Type, TypeVar, cast
 
 import numpy as np
@@ -52,8 +53,15 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     primary_t: Type[PRIMARY]
     secondary_t: Type[SECONDARY_co]
 
-    def __init__(self, initial: State, mode: AlgoMode, visibility: float) -> None:
-        super().__init__(initial, mode, visibility)
+    def __init__(
+        self,
+        initial: State,
+        mode: AlgoMode,
+        visibility: float,
+        *,
+        is_debug: bool = False,
+    ) -> None:
+        super().__init__(initial, mode, visibility, is_debug=is_debug)
 
         self._visibility = self._create_visibility_matrix()
         self._intermediate = self._create_intermediate_state()
@@ -71,6 +79,25 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         self._dd1: SECONDARY_co = self.impl.product(
             self._intermediate, self._visibility_reduced
         )
+
+        if not self.is_debug:
+            self.jit()
+
+    def jit(self) -> None:
+        """JIT compile performance critical parts of backend with numba."""
+        _update_state = jit(  # type: ignore
+            forceobj=True, cache=True, looplift=False, inline="always"
+        )(
+            self.__class__._update_state  # pylint: disable=protected-access
+        )
+
+        setattr(self, "_update_state", MethodType(_update_state, self))
+
+        run_epoch = jit(forceobj=True, cache=True, looplift=False)(
+            self.__class__.run_epoch
+        )
+
+        setattr(self, "run_epoch", MethodType(run_epoch, self))
 
     def _create_visibility_matrix(self) -> npt.NDArray[PRIMARY]:
         vis_state = self.visibility * self.initial.state
@@ -101,7 +128,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         """Return number of all corrections found during optimization."""
         return len(self._corrections)
 
-    @jit(forceobj=True, cache=True, looplift=False)
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
 
@@ -110,7 +136,12 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         epochs = 20 * depth * depth * quantity
 
         for iteration_index in range(iterations):
-            alternative_state = self.impl.random_d_fs(depth, quantity)
+            if self.mode == AlgoMode.FSnQd:
+                alternative_state = self.impl.random_d_fs(depth, quantity)
+            elif self.mode == AlgoMode.SBiPa:
+                alternative_state = self.impl.random_bs(depth, quantity)
+            else:
+                raise TypeError(self.mode)
 
             if (
                 self.impl.product(alternative_state, self._visibility_reduced)
@@ -120,7 +151,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                     alternative_state, iterations, epoch_index, epochs, iteration_index
                 )
 
-    @jit(forceobj=True, cache=True, looplift=False, inline="always")
     def _update_state(
         self,
         alternative_state: npt.NDArray[PRIMARY],
@@ -132,9 +162,16 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         depth = self.initial.depth
         quantity = self.initial.quantity
 
-        alternative_state = self.impl.optimize_d_fs(
-            alternative_state, self._visibility_reduced, depth, quantity, epochs
-        )
+        if self.mode == AlgoMode.FSnQd:
+            alternative_state = self.impl.optimize_d_fs(
+                alternative_state, self._visibility_reduced, depth, quantity, epochs
+            )
+        elif self.mode == AlgoMode.SBiPa:
+            alternative_state = self.impl.optimize_bs(
+                alternative_state, self._visibility_reduced, depth, quantity, epochs
+            )
+        else:
+            raise TypeError(self.mode)
 
         aa3: SECONDARY_co = self.impl.product(alternative_state, alternative_state)
         aa2: SECONDARY_co = 2 * self.impl.product(self._visibility, alternative_state)

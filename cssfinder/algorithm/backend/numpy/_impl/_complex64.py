@@ -42,43 +42,16 @@ import numpy as np
 import numpy.typing as npt
 from numba import jit
 
+#    █████  ██████  ███    ███ ███    ███  ██████  ███    ██
+#   ██     ██    ██ ████  ████ ████  ████ ██    ██ ████   ██
+#   ██     ██    ██ ██ ████ ██ ██ ████ ██ ██    ██ ██ ██  ██
+#   ██     ██    ██ ██  ██  ██ ██  ██  ██ ██    ██ ██  ██ ██
+#    █████  ██████  ██      ██ ██      ██  ██████  ██   ████
 
-@jit(forceobj=True)
-def optimize_d_fs(
-    rho2: npt.NDArray[np.complex64],
-    rho3: npt.NDArray[np.complex64],
-    depth: int,
-    quantity: int,
-    epochs: int,
-) -> npt.NDArray[np.complex64]:
-    """Optimize implementation for FSnQd mode."""
 
-    product_2_3 = product(rho2, rho3)
-
-    # To make sure rotated_2 is not unbound
-    unitary = random_unitary_d_fs(depth, quantity, 0)
-
-    rotated_2 = rotate(rho2, unitary)
-
-    for idx in range(epochs):
-        idx_mod = idx % int(quantity)
-        unitary = random_unitary_d_fs(depth, quantity, idx_mod)
-
-        rotated_2 = rotate(rho2, unitary)
-
-        product_rot2_3 = product(rotated_2, rho3)
-
-        if product_2_3 > product_rot2_3:
-            unitary = unitary.conj().T
-            rotated_2 = rotate(rho2, unitary)
-
-        while (new_product_2_3 := product_rot2_3) > product_2_3:
-            product_2_3 = new_product_2_3
-            rotated_2 = rotate(rotated_2, unitary)
-
-            product_rot2_3 = product(rotated_2, rho3)
-
-    return rotated_2.astype(np.complex64, copy=False)  # type: ignore
+_REAL = np.cos(0.01 * np.pi)
+_IMAG = 1j * np.sin(0.01 * np.pi)
+_VALUE = (_REAL + _IMAG - 1).astype(np.complex64)
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -92,55 +65,23 @@ def product(
     return retval  # type: ignore
 
 
-@jit(forceobj=True, cache=True)
-def random_unitary_d_fs(
-    depth: int, quantity: int, idx: int
-) -> npt.NDArray[np.complex64]:
-    """N quDits."""
-    value = _random_unitary_d_fs_val(depth)
-
-    mtx = expand_d_fs(value, depth, quantity, idx)
-
-    return mtx  # type: ignore
-
-
-_REAL = np.cos(0.01 * np.pi)
-_IMAG = 1j * np.sin(0.01 * np.pi)
-_VALUE = (_REAL + _IMAG - 1).astype(np.complex64)
-
-
 @jit(nopython=True, nogil=True, cache=True)
-def _random_unitary_d_fs_val(depth: int) -> npt.NDArray[np.complex64]:
-    random_mtx = random_d_fs(depth, 1)
-
-    identity_mtx = np.identity(depth).astype(np.float32)
-
-    rand_mul = np.multiply(_VALUE, random_mtx)
-
-    value = np.add(rand_mul, identity_mtx)
-
-    return value  # type: ignore
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
-    """Random n quDit state."""
-    rand_vectors = get_random_haar(depth, quantity)
-    vector = normalize(rand_vectors[0])
-
-    for i in range(quantity - 1):
-        idx_vector = normalize(rand_vectors[i])
-
-        vector = np.outer(vector, idx_vector).flatten()
-
-    vector = project(vector)
-
-    return vector  # type: ignore
-
-
-@jit(nopython=True, nogil=True, cache=True)
-def get_random_haar(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+def get_random_haar_1d(depth: int) -> npt.NDArray[np.complex64]:
     """Generate a random vector with Haar measure."""
+
+    real = np.random.uniform(0, 1, depth)
+    imag = np.random.uniform(0, 1, depth)
+
+    retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+
+    retval = (retval).astype(np.complex64)
+
+    return retval  # type: ignore
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+    """Generate multiple random vectors with Haar measure in form of matrix."""
 
     real = np.random.uniform(0, 1, (quantity, depth))
     imag = np.random.uniform(0, 1, (quantity, depth))
@@ -175,28 +116,6 @@ def project(mtx1: npt.NDArray[np.complex64]) -> npt.NDArray[np.complex64]:
 
 
 @jit(forceobj=True, cache=True)
-def expand_d_fs(
-    value: npt.NDArray[np.complex64],
-    depth: int,
-    quantity: int,
-    idx: int,
-) -> npt.NDArray[np.complex64]:
-    """Expand an operator to n quDits."""
-
-    depth_1 = int(depth**idx)
-    identity_1 = np.identity(depth_1, dtype=np.complex64)
-
-    depth_2 = int(depth ** (quantity - idx - 1))
-    identity_2 = np.identity(depth_2, dtype=np.complex64)
-
-    kronecker_1 = kronecker(identity_1, value)
-
-    kronecker_2 = kronecker(kronecker_1, identity_2)
-
-    return kronecker_2  # type: ignore
-
-
-@jit(forceobj=True, cache=True)
 def kronecker(
     mtx: npt.NDArray[np.complex64], mtx1: npt.NDArray[np.complex64]
 ) -> npt.NDArray[np.complex64]:
@@ -227,3 +146,227 @@ def rotate(
     rho2a = np.dot(unitary, rho2a)  # matmul replaced with dot
 
     return rho2a  # type: ignore
+
+
+# pylint: disable=line-too-long
+#
+#   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████
+#   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██
+#   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████
+#   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██
+#   ██████     ██         ███████            ██      ██     ██████     ██████     ███████
+#
+# pylint: disable=line-too-long
+
+
+@jit(forceobj=True)
+def optimize_d_fs(
+    new_state: npt.NDArray[np.complex64],
+    visibility_state: npt.NDArray[np.complex64],
+    depth: int,
+    quantity: int,
+    epochs: int,
+) -> npt.NDArray[np.complex64]:
+    """Optimize implementation for FSnQd mode."""
+
+    product_2_3 = product(new_state, visibility_state)
+
+    # To make sure rotated_2 is not unbound
+    unitary = random_unitary_d_fs(depth, quantity, 0)
+
+    rotated_2 = rotate(new_state, unitary)
+
+    for idx in range(epochs):
+        idx_mod = idx % int(quantity)
+        unitary = random_unitary_d_fs(depth, quantity, idx_mod)
+
+        rotated_2 = rotate(new_state, unitary)
+
+        product_rot2_3 = product(rotated_2, visibility_state)
+
+        if product_2_3 > product_rot2_3:
+            unitary = unitary.conj().T
+            rotated_2 = rotate(new_state, unitary)
+
+        while (new_product_2_3 := product_rot2_3) > product_2_3:
+            product_2_3 = new_product_2_3
+            rotated_2 = rotate(rotated_2, unitary)
+
+            product_rot2_3 = product(rotated_2, visibility_state)
+
+    return rotated_2.astype(np.complex64, copy=False)  # type: ignore
+
+
+@jit(forceobj=True, cache=True)
+def random_unitary_d_fs(
+    depth: int, quantity: int, idx: int
+) -> npt.NDArray[np.complex64]:
+    """N quDits."""
+    value = _random_unitary_d_fs(depth)
+
+    mtx = expand_d_fs(value, depth, quantity, idx)
+
+    return mtx  # type: ignore
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def _random_unitary_d_fs(depth: int) -> npt.NDArray[np.complex64]:
+    random_mtx = random_d_fs(depth, 1)
+
+    identity_mtx = np.identity(depth).astype(np.complex64)
+
+    rand_mul = np.multiply(_VALUE, random_mtx)
+
+    value = np.add(rand_mul, identity_mtx)
+
+    return value  # type: ignore
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+    """Random n quDit state."""
+    rand_vectors = get_random_haar_2d(depth, quantity)
+    vector = normalize(rand_vectors[0])
+
+    for i in range(quantity - 1):
+        idx_vector = normalize(rand_vectors[i])
+
+        vector = np.outer(vector, idx_vector).flatten()
+
+    vector = project(vector)
+
+    return vector  # type: ignore
+
+
+@jit(forceobj=True, cache=True)
+def expand_d_fs(
+    value: npt.NDArray[np.complex64],
+    depth: int,
+    quantity: int,
+    idx: int,
+) -> npt.NDArray[np.complex64]:
+    """Expand an operator to n quDits."""
+
+    depth_1 = int(depth**idx)
+    identity_1 = np.identity(depth_1, dtype=np.complex64)
+
+    depth_2 = int(depth ** (quantity - idx - 1))
+    identity_2 = np.identity(depth_2, dtype=np.complex64)
+
+    kronecker_1 = kronecker(identity_1, value)
+
+    kronecker_2 = kronecker(kronecker_1, identity_2)
+
+    return kronecker_2  # type: ignore
+
+
+#   ██████     ███████            ███    ███     ██████     ██████     ███████
+#   ██   ██    ██                 ████  ████    ██    ██    ██   ██    ██
+#   ██████     ███████            ██ ████ ██    ██    ██    ██   ██    █████
+#   ██   ██         ██            ██  ██  ██    ██    ██    ██   ██    ██
+#   ██████     ███████            ██      ██     ██████     ██████     ███████
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def random_bs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+    """Draw random biseparable state."""
+    random_vector_1 = normalize(get_random_haar_1d(depth))
+    random_vector_2 = normalize(get_random_haar_1d(quantity))
+    print(random_vector_1.shape)
+    print(random_vector_2.shape)
+
+    vector = np.outer(random_vector_1, random_vector_2)
+
+    vector = project(vector)
+
+    return vector  # type: ignore
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+    """Draw random unitary for biseparable state."""
+
+    random_vector = normalize(get_random_haar_1d(depth))
+
+    random_matrix = project(random_vector)
+
+    identity_depth = np.identity(depth).astype(np.complex64)
+
+    identity_quantity = np.identity(quantity).astype(np.complex64)
+
+    unitary_biseparable = _VALUE * random_matrix + identity_depth
+
+    retval = kronecker(unitary_biseparable, identity_quantity)
+
+    return retval  # type: ignore
+
+
+@jit(nopython=True, nogil=True, cache=True)
+def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
+    """Draw random unitary for biseparable state."""
+
+    random_vector = normalize(get_random_haar_1d(depth))
+
+    random_matrix = project(random_vector)
+
+    identity_depth = np.identity(depth).astype(np.complex64)
+
+    identity_quantity = np.identity(quantity).astype(np.complex64)
+
+    unitary_biseparable = _VALUE * random_matrix + identity_depth
+
+    retval = kronecker(identity_quantity, unitary_biseparable)
+
+    return retval  # type: ignore
+
+
+@jit(forceobj=True)
+def optimize_bs(
+    new_state: npt.NDArray[np.complex64],
+    visibility_state: npt.NDArray[np.complex64],
+    depth: int,
+    quantity: int,
+    updates_count: int,
+) -> npt.NDArray[np.complex64]:
+    """Runs the minimization algorithm to optimize the biseparable state.
+
+    Parameters
+    ----------
+    new_state : npt.NDArray[np.complex64]
+        Randomly drawn state to be optimized.
+    visibility_state : npt.NDArray[np.complex64]
+        Visibility matrix.
+    depth : int
+        Depth of analyzed system.
+    quantity : int
+        Quantity of quDits in system.
+    updates_count : int
+        Number of optimizer iterations to execute.
+
+    Returns
+    -------
+    npt.NDArray[np.complex64]
+        Optimized state.
+    """
+
+    pp1 = product(new_state, visibility_state)
+
+    return_state = new_state.copy()
+
+    for index in range(updates_count):
+        if index % 2:
+            unitary = random_unitary_bs(depth, quantity)
+        else:
+            unitary = random_unitary_bs_reverse(depth, quantity)
+
+        return_state = rotate(new_state, unitary)
+
+        if pp1 > product(return_state, visibility_state):
+            unitary = unitary.conj().T
+            return_state = rotate(new_state, unitary)
+
+        while (pp2 := product(return_state, visibility_state)) > pp1:
+            pp1 = pp2
+            return_state = rotate(return_state, unitary)
+
+    return return_state

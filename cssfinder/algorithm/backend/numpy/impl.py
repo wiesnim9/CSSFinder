@@ -37,6 +37,12 @@ SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
 class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
     """Implementation of Gilbert algorithm utilities with specific precision."""
 
+    #  █████  ██████  ███    ███ ███    ███  ██████  ███    ██
+    # ██     ██    ██ ████  ████ ████  ████ ██    ██ ████   ██
+    # ██     ██    ██ ██ ████ ██ ██ ████ ██ ██    ██ ██ ██  ██
+    # ██     ██    ██ ██  ██  ██ ██  ██  ██ ██    ██ ██  ██ ██
+    #  █████  ██████  ██      ██ ██      ██  ██████  ██   ████
+
     @staticmethod
     def product(
         matrix1: npt.NDArray[PRIMARY], matrix2: npt.NDArray[PRIMARY]
@@ -45,13 +51,18 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         ...
 
     @staticmethod
-    def normalize(mtx: npt.NDArray[PRIMARY]) -> npt.NDArray[PRIMARY]:
-        """Normalization of a vector."""
+    def get_random_haar_1d(depth: int) -> npt.NDArray[PRIMARY]:
+        """Generate a random vector with Haar measure."""
         ...
 
     @staticmethod
-    def get_random_haar(depth: int) -> npt.NDArray[PRIMARY]:
-        """Generate a random vector with Haar measure."""
+    def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
+        """Generate multiple random vectors with Haar measure in form of matrix."""
+        ...
+
+    @staticmethod
+    def normalize(mtx: npt.NDArray[PRIMARY]) -> npt.NDArray[PRIMARY]:
+        """Normalization of a vector."""
         ...
 
     @staticmethod
@@ -60,14 +71,33 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         ...
 
     @staticmethod
-    def random_d_fs(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
-        """Random n quDit state."""
+    def kronecker(
+        mtx: npt.NDArray[PRIMARY], mtx1: npt.NDArray[PRIMARY]
+    ) -> npt.NDArray[PRIMARY]:
+        """Kronecker Product."""
         ...
 
     @staticmethod
+    def rotate(
+        rho2: npt.NDArray[PRIMARY], unitary: npt.NDArray[PRIMARY]
+    ) -> npt.NDArray[PRIMARY]:
+        """Sandwich an operator with a unitary."""
+        ...
+
+    # pylint: disable=line-too-long
+    #
+    #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████
+    #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██
+    #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████
+    #   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██
+    #   ██████     ██         ███████            ██      ██     ██████     ██████     ███████
+    #
+    # pylint: enable=line-too-long
+
+    @staticmethod
     def optimize_d_fs(
-        rho2: npt.NDArray[PRIMARY],
-        rho3: npt.NDArray[PRIMARY],
+        new_state: npt.NDArray[PRIMARY],
+        visibility_state: npt.NDArray[PRIMARY],
         depth: int,
         quantity: int,
         epochs: int,
@@ -83,6 +113,11 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         ...
 
     @staticmethod
+    def random_d_fs(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
+        """Draw random n quDit state."""
+        ...
+
+    @staticmethod
     def expand_d_fs(  # pylint: disable=invalid-name
         value: npt.NDArray[PRIMARY],
         depth: int,
@@ -92,16 +127,53 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         """Expand an operator to n quDits."""
         ...
 
+    #   ██████     ███████            ███    ███     ██████     ██████     ███████
+    #   ██   ██    ██                 ████  ████    ██    ██    ██   ██    ██
+    #   ██████     ███████            ██ ████ ██    ██    ██    ██   ██    █████
+    #   ██   ██         ██            ██  ██  ██    ██    ██    ██   ██    ██
+    #   ██████     ███████            ██      ██     ██████     ██████     ███████
+
     @staticmethod
-    def kronecker(
-        mtx: npt.NDArray[PRIMARY], mtx1: npt.NDArray[PRIMARY]
-    ) -> npt.NDArray[PRIMARY]:
-        """Kronecker Product."""
+    def random_bs(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
+        """Draw random biseparable state."""
         ...
 
     @staticmethod
-    def rotate(
-        rho2: npt.NDArray[PRIMARY], unitary: npt.NDArray[PRIMARY]
+    def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
+        """Draw random unitary for biseparable state."""
+        ...
+
+    @staticmethod
+    def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[PRIMARY]:
+        """Draw random unitary for biseparable state."""
+        ...
+
+    @staticmethod
+    def optimize_bs(
+        new_state: npt.NDArray[PRIMARY],
+        visibility_state: npt.NDArray[PRIMARY],
+        depth: int,
+        quantity: int,
+        updates_count: int,
     ) -> npt.NDArray[PRIMARY]:
-        """Sandwich an operator with a unitary."""
+        """Runs the minimization algorithm to optimize the biseparable state.
+
+        Parameters
+        ----------
+        new_state : npt.NDArray[np.complex128]
+            Randomly drawn state to be optimized.
+        visibility_state : npt.NDArray[np.complex128]
+            Visibility matrix.
+        depth : int
+            Depth of analyzed system.
+        quantity : int
+            Quantity of quDits in system.
+        updates_count : int
+            Number of optimizer iterations to execute.
+
+        Returns
+        -------
+        npt.NDArray[np.complex128]
+            Optimized state.
+        """
         ...

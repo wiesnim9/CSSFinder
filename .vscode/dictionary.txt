@@ -1,4 +1,5 @@
 astype
+biseparable
 cssfinder
 cssfproject
 dtype
@@ -16,6 +17,7 @@ numba
 numpy
 pydantic
 qubits
+savefig
 scipy
 swapaxes
 tensordot

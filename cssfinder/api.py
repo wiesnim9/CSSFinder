@@ -39,7 +39,10 @@ from cssfinder.report import (
 
 
 def run_project_from(
-    project_file_path: Path | str, tasks: Optional[list[str]] = None
+    project_file_path: Path | str,
+    tasks: Optional[list[str]] = None,
+    *,
+    is_debug: bool = False,
 ) -> None:
     """Load project and run all tasks."""
     project = CSSFProject.load_project(project_file_path)
@@ -49,10 +52,12 @@ def run_project_from(
         project.meta.author,
         project.meta.email,
     )
-    run_project(project, tasks)
+    run_project(project, tasks, is_debug=is_debug)
 
 
-def run_project(project: CSSFProject, tasks: Optional[list[str]] = None) -> None:
+def run_project(
+    project: CSSFProject, tasks: Optional[list[str]] = None, *, is_debug: bool = False
+) -> None:
     """Run all tasks defined in project."""
     project.eval_dynamic()
     logging.debug("Running project %r", project.meta.name)
@@ -61,16 +66,18 @@ def run_project(project: CSSFProject, tasks: Optional[list[str]] = None) -> None
     logging.info("%s", "\n    |  " + message)
 
     for task in project.select_tasks(tasks):
-        run_task(task)
+        run_task(task, is_debug=is_debug)
 
 
-def run_task(task: Task) -> None:
+def run_task(task: Task, *, is_debug: bool = False) -> None:
     """Run task until completed."""
     if task.gilbert:
-        run_gilbert(task.gilbert, task.output)
+        run_gilbert(task.gilbert, task.output, is_debug=is_debug)
 
 
-def run_gilbert(config: GilbertCfg, task_output_dir: Path) -> None:
+def run_gilbert(
+    config: GilbertCfg, task_output_dir: Path, *, is_debug: bool = False
+) -> None:
     """Run Gilbert algorithm part of task."""
     asset_loader = GilbertAssetLoader()
     assets = asset_loader.load_assets(config)
@@ -83,6 +90,7 @@ def run_gilbert(config: GilbertCfg, task_output_dir: Path) -> None:
         backend=config.get_backend().name,
         precision=config.get_backend().precision,
         visibility=config.runtime.visibility,
+        is_debug=is_debug,
     )
     algorithm.run(
         epochs=config.runtime.max_epochs,

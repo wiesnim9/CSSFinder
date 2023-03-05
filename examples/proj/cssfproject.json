@@ -7,23 +7,33 @@
         "description": "Project description",
         "version": "1.0.0"
     },
-    "resources": {
-        "initial_state": {
-            "file": "{project.directory}/proj_in.mtx",
-            "depth": null,
-            "quantity": null
-        },
-        "symmetries": null,
-        "projection": null
+    "execution": {
+        "process_pool_size": "auto"
     },
-    "algorithm": {
-        "type": "Gilbert",
-        "mode": "SBiPi",
-        "backend": "numpy",
-        "precision": "full",
-        "visibility": 0.4,
-        "max_epochs": 1000,
-        "iters_per_epoch": 1000,
-        "max_corrections": 1000
+    "tasks": {
+        "0": {
+            "gilbert": {
+                "mode": "SBiPi",
+                "backend": {
+                    "name": "numpy",
+                    "precision": "single"
+                },
+                "runtime": {
+                    "visibility": 0.4,
+                    "max_epochs": 1000,
+                    "iters_per_epoch": 1000,
+                    "max_corrections": 1000
+                },
+                "state": {
+                    "file": "{project.directory}/proj_in.mtx",
+                    "depth": null,
+                    "quantity": null
+                },
+                "resources": {
+                    "symmetries": null,
+                    "projection": null
+                }
+            }
+        }
     }
 }

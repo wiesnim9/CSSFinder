@@ -7,9 +7,6 @@
         "description": "Project description",
         "version": "1.0.0"
     },
-    "execution": {
-        "process_pool_size": "auto"
-    },
     "tasks": {
         "0": {
             "gilbert": {

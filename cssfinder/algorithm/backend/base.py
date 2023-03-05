@@ -41,10 +41,18 @@ class BackendBase:
 
     backend_index: dict[tuple[Backend, Precision], Type[BackendBase]] = {}
 
-    def __init__(self, initial: State, mode: AlgoMode, visibility: float) -> None:
+    def __init__(
+        self,
+        initial: State,
+        mode: AlgoMode,
+        visibility: float,
+        *,
+        is_debug: bool = False,
+    ) -> None:
         self.initial = initial
         self.visibility = visibility
         self.mode = mode
+        self.is_debug = is_debug
 
     @property
     def state(self) -> npt.NDArray[np.complex128]:

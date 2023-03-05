@@ -22,6 +22,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pandas as pd
 
 from cssfinder.cssfproject import Task
@@ -35,9 +37,13 @@ class GilbertOutputLoader:
 
         DataFrame object will have 3 columns: "iteration", "index" and "value".
         """
-        data_frame = pd.read_json(task.output / "corrections.json")
-        data_frame.rename(  # pylint: disable=no-member
-            columns={0: "iteration", 1: "index", 2: "value"}, inplace=True
+        # pylint: disable
+        data_frame: pd.DataFrame = cast(
+            pd.DataFrame, pd.read_json(task.output / "corrections.json")
         )
 
+        data_frame.rename(
+            columns={0: "iteration", 1: "index", 2: "value"}, inplace=True
+        )
+        # pylint: enable
         return data_frame

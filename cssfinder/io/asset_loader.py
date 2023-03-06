@@ -19,9 +19,7 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""Module contains implementation of asset loader class in version 1.0.0 which is
-compatible with CSSFProject in version 1.0.0.
-"""
+"""Module contains implementation of asset loader class."""
 
 from __future__ import annotations
 

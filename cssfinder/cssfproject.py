@@ -21,9 +21,6 @@
 
 """CSSFinder uses its own project format allowing for file based customization of
 parameters used by gilbert algorithm.
-
-This file contains implementation of project configuration in 1.0.0 version.
-
 """
 
 
@@ -77,18 +74,18 @@ class CSSFProject(CommonBaseModel):
     @classmethod
     def _validate_tasks(
         cls,
-        value: Iterable[dict[str, Any]] | dict[str, dict[str, Any] | Any],
-    ) -> dict[str, dict[str, Any]]:
+        value: Iterable[dict[str, Any] | Task] | dict[str, dict[str, Any] | Task | Any],
+    ) -> dict[str, dict[str, Any] | Task]:
         if isinstance(value, dict):
             for k, v in value.items():
-                if not isinstance(v, dict):
+                if not isinstance(v, (dict, Task)):
                     error_message = f"Incorrect format of Tasks field {k!r}."
                     raise IncorrectFormatOfTaskFieldError(error_message)
 
             return {str(k): dict(v) for k, v in value.items()}
 
         for i, v in enumerate(value):
-            if not isinstance(v, dict):
+            if not isinstance(v, (dict, Task)):
                 error_message = f"Incorrect format of Tasks field {i!r}."
                 raise IncorrectFormatOfTaskFieldError(error_message)
 
@@ -126,7 +123,7 @@ class CSSFProject(CommonBaseModel):
     def output(self) -> Path:
         """Path to output directory for this project."""
         directory = self.directory / "output"
-        directory.mkdir(0o764, parents=True, exists_ok=True)
+        directory.mkdir(0o764, parents=True, exist_ok=True)
         return directory
 
     @classmethod
@@ -317,32 +314,16 @@ class GilbertCfg(CommonBaseModel):
     resources: Resources | None = Field(default=None)
     """Additional resources which may be used by algorithm."""
 
-    @validator("resources", pre=True)
-    @classmethod
-    def _use_default_resources(cls, value: Resources | None) -> Resources:
-        if value is None:
-            return Resources()
-        return value
-
-    @validator("backend", pre=True)
-    @classmethod
-    def _use_default_backend(cls, value: BackendCfg | None) -> BackendCfg:
-        if value is None:
-            return BackendCfg(name=Backend.NumPy, precision=Precision.DOUBLE)
-        return value
-
     def get_backend(self) -> BackendCfg:
         """Return resources object."""
         if self.backend is None:
-            error_message = "Missing backend object."
-            raise TypeError(error_message)
+            self.backend = BackendCfg(name=Backend.NumPy, precision=Precision.DOUBLE)
         return self.backend
 
     def get_resources(self) -> Resources:
         """Return resources object."""
         if self.resources is None:
-            error_message = "Missing resources object."
-            raise TypeError(error_message)
+            self.resources = Resources()
         return self.resources
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:

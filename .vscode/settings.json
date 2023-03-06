@@ -49,7 +49,7 @@
     "python.analysis.diagnosticMode": "workspace",
     "explorer.copyRelativePathSeparator": "/",
     "C_Cpp.preferredPathSeparator": "Forward Slash",
-    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "off",
     "python.analysis.inlayHints.functionReturnTypes": true,
     "python.analysis.packageIndexDepths": [
         {
@@ -68,7 +68,7 @@
         {
             "name": "numpy",
             "depth": 4
-        },
+        }
     ],
     "python.analysis.autoImportCompletions": true,
     "python.analysis.completeFunctionParens": false,

@@ -19,22 +19,25 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This module contains numpy based implementation of Gilbert algorithm but not bound to
-specific precision."""
+"""Module contains numpy based implementation of Gilbert algorithm but not bound to
+specific precision.
+"""
 
 from __future__ import annotations
 
 from types import MethodType
-from typing import Generic, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 from numba import jit
 
 from cssfinder.algorithm.backend.base import BackendBase
-from cssfinder.algorithm.backend.numpy.impl import Implementation
 from cssfinder.cssfproject import AlgoMode
-from cssfinder.io.asset_loader import State
+
+if TYPE_CHECKING:
+    from cssfinder.algorithm.backend.numpy.impl import Implementation
+    from cssfinder.io.asset_loader import State
 
 PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
@@ -50,8 +53,8 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     _corrections: list[tuple[int, int, float]]
 
     impl: Implementation[PRIMARY, SECONDARY_co]
-    primary_t: Type[PRIMARY]
-    secondary_t: Type[SECONDARY_co]
+    primary_t: type[PRIMARY]
+    secondary_t: type[SECONDARY_co]
 
     def __init__(
         self,
@@ -68,16 +71,20 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         self._corrections = []
 
         self._aa4: SECONDARY_co = 2 * self.impl.product(
-            self._visibility, self._intermediate
+            self._visibility,
+            self._intermediate,
         )
         self._aa6: SECONDARY_co = self.impl.product(
-            self._intermediate, self._intermediate
+            self._intermediate,
+            self._intermediate,
         )
         self._visibility_reduced = cast(
-            npt.NDArray[PRIMARY], (self._visibility - self._intermediate)
+            npt.NDArray[PRIMARY],
+            (self._visibility - self._intermediate),
         )
         self._dd1: SECONDARY_co = self.impl.product(
-            self._intermediate, self._visibility_reduced
+            self._intermediate,
+            self._visibility_reduced,
         )
 
         if not self.is_debug:
@@ -85,27 +92,31 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
     def jit(self) -> None:
         """JIT compile performance critical parts of backend with numba."""
-        _update_state = jit(  # type: ignore
-            forceobj=True, cache=True, looplift=False, inline="always"
+        _update_state = jit(  # type: ignore[assignment]
+            forceobj=True,
+            cache=True,
+            looplift=False,
+            inline="always",
         )(
-            self.__class__._update_state  # pylint: disable=protected-access
+            self.__class__._update_state,  # noqa: SLF001
         )
 
-        setattr(self, "_update_state", MethodType(_update_state, self))
+        self._update_state = MethodType(_update_state, self)  # type: ignore[assignment]
 
         run_epoch = jit(forceobj=True, cache=True, looplift=False)(
-            self.__class__.run_epoch
+            self.__class__.run_epoch,
         )
 
-        setattr(self, "run_epoch", MethodType(run_epoch, self))
+        self.run_epoch = MethodType(run_epoch, self)  # type: ignore[assignment]
 
     def _create_visibility_matrix(self) -> npt.NDArray[PRIMARY]:
         vis_state = self.visibility * self.initial.state
         inv_vis_ident = (1 - self.visibility) * np.identity(
-            len(self.initial.state), dtype=np.complex128
+            len(self.initial.state),
+            dtype=np.complex128,
         )
         return (vis_state + inv_vis_ident / len(self.initial.state)).astype(
-            self.primary_t
+            self.primary_t,
         )
 
     def _create_intermediate_state(self) -> npt.NDArray[PRIMARY]:
@@ -130,7 +141,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
-
         depth = self.initial.depth
         quantity = self.initial.quantity
         epochs = 20 * depth * depth * quantity
@@ -148,10 +158,14 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                 > self._dd1
             ):
                 self._update_state(
-                    alternative_state, iterations, epoch_index, epochs, iteration_index
+                    alternative_state,
+                    iterations,
+                    epoch_index,
+                    epochs,
+                    iteration_index,
                 )
 
-    def _update_state(
+    def _update_state(  # noqa: PLR0913
         self,
         alternative_state: npt.NDArray[PRIMARY],
         iterations: int,
@@ -164,11 +178,19 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
         if self.mode == AlgoMode.FSnQd:
             alternative_state = self.impl.optimize_d_fs(
-                alternative_state, self._visibility_reduced, depth, quantity, epochs
+                alternative_state,
+                self._visibility_reduced,
+                depth,
+                quantity,
+                epochs,
             )
         elif self.mode == AlgoMode.SBiPa:
             alternative_state = self.impl.optimize_bs(
-                alternative_state, self._visibility_reduced, depth, quantity, epochs
+                alternative_state,
+                self._visibility_reduced,
+                depth,
+                quantity,
+                epochs,
             )
         else:
             raise TypeError(self.mode)
@@ -188,7 +210,8 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
             )
 
             self._visibility_reduced = cast(
-                npt.NDArray[PRIMARY], (self._visibility - self._intermediate)
+                npt.NDArray[PRIMARY],
+                (self._visibility - self._intermediate),
             )
             self._aa4 = 2 * self.impl.product(self._visibility, self._intermediate)
             self._aa6 = self.impl.product(self._intermediate, self._intermediate)
@@ -202,7 +225,7 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                         self.impl.product(
                             self._visibility_reduced,
                             self._visibility_reduced,
-                        )
+                        ),
                     ),
-                )
+                ),
             )

@@ -27,20 +27,26 @@
 #                                                                                      #
 # ------------------------------------------------------------------------------------ #
 #
-"""This module contains implementation of backend operations in numpy.
+"""Module contains implementation of backend operations in numpy.
 
 Spec
 ----
 
 - Floating precision:   np.float32
 - Complex precision:    np.complex64
+
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import numpy.typing as npt
 from numba import jit
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+
 
 #    █████  ██████  ███    ███ ███    ███  ██████  ███    ██
 #   ██     ██    ██ ████  ████ ████  ████ ██    ██ ████   ██
@@ -59,60 +65,55 @@ def product(
     matrix1: npt.NDArray[np.complex64], matrix2: npt.NDArray[np.complex64]
 ) -> np.float32:
     """Calculate scalar product of two matrices."""
-
     retval = np.trace(np.dot(matrix1, matrix2)).real
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def get_random_haar_1d(depth: int) -> npt.NDArray[np.complex64]:
     """Generate a random vector with Haar measure."""
-
-    real = np.random.uniform(0, 1, depth)
-    imag = np.random.uniform(0, 1, depth)
+    real = np.random.uniform(0, 1, depth)  # noqa: NPY002
+    imag = np.random.uniform(0, 1, depth)  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
 
     retval = (retval).astype(np.complex64)
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
     """Generate multiple random vectors with Haar measure in form of matrix."""
-
-    real = np.random.uniform(0, 1, (quantity, depth))
-    imag = np.random.uniform(0, 1, (quantity, depth))
+    real = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
+    imag = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
 
     retval = (retval).astype(np.complex64)
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def normalize(mtx: npt.NDArray[np.complex64]) -> npt.NDArray[np.complex64]:
-    """Normalization of a vector."""
-
+    """Normalize a vector."""
     mtx2 = np.dot(mtx, np.conj(mtx))
 
     val = np.sqrt(np.real(mtx2))
 
     retval = mtx / val
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def project(mtx1: npt.NDArray[np.complex64]) -> npt.NDArray[np.complex64]:
     """Build a projection from a vector."""
-
     retval = np.outer(mtx1, np.conj(mtx1))
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(forceobj=True, cache=True)
@@ -120,7 +121,6 @@ def kronecker(
     mtx: npt.NDArray[np.complex64], mtx1: npt.NDArray[np.complex64]
 ) -> npt.NDArray[np.complex64]:
     """Kronecker Product."""
-
     ddd1 = len(mtx)
     ddd2 = len(mtx1)
 
@@ -132,7 +132,7 @@ def kronecker(
 
     retval = out_mtx.reshape(output_shape).astype(np.complex64, copy=False)
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -140,19 +140,18 @@ def rotate(
     rho2: npt.NDArray[np.complex64], unitary: npt.NDArray[np.complex64]
 ) -> npt.NDArray[np.complex64]:
     """Sandwich an operator with a unitary."""
-
     rho2a = np.dot(rho2, np.conj(unitary).T)  # matmul replaced with dot
 
     rho2a = np.dot(unitary, rho2a)  # matmul replaced with dot
 
-    return rho2a  # type: ignore
+    return rho2a  # type: ignore[no-any-return]
 
 
-#   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa
-#   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa
-#   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa
-#   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa
-#   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa
+#   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
+#   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
+#   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501
+#   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa: E501
+#   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa: E501
 
 
 @jit(forceobj=True)
@@ -164,7 +163,6 @@ def optimize_d_fs(
     epochs: int,
 ) -> npt.NDArray[np.complex64]:
     """Optimize implementation for FSnQd mode."""
-
     product_2_3 = product(new_state, visibility_state)
 
     # To make sure rotated_2 is not unbound
@@ -190,7 +188,7 @@ def optimize_d_fs(
 
             product_rot2_3 = product(rotated_2, visibility_state)
 
-    return rotated_2.astype(np.complex64, copy=False)  # type: ignore
+    return rotated_2.astype(np.complex64, copy=False)  # type: ignore[no-any-return]
 
 
 @jit(forceobj=True, cache=True)
@@ -202,7 +200,7 @@ def random_unitary_d_fs(
 
     mtx = expand_d_fs(value, depth, quantity, idx)
 
-    return mtx  # type: ignore
+    return mtx  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -215,7 +213,7 @@ def _random_unitary_d_fs(depth: int) -> npt.NDArray[np.complex64]:
 
     value = np.add(rand_mul, identity_mtx)
 
-    return value  # type: ignore
+    return value  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
@@ -231,7 +229,7 @@ def random_d_fs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
 
     vector = project(vector)
 
-    return vector  # type: ignore
+    return vector  # type: ignore[no-any-return]
 
 
 @jit(forceobj=True, cache=True)
@@ -242,7 +240,6 @@ def expand_d_fs(
     idx: int,
 ) -> npt.NDArray[np.complex64]:
     """Expand an operator to n quDits."""
-
     depth_1 = int(depth**idx)
     identity_1 = np.identity(depth_1, dtype=np.complex64)
 
@@ -253,7 +250,7 @@ def expand_d_fs(
 
     kronecker_2 = kronecker(kronecker_1, identity_2)
 
-    return kronecker_2  # type: ignore
+    return kronecker_2  # type: ignore[no-any-return]
 
 
 #   ██████     ███████            ███    ███     ██████     ██████     ███████
@@ -275,13 +272,12 @@ def random_bs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
 
     vector = project(vector)
 
-    return vector  # type: ignore
+    return vector  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
     """Draw random unitary for biseparable state."""
-
     random_vector = normalize(get_random_haar_1d(depth))
 
     random_matrix = project(random_vector)
@@ -294,13 +290,12 @@ def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
 
     retval = kronecker(unitary_biseparable, identity_quantity)
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(nopython=True, nogil=True, cache=True)
 def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[np.complex64]:
     """Draw random unitary for biseparable state."""
-
     random_vector = normalize(get_random_haar_1d(depth))
 
     random_matrix = project(random_vector)
@@ -313,7 +308,7 @@ def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[np.compl
 
     retval = kronecker(identity_quantity, unitary_biseparable)
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 @jit(forceobj=True)
@@ -324,7 +319,7 @@ def optimize_bs(
     quantity: int,
     updates_count: int,
 ) -> npt.NDArray[np.complex64]:
-    """Runs the minimization algorithm to optimize the biseparable state.
+    """Run the minimization algorithm to optimize the biseparable state.
 
     Parameters
     ----------
@@ -343,8 +338,8 @@ def optimize_bs(
     -------
     npt.NDArray[np.complex64]
         Optimized state.
-    """
 
+    """
     pp1 = product(new_state, visibility_state)
 
     return_state = new_state.copy()

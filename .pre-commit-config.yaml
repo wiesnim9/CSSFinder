@@ -10,6 +10,10 @@ repos:
             "#",
             -d,
             cssfinder,
+            -d,
+            scripts,
+            -d,
+            examples,
             -g,
             "*.py",
             -g,
@@ -36,7 +40,16 @@ repos:
     hooks:
       - id: docformatter
         args:
-          [--in-place, -r, --wrap-summaries, "88", --wrap-descriptions, "88"]
+          [
+            --in-place,
+            -r,
+            --wrap-summaries,
+            "88",
+            --wrap-descriptions,
+            "88",
+            "--close-quotes-on-newline",
+            "--blank",
+          ]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: "v2.7.1"
@@ -82,3 +95,4 @@ repos:
     rev: "v0.0.254"
     hooks:
       - id: ruff
+        args: ["--fix"]

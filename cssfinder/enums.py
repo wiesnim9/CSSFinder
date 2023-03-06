@@ -19,7 +19,7 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This module contains utility enums used within the cssfinder project."""
+"""Module contains utility enums used within the cssfinder project."""
 
 from __future__ import annotations
 
@@ -40,4 +40,9 @@ class CaseInsensitiveEnum(Enum):
             if member.name.casefold() == name.casefold():
                 return member
 
-        raise AttributeError(f"No enum value matches name {name!r}.")
+        reason = f"No enum value matches name {name!r}."
+        raise NoMatchingEnumValueError(reason)
+
+
+class NoMatchingEnumValueError(AttributeError):
+    """Raised when CaseInsensitiveEnum subclass can't find matching enum value."""

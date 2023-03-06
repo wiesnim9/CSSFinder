@@ -18,8 +18,9 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""This module contains classes deriving from BaseModel used as base classes in
-cssfinder code."""
+"""Module contains classes deriving from BaseModel used as base classes in cssfinder
+code.
+"""
 
 from __future__ import annotations
 
@@ -28,9 +29,12 @@ from pydantic import BaseModel, Extra
 
 class CommonBaseModel(BaseModel):
     """Universal base class for most of model classes which contains commonly used model
-    configuration."""
+    configuration.
+    """
 
     class Config:
+        """CommonBaseModel behavior configuration."""
+
         validate_assignment = True
         extra = Extra.ignore
         underscore_attrs_are_private = True

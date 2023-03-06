@@ -18,26 +18,6 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""Numpy backend with fixed precision of complex 128-bit."""
+"""Development utility scripts."""
 
 from __future__ import annotations
-
-from typing import cast
-
-import numpy as np
-
-from cssfinder.algorithm.backend.numpy._impl import _complex128
-from cssfinder.algorithm.backend.numpy.base import NumPyBase
-from cssfinder.algorithm.backend.numpy.impl import Implementation
-
-
-class NumPyC128(NumPyBase[np.complex128, np.float64]):
-    """Concrete numpy based backend for Gilbert algorithm using complex128 type."""
-
-    impl: Implementation[np.complex128, np.float64] = cast(
-        Implementation[np.complex128, np.float64],
-        _complex128,
-    )
-    primary_t: type[np.complex128] = np.complex128
-    secondary_t: type[np.float64] = np.float64

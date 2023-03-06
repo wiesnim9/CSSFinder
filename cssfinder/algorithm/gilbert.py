@@ -19,26 +19,28 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This module contains public interface of Gilbert algorithm."""
+"""Module contains public interface of Gilbert algorithm."""
 
 from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import Callable, Optional
-
-import numpy as np
-import numpy.typing as npt
+from typing import TYPE_CHECKING, Callable
 
 from cssfinder.algorithm import backend as _backend
-from cssfinder.cssfproject import AlgoMode, Backend, Precision
-from cssfinder.io.asset_loader import State
+
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
+
+    from cssfinder.cssfproject import AlgoMode, Backend, Precision
+    from cssfinder.io.asset_loader import State
 
 
 class Gilbert:
     """Class interface of gilbert algorithm."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         initial: State,
         mode: AlgoMode,
@@ -56,11 +58,14 @@ class Gilbert:
 
         backend_type = _backend.new(backend, self.precision)
         self.backend = backend_type(
-            self.initial, self.mode, self.visibility, is_debug=self.is_debug
+            self.initial,
+            self.mode,
+            self.visibility,
+            is_debug=self.is_debug,
         )
 
-        self._state: Optional[npt.NDArray[np.complex128]] = None
-        self._corrections: Optional[list[tuple[int, int, float]]] = None
+        self._state: npt.NDArray[np.complex128] | None = None
+        self._corrections: list[tuple[int, int, float]] | None = None
 
     def run(
         self,
@@ -94,17 +99,17 @@ class Gilbert:
 
             try:
                 save_state_hook(self._state)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logging.critical("Exception occurred within save_state_hook() call.")
-                raise SaveStateHookError() from exc
+                raise SaveStateHookError from exc
 
             try:
                 save_corrections_hook(self._corrections)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logging.critical(
-                    "Exception occurred within save_corrections_hook() call."
+                    "Exception occurred within save_corrections_hook() call.",
                 )
-                raise SaveCorrectionsHookError() from exc
+                raise SaveCorrectionsHookError from exc
 
             iterations_executed = (epoch_index + 1) * iterations
             logging.debug(
@@ -117,7 +122,8 @@ class Gilbert:
             # Check if we already reached expected number of corrections
             if self.backend.corrections_count >= max_corrections:
                 logging.info(
-                    "Reached expected maximal number of corrections %r", max_corrections
+                    "Reached expected maximal number of corrections %r",
+                    max_corrections,
                 )
                 break
 
@@ -128,16 +134,16 @@ class Gilbert:
     def state(self) -> npt.NDArray[np.complex128]:
         """Returns correction from saturated algorithm."""
         if self._state is None:
-            raise AlgorithmNotSaturatedError("Run algorithm first, to obtain state!")
+            error_message = "Run algorithm first, to obtain state!"
+            raise AlgorithmNotSaturatedError(error_message)
         return self._state
 
     @property
     def corrections(self) -> list[tuple[int, int, float]]:
         """Returns correction from saturated algorithm."""
         if self._corrections is None:
-            raise AlgorithmNotSaturatedError(
-                "Run algorithm first to obtain corrections!"
-            )
+            error_message = "Run algorithm first to obtain corrections!"
+            raise AlgorithmNotSaturatedError(error_message)
         return self._corrections
 
 
@@ -147,7 +153,8 @@ class AlgorithmError(Exception):
 
 class AlgorithmNotSaturatedError(Exception):
     """Raised when action was performed on which required algorithm to finish execution
-    on instance which was not run."""
+    on instance which was not run.
+    """
 
 
 class HookError(Exception):

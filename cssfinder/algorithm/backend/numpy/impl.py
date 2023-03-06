@@ -19,16 +19,16 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This file contains declaration of Implementation protocol for numpy based
-backends."""
+"""Module contains declaration of Implementation protocol for numpy based backends."""
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
 import numpy as np
-import numpy.typing as npt
-from typing_extensions import Protocol
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
@@ -45,7 +45,8 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
 
     @staticmethod
     def product(
-        matrix1: npt.NDArray[PRIMARY], matrix2: npt.NDArray[PRIMARY]
+        matrix1: npt.NDArray[PRIMARY],
+        matrix2: npt.NDArray[PRIMARY],
     ) -> SECONDARY_co:
         """Calculate scalar product of two matrices."""
         ...
@@ -62,7 +63,7 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
 
     @staticmethod
     def normalize(mtx: npt.NDArray[PRIMARY]) -> npt.NDArray[PRIMARY]:
-        """Normalization of a vector."""
+        """Normalize a vector."""
         ...
 
     @staticmethod
@@ -72,23 +73,25 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
 
     @staticmethod
     def kronecker(
-        mtx: npt.NDArray[PRIMARY], mtx1: npt.NDArray[PRIMARY]
+        mtx: npt.NDArray[PRIMARY],
+        mtx1: npt.NDArray[PRIMARY],
     ) -> npt.NDArray[PRIMARY]:
         """Kronecker Product."""
         ...
 
     @staticmethod
     def rotate(
-        rho2: npt.NDArray[PRIMARY], unitary: npt.NDArray[PRIMARY]
+        rho2: npt.NDArray[PRIMARY],
+        unitary: npt.NDArray[PRIMARY],
     ) -> npt.NDArray[PRIMARY]:
         """Sandwich an operator with a unitary."""
         ...
 
-    #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa
-    #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa
-    #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa
-    #   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa
-    #   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa
+    #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
+    #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
+    #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501
+    #   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa: E501
+    #   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa: E501
 
     @staticmethod
     def optimize_d_fs(
@@ -103,7 +106,9 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
 
     @staticmethod
     def random_unitary_d_fs(
-        depth: int, quantity: int, idx: int
+        depth: int,
+        quantity: int,
+        idx: int,
     ) -> npt.NDArray[PRIMARY]:
         """N quDits."""
         ...
@@ -152,7 +157,7 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         quantity: int,
         updates_count: int,
     ) -> npt.NDArray[PRIMARY]:
-        """Runs the minimization algorithm to optimize the biseparable state.
+        """Run the minimization algorithm to optimize the biseparable state.
 
         Parameters
         ----------
@@ -171,5 +176,6 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         -------
         npt.NDArray[np.complex128]
             Optimized state.
+
         """
         ...

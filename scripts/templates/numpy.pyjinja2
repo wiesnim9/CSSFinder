@@ -27,7 +27,7 @@
 #                                                                                      #
 # ------------------------------------------------------------------------------------ #
 #
-"""This module contains implementation of backend operations in numpy.
+"""Module contains implementation of backend operations in numpy.
 
 Spec
 ----
@@ -38,10 +38,13 @@ Spec
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import numpy.typing as npt
 from numba import jit
 
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 {% if debug_dtype_checks %}
 
@@ -84,15 +87,15 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = np.trace(np.dot(matrix1, matrix2)).real
     {% if debug_dtype_checks %}assert_dtype(retval, {{floating}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
 {% endif %}def get_random_haar_1d(depth: int) -> npt.NDArray[{{complex}}]:
     """Generate a random vector with Haar measure."""
 
-    real = np.random.uniform(0, 1, depth)
-    imag = np.random.uniform(0, 1, depth)
+    real = np.random.uniform(0, 1, depth)  # noqa: NPY002
+    imag = np.random.uniform(0, 1, depth)  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
     {% if is_32bit %}
@@ -103,15 +106,15 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
 {% endif %}def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Generate multiple random vectors with Haar measure in form of matrix."""
 
-    real = np.random.uniform(0, 1, (quantity, depth))
-    imag = np.random.uniform(0, 1, (quantity, depth))
+    real = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
+    imag = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
     {% if is_32bit %}
@@ -122,12 +125,12 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
 {% endif %}def normalize(mtx: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
-    """Normalization of a vector."""
+    """Normalize a vector."""
     {% if debug_dtype_checks %}assert_dtype(mtx, {{complex}}){% endif %}
 
     mtx2 = np.dot(mtx, np.conj(mtx))
@@ -139,7 +142,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = (mtx / val)
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
@@ -150,7 +153,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = np.outer(mtx1, np.conj(mtx1))
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(forceobj=True, cache=True)
@@ -175,7 +178,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = out_mtx.reshape(output_shape).astype({{complex}}, copy=False)
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
@@ -192,13 +195,13 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     rho2a = np.dot(unitary, rho2a)  # matmul replaced with dot
     {% if debug_dtype_checks %}assert_dtype(rho2a, {{complex}}){% endif %}
 
-    return rho2a  # type: ignore
+    return rho2a  # type: ignore[no-any-return]
 
-#   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa
-#   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa
-#   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa
-#   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa
-#   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa
+#   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
+#   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
+#   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501
+#   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa: E501
+#   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa: E501
 
 {% if not disable_jit %}@jit(forceobj=True)
 {% endif %}def optimize_d_fs(
@@ -243,7 +246,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
             product_rot2_3 = product(rotated_2, visibility_state)
 
-    return rotated_2.astype({{complex}}, copy=False)  # type: ignore
+    return rotated_2.astype({{complex}}, copy=False)  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(forceobj=True, cache=True)
@@ -257,7 +260,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     mtx = expand_d_fs(value, depth, quantity, idx)
     {% if debug_dtype_checks %}assert_dtype(mtx, {{complex}}){% endif %}
 
-    return mtx  # type: ignore
+    return mtx  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
@@ -273,7 +276,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
     value = np.add(rand_mul, identity_mtx)
     {% if debug_dtype_checks %}assert_dtype(value, {{complex}}){% endif %}
-    return value  # type: ignore
+    return value  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
@@ -293,7 +296,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     vector = project(vector)
     {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
 
-    return vector  # type: ignore
+    return vector  # type: ignore[no-any-return]
 
 
 
@@ -321,7 +324,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     kronecker_2 = kronecker(kronecker_1, identity_2)
     {% if debug_dtype_checks %}assert_dtype(kronecker_2, {{complex}}){% endif %}
 
-    return kronecker_2  # type: ignore
+    return kronecker_2  # type: ignore[no-any-return]
 
 
 #   ██████     ███████            ███    ███     ██████     ██████     ███████
@@ -345,7 +348,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     vector = project(vector)
     {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
 
-    return vector  # type: ignore
+    return vector  # type: ignore[no-any-return]
 
 
 {% macro _random_unitary_bs() -%}
@@ -375,7 +378,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = kronecker(unitary_biseparable, identity_quantity)
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
@@ -387,7 +390,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     retval = kronecker(identity_quantity, unitary_biseparable)
     {% if debug_dtype_checks %}assert_dtype(retval, {{complex}}){% endif %}
 
-    return retval  # type: ignore
+    return retval  # type: ignore[no-any-return]
 
 
 {% if not disable_jit %}@jit(forceobj=True)
@@ -398,7 +401,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     quantity: int,
     updates_count: int,
 ) -> npt.NDArray[{{complex}}]:
-    """Runs the minimization algorithm to optimize the biseparable state.
+    """Run the minimization algorithm to optimize the biseparable state.
 
     Parameters
     ----------

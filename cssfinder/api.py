@@ -18,13 +18,12 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""This module contains high level API of cssfinder."""
+"""Module contains high level API of cssfinder."""
 
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
@@ -37,10 +36,13 @@ from cssfinder.report import (
     display_short_report,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 def run_project_from(
     project_file_path: Path | str,
-    tasks: Optional[list[str]] = None,
+    tasks: list[str] | None = None,
     *,
     is_debug: bool = False,
 ) -> None:
@@ -56,7 +58,10 @@ def run_project_from(
 
 
 def run_project(
-    project: CSSFProject, tasks: Optional[list[str]] = None, *, is_debug: bool = False
+    project: CSSFProject,
+    tasks: list[str] | None = None,
+    *,
+    is_debug: bool = False,
 ) -> None:
     """Run all tasks defined in project."""
     project.eval_dynamic()
@@ -76,7 +81,10 @@ def run_task(task: Task, *, is_debug: bool = False) -> None:
 
 
 def run_gilbert(
-    config: GilbertCfg, task_output_dir: Path, *, is_debug: bool = False
+    config: GilbertCfg,
+    task_output_dir: Path,
+    *,
+    is_debug: bool = False,
 ) -> None:
     """Run Gilbert algorithm part of task."""
     asset_loader = GilbertAssetLoader()
@@ -98,14 +106,15 @@ def run_gilbert(
         max_corrections=config.runtime.max_corrections,
         save_state_hook=save_matrix_hook(task_output_dir / "state.mtx"),
         save_corrections_hook=save_corrections_hook(
-            task_output_dir / "corrections.json"
+            task_output_dir / "corrections.json",
         ),
     )
 
 
 def create_report_from(project_file_path: Path | str, task: str) -> None:
     """Load project (`cssfproject.json`) and create report for task selected by
-    pattern."""
+    pattern.
+    """
     project = CSSFProject.load_project(project_file_path)
     logging.info(
         "Loaded project %r by %r <%r>.",
@@ -118,15 +127,15 @@ def create_report_from(project_file_path: Path | str, task: str) -> None:
 
 def create_report(project: CSSFProject, task: str) -> None:
     """Create report for task selected by pattern from project object."""
-
     tasks = project.select_tasks([task])
 
     if len(tasks) > 1:
         matched_tasks_names = [t.name for t in tasks]
-        raise AmbiguousTaskKeyError(
+        message = (
             f"Pattern {task!r} matches more than one task ({len(tasks)}): "
             f"{matched_tasks_names!r}"
         )
+        raise AmbiguousTaskKeyError(message)
 
     task_object, *_ = tasks
 

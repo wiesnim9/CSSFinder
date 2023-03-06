@@ -18,19 +18,20 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""This module contains basic hooks which can be used by tasks."""
+"""Module contains basic hooks which can be used by tasks."""
 
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
-from typing import Callable
-
-import numpy as np
-import numpy.typing as npt
+from typing import TYPE_CHECKING, Callable
 
 from cssfinder.io.matrix import MatrixIO
+
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
 
 
 def save_matrix_hook(
@@ -39,6 +40,7 @@ def save_matrix_hook(
     """Builtin hook for saving state matrix.
 
     Matrix will be saved every time hook is called.
+
     """
     destination_path = Path(destination)
     mtx_io = MatrixIO.new(destination_path)
@@ -60,6 +62,7 @@ def save_corrections_hook(
     """Builtin hook for saving corrections array.
 
     Corrections will be saved every time hook is called.
+
     """
     destination_path = Path(destination)
 

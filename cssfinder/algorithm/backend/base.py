@@ -19,19 +19,21 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This module contains base class for creating Gilbert algorithm backends (concrete
-implementations) and exceptions which are expected to be raised from backends."""
+"""Module contains base class for creating Gilbert algorithm backends (concrete
+implementations) and exceptions which are expected to be raised from backends.
+"""
 
 
 from __future__ import annotations
 
-from typing import Type, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-import numpy as np
-import numpy.typing as npt
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
 
-from cssfinder.cssfproject import AlgoMode, Backend, Precision
-from cssfinder.io.asset_loader import State
+    from cssfinder.cssfproject import AlgoMode, Backend, Precision
+    from cssfinder.io.asset_loader import State
 
 BackendT = TypeVar("BackendT", bound="BackendBase")
 
@@ -39,7 +41,7 @@ BackendT = TypeVar("BackendT", bound="BackendBase")
 class BackendBase:
     """Gilbert algorithm backend (implementation)."""
 
-    backend_index: dict[tuple[Backend, Precision], Type[BackendBase]] = {}
+    backend_index: dict[tuple[Backend, Precision], type[BackendBase]] = {}
 
     def __init__(
         self,
@@ -57,18 +59,18 @@ class BackendBase:
     @property
     def state(self) -> npt.NDArray[np.complex128]:
         """Return current system state with all optimizations applied."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def corrections(self) -> list[tuple[int, int, float]]:
         """Return list of all corrections found during optimization."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @property
     def corrections_count(self) -> int:
         """Return number of all corrections found during optimization."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
-        raise NotImplementedError()
+        raise NotImplementedError

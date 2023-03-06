@@ -22,11 +22,12 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 
-from cssfinder.cssfproject import Task
+if TYPE_CHECKING:
+    from cssfinder.cssfproject import Task
 
 
 class GilbertOutputLoader:
@@ -36,13 +37,13 @@ class GilbertOutputLoader:
         """Load corrections saved from executed task.
 
         DataFrame object will have 3 columns: "iteration", "index" and "value".
+
         """
-
         data_frame: pd.DataFrame = cast(
-            pd.DataFrame, pd.read_json(task.output / "corrections.json")
+            pd.DataFrame,
+            pd.read_json(task.output / "corrections.json"),
         )
 
-        data_frame.rename(
-            columns={0: "iteration", 1: "index", 2: "value"}, inplace=True
+        return data_frame.rename(
+            columns={0: "iteration", 1: "index", 2: "value"},
         )
-        return data_frame

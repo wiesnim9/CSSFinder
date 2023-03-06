@@ -20,20 +20,23 @@
 
 
 """Backend is an implementation of Gilbert algorithm implemented with specific tools and
-supporting various precisions of operation."""
+supporting various precisions of operation.
+"""
 
 
 from __future__ import annotations
 
-from typing import Type
+from typing import TYPE_CHECKING
 
-from cssfinder.algorithm.backend.base import BackendBase
 from cssfinder.algorithm.backend.numpy.complex64 import NumPyC64
 from cssfinder.algorithm.backend.numpy.complex128 import NumPyC128
 from cssfinder.cssfproject import Backend, Precision
 
+if TYPE_CHECKING:
+    from cssfinder.algorithm.backend.base import BackendBase
 
-def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
+
+def new(backend: Backend, precision: Precision) -> type[BackendBase]:
     """Select one of the backends with fixed precision."""
     if backend == Backend.NumPy:
         if precision == Precision.DOUBLE:
@@ -41,9 +44,10 @@ def new(backend: Backend, precision: Precision) -> Type[BackendBase]:
         if precision == Precision.SINGLE:
             return NumPyC64
 
-    raise UnsupportedBackendError(
+    reason = (
         f"Backend {backend.name!r} with precision {precision.name!r} not supported."
     )
+    raise UnsupportedBackendError(reason)
 
 
 class UnsupportedBackendError(Exception):

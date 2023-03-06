@@ -23,15 +23,17 @@
 parameters used by gilbert algorithm.
 
 This file contains implementation of project configuration in 1.0.0 version.
+
 """
 
 
 from __future__ import annotations
 
 import fnmatch
+import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable
 
 import jsonref
 from pydantic import ConstrainedStr, EmailStr, Field, validator
@@ -52,24 +54,43 @@ class CSSFProject(CommonBaseModel):
     tasks: dict[str, Task]
     """List of tasks within project which can be executed."""
 
-    _file: Optional[Path] = None
+    _file: Path | None = None
     """Path to loaded project file."""
 
     _is_evaluated: bool = False
 
     def __init__(
-        self, meta: Meta, tasks: list[Task] | dict[str, Task], *_: Any, **_k: Any
+        self,
+        meta: Meta,
+        tasks: list[Task] | dict[str, Task],
+        *_: Any,
+        **_k: Any,
     ) -> None:
+        """Initialize instance.
+
+        extra args and kwargs are ignored.
+
+        """
         super().__init__(meta=meta, tasks=tasks)
 
     @validator("tasks", pre=True, always=True)
     @classmethod
     def _validate_tasks(
-        cls, value: Iterable[dict[str, Any]] | dict[str, dict[str, Any]]
+        cls,
+        value: Iterable[dict[str, Any]] | dict[str, dict[str, Any] | Any],
     ) -> dict[str, dict[str, Any]]:
         if isinstance(value, dict):
-            assert all(isinstance(v, dict) for v in value.values())
+            for k, v in value.items():
+                if not isinstance(v, dict):
+                    error_message = f"Incorrect format of Tasks field {k!r}."
+                    raise IncorrectFormatOfTaskFieldError(error_message)
+
             return {str(k): dict(v) for k, v in value.items()}
+
+        for i, v in enumerate(value):
+            if not isinstance(v, dict):
+                error_message = f"Incorrect format of Tasks field {i!r}."
+                raise IncorrectFormatOfTaskFieldError(error_message)
 
         return {str(i): t for i, t in enumerate(value)}
 
@@ -105,7 +126,7 @@ class CSSFProject(CommonBaseModel):
     def output(self) -> Path:
         """Path to output directory for this project."""
         directory = self.directory / "output"
-        directory.mkdir(0o764, True, True)
+        directory.mkdir(0o764, parents=True, exists_ok=True)
         return directory
 
     @classmethod
@@ -128,8 +149,8 @@ class CSSFProject(CommonBaseModel):
             Raised when project file content is not a dictionary.
         MalformedProjectFileError
             When content of project file is not valid json.
-        """
 
+        """
         # Unify path type to Path
         file_or_directory = Path(file_or_directory).expanduser().resolve()
 
@@ -147,18 +168,17 @@ class CSSFProject(CommonBaseModel):
         try:
             content = file_path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            raise ProjectFileNotFound(
-                f"Make sure you path is correct: {file_path!r}"
-            ) from exc
+            error_message = f"Make sure you path is correct: {file_path!r}"
+            raise ProjectFileNotFoundError(error_message) from exc
 
         try:
             content = jsonref.loads(content)
-        except jsonref.JsonRefError as exc:
-            raise MalformedProjectFileError() from exc
+        except json.decoder.JSONDecodeError as exc:
+            raise MalformedProjectFileError(exc.msg, exc.doc, exc.pos) from exc
 
         if not isinstance(content, dict):
             logging.critical("Content of cssfproject.json file is not a dictionary.")
-            raise InvalidCSSFProjectContent(content)
+            raise InvalidCSSFProjectContentError(content)
 
         project = cls(**content)
         project.set_file_path(file_path)
@@ -166,7 +186,7 @@ class CSSFProject(CommonBaseModel):
 
         return project
 
-    def select_tasks(self, patterns: Optional[list[str]] = None) -> list[Task]:
+    def select_tasks(self, patterns: list[str] | None = None) -> list[Task]:
         """Select all tasks matching list of patterns."""
         if patterns is None:
             return list(self.tasks.values())
@@ -179,15 +199,40 @@ class CSSFProject(CommonBaseModel):
         return [self.tasks[k] for k in keys]
 
 
-class InvalidCSSFProjectContent(ValueError):
+class InvalidCSSFProjectContentError(ValueError):
     """Raised by load_from() when file content is not a dictionary."""
 
 
-class MalformedProjectFileError(ValueError):
+class IncorrectFormatOfTaskFieldError(ValueError):
+    """Raised when "tasks" field contains incorrectly specified tasks."""
+
+
+class MalformedProjectFileError(json.decoder.JSONDecodeError):
     """Rased when project file content can't be correctly decoded."""
 
+    def __str__(self) -> str:
+        """Convert exception to readable error explanation."""
+        p = " " * 4
+        line_index = self.lineno
 
-class ProjectFileNotFound(FileNotFoundError):
+        start_index = line_index - 10
+        if start_index < 0:
+            start_index = 0
+
+        lines = self.doc.split("\n")[start_index:line_index]
+        lines_joined = f"{p}\n" + "\n".join(
+            f"{start_index + i + 1:>4}|{p}{line}" for i, line in enumerate(lines)
+        )
+        ellipsis_line = f"{start_index:>4}|{p}..." if start_index != 0 else ""
+
+        context_header = f"\n\n{ellipsis_line}{lines_joined}"
+        pointer_line = f"{' ' * 4}{self.colno * ' '}~~~~^^^^^"
+
+        msg = f"{self.msg}: line {self.lineno} column {self.colno} (char {self.pos})"
+        return f"{context_header}\n{pointer_line}\n{p}{msg}.\n"
+
+
+class ProjectFileNotFoundError(FileNotFoundError):
     """Raised when project file can't be found in expected place."""
 
 
@@ -211,19 +256,19 @@ class Meta(CommonBaseModel):
 
 
 class SemVerStr(ConstrainedStr):
-    """Semantic versioning string regex, see https://semver.org/"""
+    """Semantic versioning string regex, see https://semver.org/."""
 
     regex = (
         r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-]"
-        + r"[0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+("
-        + r"[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+        r"[0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+("
+        r"[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
     )
 
 
 class Task(CommonBaseModel):
-    """This represents algorithm task."""
+    """Container representing CSSFinder task with some algorithm."""
 
-    gilbert: Optional[GilbertCfg] = Field(default=None)
+    gilbert: GilbertCfg | None = Field(default=None)
     """Configuration of gilbert algorithm."""
 
     _output: Path = Field(default=Path.cwd())
@@ -256,10 +301,11 @@ class GilbertCfg(CommonBaseModel):
     mode: AlgoMode
     """Algorithm mode to use."""
 
-    backend: Optional[BackendCfg] = Field(default=None)
+    backend: BackendCfg | None = Field(default=None)
     """Configuration of backend which will be used for execution.
 
     When backend configuration is not specified, numpy with double precision is used.
+
     """
 
     state: State | str | Path
@@ -268,19 +314,19 @@ class GilbertCfg(CommonBaseModel):
     runtime: RuntimeCfg
     """Configuration of runtime limits and parameters influencing algorithm run time."""
 
-    resources: Optional[Resources] = Field(default=None)
+    resources: Resources | None = Field(default=None)
     """Additional resources which may be used by algorithm."""
 
     @validator("resources", pre=True)
     @classmethod
-    def _use_default_resources(cls, value: Optional[Resources]) -> Resources:
+    def _use_default_resources(cls, value: Resources | None) -> Resources:
         if value is None:
             return Resources()
         return value
 
     @validator("backend", pre=True)
     @classmethod
-    def _use_default_backend(cls, value: Optional[BackendCfg]) -> BackendCfg:
+    def _use_default_backend(cls, value: BackendCfg | None) -> BackendCfg:
         if value is None:
             return BackendCfg(name=Backend.NumPy, precision=Precision.DOUBLE)
         return value
@@ -288,18 +334,19 @@ class GilbertCfg(CommonBaseModel):
     def get_backend(self) -> BackendCfg:
         """Return resources object."""
         if self.backend is None:
-            raise TypeError("Missing backend object.")
+            error_message = "Missing backend object."
+            raise TypeError(error_message)
         return self.backend
 
     def get_resources(self) -> Resources:
         """Return resources object."""
         if self.resources is None:
-            raise TypeError("Missing resources object.")
+            error_message = "Missing resources object."
+            raise TypeError(error_message)
         return self.resources
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
         """Evaluate dynamic path expressions."""
-
         if isinstance(self.state, str):
             self.state = State(file=self.state)
 
@@ -375,16 +422,18 @@ class State(CommonBaseModel):
     file: str
     """Path to file containing state matrix."""
 
-    depth: Optional[int] = Field(default=None)
+    depth: int | None = Field(default=None)
     """Depth of system, ie.
 
     number of dimensions in qu(D)it. (d)
+
     """
 
-    quantity: Optional[int] = Field(default=None)
+    quantity: int | None = Field(default=None)
     """Quantity of systems.
 
     ie. number of qu(D)its in state. (n)
+
     """
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
@@ -399,6 +448,7 @@ class RuntimeCfg(CommonBaseModel):
     """Visibility against white noise.
 
     Between 0 and 1.
+
     """
 
     max_epochs: int = Field(ge=1, le=1_000_000_000)
@@ -406,6 +456,7 @@ class RuntimeCfg(CommonBaseModel):
 
     If other interruption condition is met before the number of epochs, algorithm wont
     execute the rest of epochs.
+
     """
 
     iters_per_epoch: int = Field(ge=1, le=1_000_000_000)
@@ -413,22 +464,24 @@ class RuntimeCfg(CommonBaseModel):
 
     Between iterations no checks are performed, which may speed up calculations. However
     intermediate state of systems are not saved anywhere.
+
     """
 
     max_corrections: int
     """Maximal number of corrections to collect.
 
     Use -1 to disable this limit.
+
     """
 
 
 class Resources(CommonBaseModel):
     """Project resources."""
 
-    symmetries: Optional[list[str]] = Field(default=None)
+    symmetries: list[str] | None = Field(default=None)
     """List of paths to files containing symmetry matrices."""
 
-    projection: Optional[str] = Field(default=None)
+    projection: str | None = Field(default=None)
     """Path to file containing projection matrix."""
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
@@ -436,19 +489,23 @@ class Resources(CommonBaseModel):
         if self.symmetries is not None:
             for i, sym in enumerate(self.symmetries):
                 self.symmetries[i] = sym.format(
-                    project=project, task_name=task_name, task=task
+                    project=project,
+                    task_name=task_name,
+                    task=task,
                 )
 
         if self.projection is not None:
             self.projection = self.projection.format(
-                project=project, task_name=task_name, task=task
+                project=project,
+                task_name=task_name,
+                task=task,
             )
 
 
 BackendCfg.update_forward_refs()
-GilbertCfg.update_forward_refs()  # type: ignore
-Resources.update_forward_refs()  # type: ignore
-Meta.update_forward_refs()  # type: ignore
-RuntimeCfg.update_forward_refs()  # type: ignore
-Task.update_forward_refs()  # type: ignore
-CSSFProject.update_forward_refs()  # type: ignore
+GilbertCfg.update_forward_refs()
+Resources.update_forward_refs()
+Meta.update_forward_refs()
+RuntimeCfg.update_forward_refs()
+Task.update_forward_refs()
+CSSFProject.update_forward_refs()

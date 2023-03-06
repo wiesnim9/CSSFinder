@@ -20,7 +20,8 @@
 
 
 """Groups modules containing implementation of Gilbert algorithm utilities with
-different precisions."""
+different precisions.
+"""
 
 
 from __future__ import annotations

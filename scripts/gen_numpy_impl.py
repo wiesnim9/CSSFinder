@@ -1,3 +1,24 @@
+# Copyright 2023 Krzysztof Wiśniewski <argmaster.world@gmail.com>
+#
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the “Software”), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies
+# or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 """Script for generating numpy precision backends from template."""
 
 from __future__ import annotations
@@ -20,10 +41,13 @@ DEFAULT_DEST = Path(__file__).parent.parent / "cssfinder/algorithm/backend/numpy
 @click.option("--debug-dtype-checks", is_flag=True, default=False)
 @click.option("--use-legacy-random", is_flag=True, default=False)
 def main(
-    dest: Path, disable_jit: bool, debug_dtype_checks: bool, use_legacy_random: bool
+    dest: Path,
+    *,
+    disable_jit: bool,
+    debug_dtype_checks: bool,
+    use_legacy_random: bool,
 ) -> None:
     """Generate numpy precision backends from template."""
-
     logging.warning("Option            --disable-jit %r", disable_jit)
     logging.warning("Option     --debug-dtype-checks %r", debug_dtype_checks)
 

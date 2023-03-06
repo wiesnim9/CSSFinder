@@ -23,7 +23,7 @@
 
 from __future__ import annotations
 
-from typing import Type, cast
+from typing import cast
 
 import numpy as np
 
@@ -36,7 +36,8 @@ class NumPyC64(NumPyBase[np.complex64, np.float32]):
     """Concrete numpy based backend for Gilbert algorithm using complex128 type."""
 
     impl: Implementation[np.complex64, np.float32] = cast(
-        Implementation[np.complex64, np.float32], _complex64
+        Implementation[np.complex64, np.float32],
+        _complex64,
     )
-    primary_t: Type[np.complex64] = np.complex64
-    secondary_t: Type[np.float32] = np.float32
+    primary_t: type[np.complex64] = np.complex64
+    secondary_t: type[np.float32] = np.float32

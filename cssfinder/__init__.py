@@ -20,7 +20,9 @@
 
 
 """CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm."""
+Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
+given state and the set of separable states.
+"""
 
 from __future__ import annotations
 

@@ -19,23 +19,28 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""This module contains implementation of asset loader class in version 1.0.0 which is
-compatible with CSSFProject in version 1.0.0."""
+"""Module contains implementation of asset loader class in version 1.0.0 which is
+compatible with CSSFProject in version 1.0.0.
+"""
 
 from __future__ import annotations
 
 import logging
 import math
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
-import numpy.typing as npt
+import numpy.typing as npt  # noqa: TCH002
 
 from cssfinder.base_model import CommonBaseModel
 from cssfinder.constants import PRIMES
-from cssfinder.cssfproject import GilbertCfg
 from cssfinder.io.matrix import MatrixIO
+
+if TYPE_CHECKING:
+    from cssfinder.cssfproject import GilbertCfg
+
+NUMBER_OF_DIMENSIONS_IN_MATRIX: int = 2
 
 
 class GilbertAssets(CommonBaseModel):
@@ -44,10 +49,10 @@ class GilbertAssets(CommonBaseModel):
     state: State
     """Initial state for algorithm."""
 
-    symmetries: Optional[list[npt.NDArray[np.complex128]]]
+    symmetries: list[npt.NDArray[np.complex128]] | None
     """List of symmetries of state."""
 
-    projection: Optional[npt.NDArray[np.complex128]]
+    projection: npt.NDArray[np.complex128] | None
     """Projection to apply to state."""
 
 
@@ -69,7 +74,9 @@ class GilbertAssetLoader:
         loader = MatrixIO.new(state_matrix_file_path)
         mtx = loader.load().astype(np.complex128)
         logging.info(
-            "Loaded matrix from %r of shape %r", state_matrix_file_path, mtx.shape
+            "Loaded matrix from %r of shape %r",
+            state_matrix_file_path,
+            mtx.shape,
         )
 
         # We are expecting loaded ndarray to be a square matrix, all other numbers of
@@ -97,31 +104,34 @@ class GilbertAssetLoader:
             quantity = self._detect_system_quantity(depth, total_size)
 
         logging.info(
-            "Matrix represents system with depth = %r, quantity = %r", depth, quantity
+            "Matrix represents system with depth = %r, quantity = %r",
+            depth,
+            quantity,
         )
         return State(state=mtx, depth=depth, quantity=quantity)
 
     def _check_matrix_shape(self, mtx: npt.NDArray[np.complex128]) -> None:
         """Check if ndarray conforms shape rules."""
-
-        if len(mtx.shape) == 2:
+        if len(mtx.shape) == NUMBER_OF_DIMENSIONS_IN_MATRIX:
             pass
 
-        elif len(mtx.shape) > 2:
+        elif len(mtx.shape) > NUMBER_OF_DIMENSIONS_IN_MATRIX:
             logging.critical(
-                "Expected square matrix but got tensor with shape %r", mtx.shape
+                "Expected square matrix but got tensor with shape %r",
+                mtx.shape,
             )
-            raise NotExpectedTensor(mtx)
+            raise NotExpectedTensorError(mtx)
 
         elif len(mtx.shape) == 1:
             logging.critical(
-                "Expected square matrix but got vector with shape %r", mtx.shape
+                "Expected square matrix but got vector with shape %r",
+                mtx.shape,
             )
-            raise NotExpectedVector(mtx)
+            raise NotExpectedVectorError(mtx)
 
         elif len(mtx.shape) == 0:
             logging.critical("Expected square matrix but got scalar (%r)", mtx)
-            raise NotExpectedScalar(mtx)
+            raise NotExpectedScalarError(mtx)
 
         else:
             raise AssertionError(mtx.shape)
@@ -130,7 +140,7 @@ class GilbertAssetLoader:
         x_size, y_size = mtx.shape
         if x_size != y_size:
             logging.critical("Expected square matrix, but received shape %r", mtx.shape)
-            raise IncorrectMatrixShape(mtx)
+            raise IncorrectMatrixShapeError(mtx)
 
     def _detect_depth_and_quantity(self, total: int) -> tuple[int, int]:
         """Detect both system depth and system quantity.
@@ -149,6 +159,7 @@ class GilbertAssetLoader:
         ------
         ValueError
             When depth and quantity can't be determined.
+
         """
         for depth in PRIMES:
             quantity = int(math.log(total, depth))
@@ -162,9 +173,8 @@ class GilbertAssetLoader:
                 )
                 return depth, quantity
 
-        raise ValueError(
-            "Couldn't determine size of system, prime number range exceeded."
-        )
+        reason = "prime number range exceeded"
+        raise UndefinedSystemSizeError(reason)
 
     def _detect_system_quantity(self, depth: int, total: int) -> int:
         """Detect system quantity (number of subsystems).
@@ -185,6 +195,7 @@ class GilbertAssetLoader:
         ------
         ValueError
             When quantity can't be determined.
+
         """
         quantity = int(math.log(total, depth))
 
@@ -192,22 +203,22 @@ class GilbertAssetLoader:
             logging.debug("Deduced quantity %r when given depth of %r", depth, quantity)
             return quantity
 
-        raise ValueError(
-            f"Couldn't determine size of system: {quantity} == {int(quantity)} is "
-            "False.",
-        )
+        error_reason = f"{quantity} != {int(quantity)}"
+        raise UndefinedSystemSizeError(error_reason)
 
     def _load_symmetries(
-        self, gilbert_cfg: GilbertCfg  # pylint: disable=unused-argument
-    ) -> Optional[list[npt.NDArray[np.complex128]]]:
+        self,
+        gilbert_cfg: GilbertCfg,  # noqa: ARG002
+    ) -> list[npt.NDArray[np.complex128]] | None:
         """Load matrices describing symmetries of system state."""
-        return None
+        return  # type: ignore[return-value]
 
     def _load_projection(
-        self, gilbert_cfg: GilbertCfg  # pylint: disable=unused-argument
-    ) -> Optional[npt.NDArray[np.complex128]]:
+        self,
+        gilbert_cfg: GilbertCfg,  # noqa: ARG002
+    ) -> npt.NDArray[np.complex128] | None:
         """Load matrix describing projection of system state."""
-        return None
+        return  # type: ignore[return-value]
 
 
 @dataclass
@@ -221,33 +232,43 @@ class State:
     """Depth of system, ie.
 
     Dimensions in qu(D)it. (d)
+
     """
 
     quantity: int
     """Quantity of systems.
 
     ie. number of qu(D)its in state. (n)
+
     """
 
 
-class IncorrectMatrixShape(ValueError):
+class IncorrectMatrixShapeError(ValueError):
     """Raised when matrix has incorrect shape."""
 
     def __init__(self, mtx: npt.NDArray[np.complex128]) -> None:
+        """Store matrix object in `mtx` attribute."""
         super().__init__()
         self.mtx = mtx
 
 
-class NotExpectedTensor(IncorrectMatrixShape):
+class NotExpectedTensorError(IncorrectMatrixShapeError):
     """Raised when got 3+ dimensional tensor instead of matrix."""
 
 
-class NotExpectedVector(IncorrectMatrixShape):
+class NotExpectedVectorError(IncorrectMatrixShapeError):
     """Raised when got vector instead of matrix."""
 
 
-class NotExpectedScalar(IncorrectMatrixShape):
+class NotExpectedScalarError(IncorrectMatrixShapeError):
     """Raised when got scalar instead of matrix."""
+
+
+class UndefinedSystemSizeError(ValueError):
+    """Raised when it is not possible to determine system dimensions."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"Couldn't determine size of system: {reason}.")
 
 
 GilbertAssets.update_forward_refs()

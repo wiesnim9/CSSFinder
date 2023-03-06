@@ -941,3 +941,4 @@ typechecking/
 \#*
 \#*/
 *.env
+.ruff_cache

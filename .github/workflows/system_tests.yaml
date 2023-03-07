@@ -1,0 +1,55 @@
+# Name of the workflow. This will be displayed in the Actions tab of your repository.
+name: Python package
+
+# Specifies when the workflow should run. In this case, it will run on every push to the main branch and on every pull request to the main branch.
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main, feature/**]
+
+# Defines the jobs that should be run as part of this workflow.
+jobs:
+  # The name of this job. You can have multiple jobs in a workflow.
+  build:
+    # Defines a matrix of operating systems and Python versions to test against.
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        python-version: ["3.8", "3.9", "3.10"]
+
+    # Specifies which operating system to run the job on.
+    runs-on: ${{ matrix.os }}
+
+    # Prevents a workflow run from failing when a job fails.
+    continue-on-error: true
+
+    # The steps that should be run as part of this job.
+    steps:
+      - name: Checkout code
+        # This step checks out your code from your repository.
+        uses: actions/checkout@v3.1.0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        # This step sets up the specified version of Python.
+        # Uses setup-python action.
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: "x64"
+
+      - name: Install Poetry
+        # This step installs Poetry using pip.
+        run: pip install poetry
+
+      - name: Install dependencies
+        # This step installs the dependencies specified in the Poetry lock file.
+        run: poetry install
+
+      - name: Generate debug numpy backend
+        # This step generated numpy backend with all debug options enabled.
+        run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
+
+      - name: Test with pytest
+        # This step runs the tests using pytest.
+        run: poetry run poe test-system

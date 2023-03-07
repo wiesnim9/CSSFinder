@@ -24,9 +24,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
+import numpy as np
 import pandas as pd
 
+from cssfinder.io.matrix import MatrixIO
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
+    import numpy.typing as npt
+
     from cssfinder.cssfproject import Task
 
 
@@ -39,11 +46,30 @@ class GilbertOutputLoader:
         DataFrame object will have 3 columns: "iteration", "index" and "value".
 
         """
-        data_frame: pd.DataFrame = cast(
-            pd.DataFrame,
-            pd.read_json(task.output / "corrections.json"),
-        )
+        return self.load_corrections_from(task.output / "corrections.json")
+
+    def load_corrections_from(self, source: Path) -> pd.DataFrame:
+        """Load corrections from a JSON file and return them as a pandas DataFrame.
+
+        Parameters
+        ----------
+        source : Path
+            Path to the JSON file containing corrections data.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the corrections data, with columns renamed to
+            "iteration", "index", and "value".
+
+        """
+        data_frame: pd.DataFrame = cast(pd.DataFrame, pd.read_json(source))
 
         return data_frame.rename(
             columns={0: "iteration", 1: "index", 2: "value"},
         )
+
+    def load_state_from(self, source: Path) -> npt.NDArray[np.complex128]:
+        """Load state matrix from specified location."""
+        loader = MatrixIO.new(source)
+        return loader.load().astype(np.complex128)

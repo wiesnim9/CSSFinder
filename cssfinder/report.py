@@ -278,12 +278,6 @@ def R(values: npt.NDArray[np.float64], a: np.float64) -> np.float64:  # noqa: N8
     numpy.float64
         The R value for the input array of values and correction factor.
 
-    Examples
-    --------
-    >>> values = np.array([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    >>> R(values, 1.0)
-    -0.964557517874
-
     """
     ll1 = np.divide(1.0, np.subtract(values, a))
     length = len(values)

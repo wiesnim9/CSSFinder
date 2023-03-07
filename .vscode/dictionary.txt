@@ -8,6 +8,8 @@ figheight
 figsize
 figwidth
 forceobj
+fsnqd
+isreal
 jsonref
 Krzysztof
 levelname
@@ -22,6 +24,7 @@ numba
 numpy
 pydantic
 pyplot
+pytest
 qubits
 savefig
 scipy

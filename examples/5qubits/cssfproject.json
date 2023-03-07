@@ -8,7 +8,7 @@
         "version": "1.0.0"
     },
     "tasks": {
-        "0": {
+        "main": {
             "gilbert": {
                 "mode": "FSnQd",
                 "backend": {
@@ -32,24 +32,25 @@
                 }
             }
         },
-        "1": {
+        "test_fsnqd_5qubits": {
             "gilbert": {
                 "mode": {
-                    "$ref": "#/tasks/0/gilbert/mode"
+                    "$ref": "#/tasks/main/gilbert/mode"
                 },
                 "backend": {
-                    "$ref": "#/tasks/0/gilbert/backend"
+                    "$ref": "#/tasks/main/gilbert/backend"
                 },
                 "runtime": {
-                    "$ref": "#/tasks/0/gilbert/runtime"
+                    "visibility": 0.4,
+                    "max_epochs": 10,
+                    "iters_per_epoch": 10,
+                    "max_corrections": 10
                 },
                 "state": {
-                    "file": "{project.directory}/5qubits_in.mtx",
-                    "depth": null,
-                    "quantity": null
+                    "$ref": "#/tasks/main/gilbert/state"
                 },
                 "resources": {
-                    "$ref": "#/tasks/0/gilbert/resources"
+                    "$ref": "#/tasks/main/gilbert/resources"
                 }
             }
         }

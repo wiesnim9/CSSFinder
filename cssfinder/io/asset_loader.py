@@ -26,7 +26,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 import numpy.typing as npt  # noqa: TCH002
@@ -47,10 +47,10 @@ class GilbertAssets(CommonBaseModel):
     state: State
     """Initial state for algorithm."""
 
-    symmetries: list[npt.NDArray[np.complex128]] | None
+    symmetries: Optional[list[npt.NDArray[np.complex128]]]
     """List of symmetries of state."""
 
-    projection: npt.NDArray[np.complex128] | None
+    projection: Optional[npt.NDArray[np.complex128]]
     """Projection to apply to state."""
 
 

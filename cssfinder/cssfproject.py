@@ -30,7 +30,7 @@ import fnmatch
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
 import jsonref
 from pydantic import ConstrainedStr, EmailStr, Field, validator
@@ -51,7 +51,7 @@ class CSSFProject(CommonBaseModel):
     tasks: dict[str, Task]
     """List of tasks within project which can be executed."""
 
-    _file: Path | None = None
+    _file: Optional[Path] = None
     """Path to loaded project file."""
 
     _is_evaluated: bool = False
@@ -265,7 +265,7 @@ class SemVerStr(ConstrainedStr):
 class Task(CommonBaseModel):
     """Container representing CSSFinder task with some algorithm."""
 
-    gilbert: GilbertCfg | None = Field(default=None)
+    gilbert: Optional[GilbertCfg] = Field(default=None)
     """Configuration of gilbert algorithm."""
 
     _output: Path = Field(default=Path.cwd())
@@ -298,20 +298,20 @@ class GilbertCfg(CommonBaseModel):
     mode: AlgoMode
     """Algorithm mode to use."""
 
-    backend: BackendCfg | None = Field(default=None)
+    backend: Optional[BackendCfg] = Field(default=None)
     """Configuration of backend which will be used for execution.
 
     When backend configuration is not specified, numpy with double precision is used.
 
     """
 
-    state: State | str | Path
+    state: Union[State, str, Path]
     """Path to file containing initial state matrix."""
 
     runtime: RuntimeCfg
     """Configuration of runtime limits and parameters influencing algorithm run time."""
 
-    resources: Resources | None = Field(default=None)
+    resources: Optional[Resources] = Field(default=None)
     """Additional resources which may be used by algorithm."""
 
     def get_backend(self) -> BackendCfg:
@@ -403,14 +403,14 @@ class State(CommonBaseModel):
     file: str
     """Path to file containing state matrix."""
 
-    depth: int | None = Field(default=None)
+    depth: Optional[int] = Field(default=None)
     """Depth of system, ie.
 
     number of dimensions in qu(D)it. (d)
 
     """
 
-    quantity: int | None = Field(default=None)
+    quantity: Optional[int] = Field(default=None)
     """Quantity of systems.
 
     ie. number of qu(D)its in state. (n)
@@ -459,10 +459,10 @@ class RuntimeCfg(CommonBaseModel):
 class Resources(CommonBaseModel):
     """Project resources."""
 
-    symmetries: list[str] | None = Field(default=None)
+    symmetries: Optional[list[str]] = Field(default=None)
     """List of paths to files containing symmetry matrices."""
 
-    projection: str | None = Field(default=None)
+    projection: Optional[str] = Field(default=None)
     """Path to file containing projection matrix."""
 
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:

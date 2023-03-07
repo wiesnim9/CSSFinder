@@ -653,7 +653,7 @@ extend-select = [
     "UP004",
     "UP005",
     "UP006",
-    "UP007",
+    # "UP007",  # breaks compatibility with Python <3.10
     "UP008",
     "UP009",
     "UP010",

@@ -57,10 +57,7 @@ build = [
     { cmd = "poetry build --format=wheel" },
     { cmd = "poetry build --format=sdist" }
 ]
-gen-numpy-impl = [
-    { cmd = "poetry install --sync" },
-    { script = "scripts.gen_numpy_impl:main" }
-]
+gen-numpy-impl = { script = "scripts.gen_numpy_impl:main" }
 test-system = [
     { cmd = "poetry install --sync" },
     { cmd = "pytest test/system -v --cov" }

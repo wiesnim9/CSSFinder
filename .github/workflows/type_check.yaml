@@ -29,5 +29,8 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
+      - name: Install dependencies
+        run: poetry install --sync
+
       - name: Test with pytest
         run: poetry run poe type-check

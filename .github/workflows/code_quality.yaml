@@ -29,5 +29,8 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Test with pytest
-        run: poetry run mypy
+      - name: Install dependencies
+        run: poetry install --sync
+
+      - name: Run code quality checkers
+        run: poetry run poe run-hooks

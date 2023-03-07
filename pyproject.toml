@@ -54,7 +54,8 @@ run-hooks = [
     { cmd = "pre-commit run --all-files -v" }
 ]
 build = [
-    { cmd = "poetry build --format=wheel" }
+    { cmd = "poetry build --format=wheel" },
+    { cmd = "poetry build --format=sdist" }
 ]
 gen-numpy-impl = [
     { cmd = "poetry install --sync" },

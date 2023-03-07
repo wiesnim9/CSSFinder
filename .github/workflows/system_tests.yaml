@@ -31,9 +31,12 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
+      - name: Install dependencies
+        run: poetry install --sync
+
       - name: Generate debug numpy backend
         # This step generates numpy backend with all debug options enabled.
         run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
 
-      - name: Test with pytest
+      - name: Run static type checker
         run: poetry run poe test-system

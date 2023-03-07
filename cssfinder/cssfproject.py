@@ -30,7 +30,7 @@ import fnmatch
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
 import jsonref
 from pydantic import ConstrainedStr, EmailStr, Field, validator
@@ -48,7 +48,7 @@ class CSSFProject(CommonBaseModel):
     meta: Meta
     """Project meta information like name and author."""
 
-    tasks: dict[str, Task]
+    tasks: Dict[str, Task]
     """List of tasks within project which can be executed."""
 
     _file: Optional[Path] = None
@@ -459,7 +459,7 @@ class RuntimeCfg(CommonBaseModel):
 class Resources(CommonBaseModel):
     """Project resources."""
 
-    symmetries: Optional[list[str]] = Field(default=None)
+    symmetries: Optional[List[str]] = Field(default=None)
     """List of paths to files containing symmetry matrices."""
 
     projection: Optional[str] = Field(default=None)

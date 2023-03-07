@@ -1,5 +1,5 @@
 # Name of the workflow. This will be displayed in the Actions tab of your repository.
-name: Python package
+name: System Tests
 
 # Specifies when the workflow should run. In this case, it will run on every push to the main branch and on every pull request to the main branch.
 on:

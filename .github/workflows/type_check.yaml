@@ -1,18 +1,16 @@
-name: System Tests
+name: Type Check
 
 on:
   push:
     branches: [main, feature/**, dependabot/**]
   pull_request:
     branches: [main, feature/**, dependabot/**]
-  schedule:
-    - cron: 0 12 * * 6
 
 jobs:
-  system-tests:
+  type-check:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10"]
 
     runs-on: ${{ matrix.os }}
@@ -31,9 +29,5 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Generate debug numpy backend
-        # This step generates numpy backend with all debug options enabled.
-        run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
-
       - name: Test with pytest
-        run: poetry run poe test-system
+        run: poetry run poe type-check

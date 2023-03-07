@@ -45,11 +45,29 @@ cssfinder = "cssfinder.cli:main"
 cssf = "cssfinder.cli:main"
 
 [tool.poe.tasks]
-install-hooks = "pre-commit install --install-hooks --overwrite"
-run-hooks = "pre-commit run --all-files -v"
-build = "poetry build --format=wheel"
-gen-numpy-impl = { script = "scripts.gen_numpy_impl:main" }
-test-system = " poetry run pytest test/system -v --cov"
+install-hooks = [
+    { cmd = "poetry install --sync" },
+    { cmd = "poetry run pre-commit install --install-hooks --overwrite" }
+]
+run-hooks = [
+    { cmd = "poetry install --sync" },
+    { cmd = "pre-commit run --all-files -v" }
+]
+build = [
+    { cmd = "poetry build --format=wheel" }
+]
+gen-numpy-impl = [
+    { cmd = "poetry install --sync" },
+    { script = "scripts.gen_numpy_impl:main" }
+]
+test-system = [
+    { cmd = "poetry install --sync" },
+    { cmd = "pytest test/system -v --cov" }
+]
+type-check = [
+    { cmd = "poetry install --sync" },
+    { cmd = "mypy cssfinder test scripts" }
+]
 
 [build-system]
 requires = ["poetry-core"]

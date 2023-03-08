@@ -2,19 +2,46 @@ name: Type Check
 
 on:
   push:
-    branches: [main, feature/**, dependabot/**]
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+
   pull_request:
-    branches: [main, feature/**, dependabot/**]
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+    types:
+      - opened
+      - reopened
+
+  schedule:
+    - cron: 0 12 * * 6
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-type-check
+  cancel-in-progress: true
 
 jobs:
   type-check:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10"]
 
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
 
     steps:
       - name: Checkout code

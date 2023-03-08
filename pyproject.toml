@@ -6,7 +6,7 @@ authors = [
     "Krzysztof Wiśniewski <argmaster.world@gmail.com>",
     "Marcin Wieśniak <marcin.wiesniak@ug.edu.pl>",
 ]
-repository = "https://github.com/wiesnim9/CSSFinder"
+repository = "https://github.com/argmaster/CSSFinder"
 readme = "README.md"
 
 [tool.poetry.dependencies] # ANCHOR: tool.poetry.dependencies

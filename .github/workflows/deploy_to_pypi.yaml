@@ -18,56 +18,65 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.1.0
-        with:
-          fetch-depth: 2
 
       - name: Set up Python 3.10
+
         uses: actions/setup-python@v4.5.0
         with:
           python-version: "3.10"
           architecture: "x64"
 
-      - name: Install Poetry
+      - name: Install Poetry 📜
         run: pip install poetry
 
-      - name: Install dependencies
+      - name: Install dependencies 🗄️
         run: poetry install --sync
 
-      - name: Bump version for developmental release
+      - name: Bump Version for development 🔨 release
+        # Executed only for dev branch push
         if: ( !startsWith(github.ref, 'refs/tags') )
         run: |
           poetry version patch &&
           version=$(poetry version | awk '{ print $2 }') &&
           poetry version $version-dev.$(date +%s)
 
-      - name: Detect and tag new version
-        id: check-version
-        uses: salsify/action-detect-and-tag-new-version@v2
+      - name: Detect Version of project
+        id: project-version
+        run: |
+          echo "::set-output name=version::$(poetry version | awk '{ print $2 }')"
+
+      - name: Create development 🔨 Tag 🏷️
+        # Executed only for dev branch push
+        if: ( !startsWith(github.ref, 'refs/tags') )
+        id: tag-version
+        uses: mathieudutour/github-tag-action@v6.1
         with:
-          version-command: |
-            bash -o pipefail -c "poetry version | awk '{ print \$2 }'"
+          custom_tag: ${{ steps.project-version.outputs.version }}
+          github_token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       - name: Build distribution 📦
         run: poetry run poe build
 
       - name: Publish distribution 📦 to PyPI
-        # but only if the current commit is tagged.
+        # Executed only for version tag push event
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Publish distribution 📦 to Test PyPI
+        # Executed always
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
 
-      - name: Publish the release notes
+      - name: Publish the release notes 📝
+        # Executed only for version tag push event
         if: startsWith(github.ref, 'refs/tags')
         uses: release-drafter/release-drafter@v5
         with:
-          publish: ${{ steps.check-version.outputs.tag != '' }}
-          tag: ${{ steps.check-version.outputs.tag }}
+          publish: ${{ steps.project-version.outputs.version != '' }}
+          tag: ${{ steps.tag-version.outputs.new_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}

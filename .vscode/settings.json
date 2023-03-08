@@ -1,0 +1,76 @@
+{
+    "python.analysis.indexing": true,
+    "python.autoComplete.extraPaths": ["source"],
+    "python.formatting.provider": "black",
+    "python.languageServer": "Pylance",
+    "python.linting.mypyArgs": [
+        "--follow-imports=silent",
+        "--show-column-numbers",
+        "--no-pretty",
+        "--config-file=pyproject.toml"
+    ],
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyCategorySeverity.note": "Warning",
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "autoDocstring.docstringFormat": "numpy",
+    "autoDocstring.includeName": false,
+    "editor.rulers": [88, 100],
+    "editor.renderWhitespace": "selection",
+    "python.testing.pytestArgs": [
+        "tests",
+        "source",
+        "--log-level=DEBUG",
+        "-s"
+    ],
+    "cSpell.customDictionaries": {
+        "custom-dictionary-user": {
+            "name": "workspace-dictionary",
+            "path": "./.vscode/dictionary.txt",
+            "addWords": true,
+            "scope": "workspace"
+        }
+    },
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true,
+        "source.fixAll": true
+    },
+    "python.linting.maxNumberOfProblems": 1000,
+    "python.analysis.extraPaths": [],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.hypothesis": true,
+        "**/.mypy_cache": true,
+        "**/.pytest_cache": true
+    },
+    "python.analysis.diagnosticMode": "workspace",
+    "explorer.copyRelativePathSeparator": "/",
+    "C_Cpp.preferredPathSeparator": "Forward Slash",
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "cssfinder",
+            "depth": 32,
+            "includeAllSymbols": true
+        },
+        {
+            "name": "matplotlib",
+            "depth": 4
+        },
+        {
+            "name": "scipy",
+            "depth": 4
+        },
+        {
+            "name": "numpy",
+            "depth": 4
+        }
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": false,
+    "python.analysis.useLibraryCodeForTypes": true
+}

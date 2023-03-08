@@ -1,0 +1,67 @@
+name: System Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+
+  pull_request:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+    types:
+      - opened
+      - reopened
+
+  schedule:
+    - cron: 0 12 * * 6
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-system-tests
+  cancel-in-progress: true
+
+jobs:
+  system-tests:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        python-version: ["3.8", "3.9", "3.10"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.1.0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: "x64"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --sync
+
+      - name: Generate debug numpy backend
+        # This step generates numpy backend with all debug options enabled.
+        run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
+
+      - name: Run static type checker
+        run: poetry run poe test-system

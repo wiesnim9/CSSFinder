@@ -1,6 +1,6 @@
-<center>
-<h1>CSSFinder</h1>
-</center>
+# CSSFinder
+
+Closest separable state finder.
 
 ## Installing
 
@@ -94,7 +94,7 @@ Successfully installed click-8.1.3 contourpy-1.0.7 cssfinder-0.1.0 cycler-0.11.0
 
 But `cssfinder-0.1.0` should be included in this list.
 
-## Code changes
+## Code quality
 
 To ensure that all code follow same style guidelines and code quality rules,
 multiple static analysis tools are used. For simplicity, all of them are

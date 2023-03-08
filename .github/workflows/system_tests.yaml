@@ -11,6 +11,11 @@ on:
       - feature/**
       - release/**
       - dependabot/**
+    paths:
+      - cssfinder/**
+      - test/**
+      - poetry.lock
+      - .github/workflows/system_tests.yaml
 
   pull_request:
     branches:

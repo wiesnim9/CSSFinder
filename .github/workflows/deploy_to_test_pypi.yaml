@@ -30,14 +30,14 @@ jobs:
       - name: Install dependencies 🗄️
         run: poetry install --sync
 
-      - name: Build distribution 📦
-        run: poetry run poe build
-
       - name: Bump Version for development 🔨 release
         run: |
           poetry version patch &&
           version=$(poetry version | awk '{ print $2 }') &&
           poetry version $version-dev.$(date +%s)
+
+      - name: Build distribution 📦
+        run: poetry run poe build
 
       - name: Detect Version of project
         id: project-version

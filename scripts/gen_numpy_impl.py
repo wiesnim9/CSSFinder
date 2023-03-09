@@ -24,6 +24,8 @@
 from __future__ import annotations
 
 import logging
+import subprocess
+import sys
 from pathlib import Path
 
 import black
@@ -72,7 +74,9 @@ def main(
             is_32bit="32" in floating,
         )
         source = black.format_str(source, mode=black.mode.Mode())
-        (dest / name).write_text(source, "utf-8")
+        dest_file: Path = dest / name
+        dest_file.write_text(source, "utf-8")
+        subprocess.run([sys.executable, "-m", "ruff", dest_file.as_posix(), "--fix"])
 
     raise SystemExit(0)
 

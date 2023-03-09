@@ -92,11 +92,11 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
     def jit(self) -> None:
         """JIT compile performance critical parts of backend with numba."""
+        return
         _update_state = jit(  # type: ignore[assignment]
             forceobj=True,
             cache=True,
             looplift=False,
-            inline="always",
         )(
             self.__class__._update_state,  # noqa: SLF001
         )
@@ -150,8 +150,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                 alternative_state = self.impl.random_d_fs(depth, quantity)
             elif self.mode == AlgoMode.SBiPa:
                 alternative_state = self.impl.random_bs(depth, quantity)
-            else:
-                raise TypeError(self.mode)
 
             if (
                 self.impl.product(alternative_state, self._visibility_reduced)
@@ -192,8 +190,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                 quantity,
                 epochs,
             )
-        else:
-            raise TypeError(self.mode)
 
         aa3: SECONDARY_co = self.impl.product(alternative_state, alternative_state)
         aa2: SECONDARY_co = 2 * self.impl.product(self._visibility, alternative_state)

@@ -456,9 +456,12 @@ def optimize_bs(
             return_state = rotate(new_state, unitary)
             {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}
 
-        while (pp2 := product(return_state, visibility_state)) > pp1:
+        pp2 = product(return_state, visibility_state)
+
+        while pp2 > pp1:
             pp1 = pp2
             return_state = rotate(return_state, unitary)
+            pp2 = product(return_state, visibility_state)
             {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}
 
         {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}

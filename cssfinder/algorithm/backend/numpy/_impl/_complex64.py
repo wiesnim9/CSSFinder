@@ -354,8 +354,11 @@ def optimize_bs(
             unitary = unitary.conj().T
             return_state = rotate(new_state, unitary)
 
-        while (pp2 := product(return_state, visibility_state)) > pp1:
+        pp2 = product(return_state, visibility_state)
+
+        while pp2 > pp1:
             pp1 = pp2
             return_state = rotate(return_state, unitary)
+            pp2 = product(return_state, visibility_state)
 
     return return_state

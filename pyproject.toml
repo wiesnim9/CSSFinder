@@ -29,7 +29,7 @@ isort = "^5.11.4"
 docformatter = { extras = ["tomli"], version = "^1.5.1" }
 pytest = "^7.2.0"
 autoflake = "^2.0.0"
-pre-commit = "^2.20.0"
+pre-commit = ">=2.20,<4.0"
 pytest-cov = "^4.0.0"
 mypy = "^1.0.1"
 ptpython = "^3.0.22"

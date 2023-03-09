@@ -60,7 +60,7 @@ build = [
 gen-numpy-impl = { script = "scripts.gen_numpy_impl:main" }
 test-system = [
     { cmd = "poetry install --sync --no-ansi" },
-    { cmd = "pytest test/system -v --cov" }
+    { cmd = "pytest test/test_system -v --cov" }
 ]
 type-check = [
     { cmd = "poetry install --sync --no-ansi" },

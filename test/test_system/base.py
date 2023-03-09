@@ -22,7 +22,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -31,19 +31,34 @@ from cssfinder.api import run_project_from
 from cssfinder.io.output_loader import GilbertOutputLoader
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import numpy.typing as npt
     import pandas as pd
 
-PROJECT_5QUBITS = Path.cwd() / "examples" / "5qubits"
 
+class ModeTest:
+    """Base class for simple mode test suite."""
 
-class TestFSnQd5qubits:
-    """Test behavior of FSnQd mode of Gilbert algorithm."""
+    @dataclass
+    class MinMax:
+        """Well named container for max and min values of floating range."""
 
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+        min: float  # noqa: A003  # not needed in this scope
+        """Minimal value of range."""
 
-    output: Path
-    """Path to output directory."""
+        max: float  # noqa: A003  # not needed in this scope
+        """Maximal value of range."""
+
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int
+    PROJECT_PATH: Path
+    TEST_TASK_NAME: str
+
+    OUT_STATE_ROW_COUNT: int
+    OUT_STATE_COL_COUNT: int
+
+    MIN_CORRECTION_VALUE: float
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax
 
     corrections: pd.DataFrame
     """List of corrections obtained from cssfinder."""
@@ -58,13 +73,19 @@ class TestFSnQd5qubits:
         Executed once for class, shared between tests within class.
 
         """
-        run_project_from(PROJECT_5QUBITS, ["test_fsnqd_5qubits"])
-        cls.output = PROJECT_5QUBITS / "output" / "test_fsnqd_5qubits"
+        run_project_from(cls.PROJECT_PATH, [cls.TEST_TASK_NAME])
 
         cls.corrections = GilbertOutputLoader().load_corrections_from(
-            cls.output / "corrections.json"
+            cls.get_output_directory() / "corrections.json"
         )
-        cls.state = GilbertOutputLoader().load_state_from(cls.output / "state.mtx")
+        cls.state = GilbertOutputLoader().load_state_from(
+            cls.get_output_directory() / "state.mtx"
+        )
+
+    @classmethod
+    def get_output_directory(cls) -> Path:
+        """Path to output directory."""
+        return cls.PROJECT_PATH / "output" / cls.TEST_TASK_NAME
 
     def test_number_of_corrections(self) -> None:
         """Check if valid number of corrections was saved."""
@@ -74,26 +95,22 @@ class TestFSnQd5qubits:
         """Check if first correction value is within expected range."""
         value = self.corrections["value"].iloc[0]
 
-        min_value = 0.118
-        max_value = 0.120
-
-        assert min_value < value < max_value
+        assert (
+            self.MIN_MAX_FIRST_CORRECTION_RANGE.min
+            < value
+            < self.MIN_MAX_FIRST_CORRECTION_RANGE.max
+        )
 
     def test_last_better_than_first_correction(self) -> None:
         """Check if last correction is better (smaller) than first correction."""
         values = self.corrections["value"]
         first, last = values.iloc[0], values.iloc[-1]
 
-        min_expected = 0.100
-
-        assert first > last > min_expected
+        assert first > last > self.MIN_CORRECTION_VALUE
 
     def test_state_shape(self) -> None:
         """Check if output state has correct shape."""
-        state_row_count = 32
-        state_column_count = 32
-
-        assert self.state.shape == (state_row_count, state_column_count)
+        assert self.state.shape == (self.OUT_STATE_ROW_COUNT, self.OUT_STATE_COL_COUNT)
 
     def test_state_dtype(self) -> None:
         """Check if output state has correct data type."""

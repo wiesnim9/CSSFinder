@@ -15,6 +15,7 @@ on:
       - cssfinder/**
       - test/**
       - poetry.lock
+      - pyproject.toml
       - .github/workflows/system_tests.yaml
 
   pull_request:
@@ -69,5 +70,5 @@ jobs:
         # This step generates numpy backend with all debug options enabled.
         run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
 
-      - name: Run static type checker
+      - name: Run system tests
         run: poetry run poe test-system

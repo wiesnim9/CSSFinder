@@ -21,8 +21,8 @@
     "editor.rulers": [88, 100],
     "editor.renderWhitespace": "selection",
     "python.testing.pytestArgs": [
-        "tests",
-        "source",
+        "test",
+        "cssfinder",
         "--log-level=DEBUG",
         "-s"
     ],

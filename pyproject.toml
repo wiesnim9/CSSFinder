@@ -1,6 +1,6 @@
 [tool.poetry] # ANCHOR: tool.poetry
 name = "cssfinder"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = [
     "Krzysztof Wiśniewski <argmaster.world@gmail.com>",
@@ -45,6 +45,7 @@ cssfinder = "cssfinder.cli:main"
 cssf = "cssfinder.cli:main"
 
 [tool.poe.tasks]
+release = { script = "scripts.release:main" }
 install-hooks = [
     { cmd = "poetry install --sync --no-ansi" },
     { cmd = "poetry run pre-commit install --install-hooks --overwrite" }

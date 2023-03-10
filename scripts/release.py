@@ -37,10 +37,19 @@ INIT_PATH = ROOT_DIR / "cssfinder" / "__init__.py"
 README_PATH = ROOT_DIR / "README.md"
 
 
-@click.command()
+@click.group()
+def main() -> None:
+    """Release manager for releases."""
+
+
+@main.command()
 @click.argument("version", type=str)
-def main(version: str) -> None:
+def create(version: str) -> None:
     """Create release branch and change version of package."""
+    subprocess.run(["git", "add", "-A"])
+    subprocess.run(["git", "stash"])
+    subprocess.run(["git", "switch", "dev"])
+    subprocess.run(["git", "switch", "-c", f"release/{version}"])
     replace_version(
         PYPROJECT_PATH,
         r"version\s*=\s*\"(.*?)\"\n",
@@ -57,19 +66,12 @@ def main(version: str) -> None:
         f"cssfinder-{version}",
         count=0,
     )
-
-    subprocess.run(["git", "switch", "-c", f"release/{version}"])
+    subprocess.run(["git", "add", "-A"])
     subprocess.run(["poetry", "run", "poe", "run-hooks"])
-    subprocess.run(
-        [
-            "git",
-            "add",
-            PYPROJECT_PATH.relative_to(ROOT_DIR).as_posix(),
-            INIT_PATH.relative_to(ROOT_DIR).as_posix(),
-            README_PATH.relative_to(ROOT_DIR).as_posix(),
-        ]
-    )
+    subprocess.run(["git", "add", "-A"])
     subprocess.run(["git", "commit", "-m", f"Bump version to {version}"])
+    subprocess.run(["git", "push", "--set-upstream", "origin", f"release/{version}"])
+    subprocess.run(["git", "stash", "pop"])
 
 
 def replace_version(src: Path, regex: str, replacement: str, count: int = 1) -> None:

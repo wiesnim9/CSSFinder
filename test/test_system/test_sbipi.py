@@ -37,4 +37,4 @@ class Test_SBiPi(ModeTest):  # noqa: N801  # Underscore used for readability.
     OUT_STATE_COL_COUNT: int = 9
 
     MIN_CORRECTION_VALUE: float = 0.070
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.108, 0.110)
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.115)

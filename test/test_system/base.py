@@ -99,6 +99,10 @@ class ModeTest:
             self.MIN_MAX_FIRST_CORRECTION_RANGE.min
             < value
             < self.MIN_MAX_FIRST_CORRECTION_RANGE.max
+        ), (
+            self.MIN_MAX_FIRST_CORRECTION_RANGE.min,
+            value,
+            self.MIN_MAX_FIRST_CORRECTION_RANGE.max,
         )
 
     def test_last_better_than_first_correction(self) -> None:

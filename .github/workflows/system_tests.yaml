@@ -1,3 +1,4 @@
+---
 name: System Tests
 
 on:
@@ -63,5 +64,5 @@ jobs:
         # This step generates numpy backend with all debug options enabled.
         run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
 
-      - name: Run static type checker
+      - name: Run system tests
         run: poetry run poe test-system

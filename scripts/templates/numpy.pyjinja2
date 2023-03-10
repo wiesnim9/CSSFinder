@@ -75,9 +75,25 @@ _REAL = np.cos(0.01 * np.pi)
 _IMAG = 1j * np.sin(0.01 * np.pi)
 _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
+{% if not disable_jit %}
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def product(
+{% macro jit_nopython() -%}
+@jit(nopython=True, nogil=True, cache=True)
+{%- endmacro %}
+
+{% macro jit_forceobj() -%}
+@jit(nopython=False, forceobj=True, cache=True, looplift=False)
+{%- endmacro %}
+
+{% else %}
+
+{% macro jit_nopython() -%}{%- endmacro %}
+{% macro jit_forceobj() -%}{%- endmacro %}
+
+{% endif %}
+
+{{ jit_nopython() }}
+def product(
     matrix1: npt.NDArray[{{complex}}], matrix2: npt.NDArray[{{complex}}]
 ) -> {{floating}}:
     """Calculate scalar product of two matrices."""
@@ -90,8 +106,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def get_random_haar_1d(depth: int) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def get_random_haar_1d(depth: int) -> npt.NDArray[{{complex}}]:
     """Generate a random vector with Haar measure."""
 
     real = np.random.uniform(0, 1, depth)  # noqa: NPY002
@@ -109,8 +125,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Generate multiple random vectors with Haar measure in form of matrix."""
 
     real = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
@@ -127,9 +143,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
     return retval  # type: ignore[no-any-return]
 
-
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def normalize(mtx: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def normalize(mtx: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
     """Normalize a vector."""
     {% if debug_dtype_checks %}assert_dtype(mtx, {{complex}}){% endif %}
 
@@ -145,8 +160,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def project(mtx1: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def project(mtx1: npt.NDArray[{{complex}}]) -> npt.NDArray[{{complex}}]:
     """Build a projection from a vector."""
     {% if debug_dtype_checks %}assert_dtype(mtx1, {{complex}}){% endif %}
 
@@ -156,8 +171,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(forceobj=True, cache=True)
-{% endif %}def kronecker(
+{{ jit_forceobj() }}
+def kronecker(
     mtx: npt.NDArray[{{complex}}], mtx1: npt.NDArray[{{complex}}]
 ) -> npt.NDArray[{{complex}}]:
     """Kronecker Product."""
@@ -181,8 +196,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def rotate(
+{{ jit_nopython() }}
+def rotate(
     rho2: npt.NDArray[{{complex}}], unitary: npt.NDArray[{{complex}}]
 ) -> npt.NDArray[{{complex}}]:
     """Sandwich an operator with a unitary."""
@@ -203,13 +218,13 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 #   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa: E501
 #   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa: E501
 
-{% if not disable_jit %}@jit(forceobj=True)
-{% endif %}def optimize_d_fs(
+{{ jit_forceobj() }}
+def optimize_d_fs(
     new_state: npt.NDArray[{{complex}}],
     visibility_state: npt.NDArray[{{complex}}],
     depth: int,
     quantity: int,
-    epochs: int,
+    updates_count: int,
 ) -> npt.NDArray[{{complex}}]:
     """Optimize implementation for FSnQd mode."""
 
@@ -224,7 +239,7 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
     rotated_2 = rotate(new_state, unitary)
 
-    for idx in range(epochs):
+    for idx in range(updates_count):
         idx_mod = idx % int(quantity)
         unitary = random_unitary_d_fs(depth, quantity, idx_mod)
         {% if debug_dtype_checks %}assert_dtype(unitary, {{complex}}){% endif %}
@@ -249,8 +264,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return rotated_2.astype({{complex}}, copy=False)  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(forceobj=True, cache=True)
-{% endif %}def random_unitary_d_fs(
+{{ jit_forceobj() }}
+def random_unitary_d_fs(
     depth: int, quantity: int, idx: int
 ) -> npt.NDArray[{{complex}}]:
     """N quDits."""
@@ -263,8 +278,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return mtx  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def _random_unitary_d_fs(depth: int) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def _random_unitary_d_fs(depth: int) -> npt.NDArray[{{complex}}]:
     random_mtx = random_d_fs(depth, 1)
     {% if debug_dtype_checks %}assert_dtype(random_mtx, {{complex}}){% endif %}
 
@@ -279,8 +294,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return value  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def random_d_fs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def random_d_fs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Random n quDit state."""
     rand_vectors = get_random_haar_2d(depth, quantity)
     vector = normalize(rand_vectors[0])
@@ -300,8 +315,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 
 
 
-{% if not disable_jit %}@jit(forceobj=True, cache=True)
-{% endif %}def expand_d_fs(
+{{ jit_forceobj() }}
+def expand_d_fs(
     value: npt.NDArray[{{complex}}],
     depth: int,
     quantity: int,
@@ -334,15 +349,13 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 #   ██████     ███████            ██      ██     ██████     ██████     ███████
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def random_bs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
+{{ jit_nopython() }}
+def random_bs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Draw random biseparable state."""
     random_vector_1 = normalize(get_random_haar_1d(depth))
     random_vector_2 = normalize(get_random_haar_1d(quantity))
-    print(random_vector_1.shape)
-    print(random_vector_2.shape)
 
-    vector = np.outer(random_vector_1, random_vector_2)
+    vector = np.outer(random_vector_1, random_vector_2).flatten()
     {% if debug_dtype_checks %}assert_dtype(vector, {{complex}}){% endif %}
 
     vector = project(vector)
@@ -369,8 +382,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
 {%- endmacro %}
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
+{{ jit_forceobj() }}
+def random_unitary_bs(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Draw random unitary for biseparable state."""
 
     {{_random_unitary_bs()}}
@@ -381,8 +394,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(nopython=True, nogil=True, cache=True)
-{% endif %}def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
+{{ jit_forceobj() }}
+def random_unitary_bs_reverse(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Draw random unitary for biseparable state."""
 
     {{_random_unitary_bs()}}
@@ -393,8 +406,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     return retval  # type: ignore[no-any-return]
 
 
-{% if not disable_jit %}@jit(forceobj=True)
-{% endif %}def optimize_bs(
+{{ jit_forceobj() }}
+def optimize_bs(
     new_state: npt.NDArray[{{complex}}],
     visibility_state: npt.NDArray[{{complex}}],
     depth: int,
@@ -421,6 +434,8 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
     npt.NDArray[{{complex}}]
         Optimized state.
     """
+    {% if debug_dtype_checks %}assert_dtype(new_state, {{complex}}){% endif %}
+    {% if debug_dtype_checks %}assert_dtype(visibility_state, {{complex}}){% endif %}
 
     pp1 = product(new_state, visibility_state)
 
@@ -441,9 +456,12 @@ _VALUE = (_REAL + _IMAG - 1).astype({{complex}})
             return_state = rotate(new_state, unitary)
             {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}
 
-        while (pp2 := product(return_state, visibility_state)) > pp1:
+        pp2 = product(return_state, visibility_state)
+
+        while pp2 > pp1:
             pp1 = pp2
             return_state = rotate(return_state, unitary)
+            pp2 = product(return_state, visibility_state)
             {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}
 
         {% if debug_dtype_checks %}assert_dtype(return_state, {{complex}}){% endif %}

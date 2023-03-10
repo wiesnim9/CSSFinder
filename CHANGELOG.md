@@ -2,7 +2,12 @@
 
 NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 
-### 0.1.0 [in progress]
+### 0.2.0 - Mar 10, 2023
+
+- Fix SBiPi mode when given fixed system size. System size detection is still
+  not working.
+
+### 0.1.0 - Mar 8, 2023
 
 - Add project based execution using `cssfproject.json` file.
 

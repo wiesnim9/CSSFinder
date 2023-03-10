@@ -46,9 +46,22 @@ def main() -> None:
 @click.argument("version", type=str)
 def create(version: str) -> None:
     """Create release branch and change version of package."""
-    subprocess.run(["git", "add", "-A"])
-    subprocess.run(["git", "stash"])
-    subprocess.run(["git", "switch", "dev"])
+    retval = subprocess.run(["git", "branch", "--show-current"], capture_output=True)
+    print(retval.stdout.decode("utf-8"))
+    is_dev = retval.stdout.decode("utf-8").startswith("dev")
+
+    retval = subprocess.run(["git", "status"], capture_output=True)
+    print(retval.stdout.decode("utf-8"))
+    is_dirty = "Changes not staged for commit" in retval.stdout.decode("utf-8")
+
+    if is_dirty:
+        subprocess.run(["git", "add", "-A"])
+        subprocess.run(["git", "stash"])
+
+    if not is_dev:
+        subprocess.run(["git", "switch", "dev"])
+
+    subprocess.run(["git", "pull"])
     subprocess.run(["git", "switch", "-c", f"release/{version}"])
     replace_version(
         PYPROJECT_PATH,
@@ -71,7 +84,9 @@ def create(version: str) -> None:
     subprocess.run(["git", "add", "-A"])
     subprocess.run(["git", "commit", "-m", f"Bump version to {version}"])
     subprocess.run(["git", "push", "--set-upstream", "origin", f"release/{version}"])
-    subprocess.run(["git", "stash", "pop"])
+
+    if is_dirty:
+        subprocess.run(["git", "stash", "pop"])
 
 
 def replace_version(src: Path, regex: str, replacement: str, count: int = 1) -> None:

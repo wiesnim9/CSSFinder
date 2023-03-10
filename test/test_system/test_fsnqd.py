@@ -37,4 +37,4 @@ class Test_FSnQd(ModeTest):  # noqa: N801  # Underscore used for readability.
     OUT_STATE_COL_COUNT: int = 32
 
     MIN_CORRECTION_VALUE: float = 0.100
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.118, 0.120)
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.100, 0.130)

@@ -138,14 +138,15 @@ def _run(ctx: Ctx, tasks: list[str] | None) -> None:
     "task",
 )
 @click.pass_obj
-def _task_report(path: str, task: str) -> None:
+def _task_report(ctx: Ctx, task: str) -> None:
     """Create short report for task.
 
     TASK - name pattern matching exactly one task, for which report should be created.
 
     """
+    assert ctx.project_path is not None
     try:
-        create_report_from(path, task)
+        create_report_from(ctx.project_path, task)
 
     except AmbiguousTaskKeyError as exc:
         logging.critical(exc.args[0])

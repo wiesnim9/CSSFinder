@@ -22,12 +22,20 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import sys
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import asdict, dataclass
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from io import BytesIO
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
 
+import jinja2
 import numpy as np
+import weasyprint
+from matplotlib import figure as fig
 from matplotlib import pyplot as plt
 
 if TYPE_CHECKING:
@@ -35,86 +43,409 @@ if TYPE_CHECKING:
     import pandas as pd
     from typing_extensions import Self
 
+    from cssfinder.cssfproject import Task
 
-def create_corrections_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create a plot of distance decay corrections.
 
-    Parameters
+class HTMLReport:
+    """HTML based report generator."""
+
+    def __init__(self, props: SlopeProperties, plots: list[Plot], task: Task) -> None:
+        self.ctx = _HTMLReportCtx(props, plots, task)
+        self.env = jinja2.Environment(
+            loader=jinja2.PackageLoader("cssfinder"),
+            autoescape=jinja2.select_autoescape(),
+        )
+
+    def render(self) -> RenderedReport:
+        """Render report.
+
+        Returns
+        -------
+        RenderedReport
+            Report handle providing interface for saving report.
+
+        """
+        template = self.env.get_template("report.html.jinja2")
+
+        return RenderedReport(template.render(ctx=self.ctx))
+
+
+@dataclass
+class _HTMLReportCtx:
+    props: SlopeProperties
+    plots: list[Plot]
+    task: Task
+
+    @property
+    def title(self) -> str:
+        return f"Report {self.task.output.parent.parent.name} / {self.task.name}"
+
+    @property
+    def meta(self) -> OrderedDict:
+        """Return project metadata."""
+        return OrderedDict(
+            {
+                "Project name": self.task.project.meta.name,
+                "Task name": self.task.name,
+                "Author": self.task.project.meta.author,
+                "Email": self.task.project.meta.email,
+                "Description": self.task.project.meta.description,
+                "Version": self.task.project.meta.version,
+            }
+        )
+
+    @property
+    def math_props(self) -> OrderedDict:
+        """Return mathematical properties."""
+        return OrderedDict(
+            {
+                "Hilbert-Schmidt distance": f"{self.props.optimum:.3f}",
+                "Sample correlation coefficient": f"{self.props.r_value:.3f}",
+            }
+        )
+
+
+class RenderedReport:
+    """Container for rendered report."""
+
+    def __init__(self, content: str) -> None:
+        self.content = content
+
+    def save_to(self, dest: Path) -> None:
+        """Save report to a file.
+
+        Parameters
+        ----------
+        dest : Path
+            Path to destination file.
+
+        """
+        dest.write_text(self.content, "utf-8")
+
+    def save_pdf(self, dest: Path) -> None:
+        """Save content as PDF.
+
+        Parameters
+        ----------
+        dest : Path
+            Path to destination file.
+
+        """
+        weasyprint.HTML(string=self.content).write_pdf(target=dest.as_posix())
+
+
+class Plotter:
+    """Plot creator class."""
+
+    def __init__(self, corrections: pd.DataFrame) -> None:
+        """Initialize plot creator.
+
+        Parameters
+        ----------
+        corrections : pandas.DataFrame
+            A DataFrame containing the distance decay corrections. The DataFrame
+            should have an "index" column and a "value" column.
+
+        """
+        self.corrections = corrections
+        self.slope_props = SlopeProperties.find(self.corrections.to_numpy())
+
+    def plot_corrections(self, axes: Optional[plt.Axes] = None) -> Plot:
+        """Create a plot of distance decay corrections.
+
+        Parameters
+        ----------
+        axes : Optional[plt.Axes], optional
+            Optional axes object to reuse, when none is given, new figure is created,
+            by default None
+
+        Returns
+        -------
+        Plot
+            Plot object containing plot axes.
+
+        Notes
+        -----
+        The function creates a line plot of the distance decay corrections,
+        with the "index" column on the x-axis and the "value" column on the
+        y-axis. The plot includes a grid and axis labels, and a title indicating
+        that it shows distance decay.
+
+        The function returns the Plot object granting access to axes for the created
+        plot, which can be further customized or saved using the methods of the
+        matplotlib API.
+
+        """
+        if axes is None:
+            plt.figure()
+            axes = plt.subplot()
+
+        axes.plot(
+            self.corrections[["index"]], self.corrections[["value"]], label="correction"
+        )
+        axes.hlines(
+            [self.slope_props.optimum],
+            xmin=-10,
+            xmax=self.corrections[["index"]].max(),
+            color="red",
+            label="H-S distance",
+        )
+        axes.grid(visible=True)
+
+        axes.set_xlabel("Correction index")
+        axes.set_ylabel("Correction value")
+
+        axes.set_title("Distance decay")
+        plt.legend(loc="upper right")
+
+        return Plot(axes)
+
+    def plot_corrections_inverse(self, axes: Optional[plt.Axes] = None) -> Plot:
+        """Create a plot offsets inverse of distance decay corrections.
+
+        Parameters
+        ----------
+        axes : Optional[plt.Axes], optional
+            Optional axes object to reuse, when none is given, new figure is created,
+            by default None
+
+        Returns
+        -------
+        Plot
+            Plot object containing plot axes.
+
+        Notes
+        -----
+        The function creates a line plot of the inverse of distance decay corrections,
+        with the "index" column on the x-axis and the "value" column inverse on the
+        y-axis. The plot includes a grid and axis labels, and a title indicating
+        that it shows distance decay.
+
+        The function returns the Plot object granting access to axes for the created
+        plot, which can be further customized or saved using the methods of the
+        matplotlib API.
+
+        """
+        if axes is None:
+            plt.figure()
+            axes = plt.subplot()
+
+        axes.plot(
+            self.corrections[["index"]],
+            1 / (self.corrections[["value"]] - self.slope_props.optimum),
+        )
+        axes.grid(visible=True)
+
+        axes.set_xlabel("Correction index")
+        axes.set_ylabel("Correction offsetted inverse value")
+
+        axes.set_title("Distance offsetted inverse decay")
+
+        return Plot(axes)
+
+    def plot_iteration(self, axes: Optional[plt.Axes] = None) -> Plot:
+        """Create a plot of iteration linear corrections.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes object for the created plot.
+
+        Notes
+        -----
+        The function creates a line plot of the iteration linear corrections,
+        with the "iteration" column on the x-axis and the correction values on
+        the y-axis. The correction values are calculated using the
+        `SlopeProperties` class, which takes the "index" column as input and
+        returns the corresponding correction values for each iteration.
+
+        The plot includes a grid and axis labels, but no title. The function returns
+        the axes object for the created plot, which can be further customized or
+        saved using the methods of the matplotlib API.
+
+        """
+        if axes is None:
+            plt.figure()
+            axes = plt.subplot()
+
+        axes.grid(visible=True)
+
+        axes.set_xlabel("Iteration index")
+        axes.set_ylabel("Correction index")
+
+        axes.set_title("Total number of correction")
+
+        axes.plot(
+            self.corrections[["iteration"]],
+            self.corrections[["index"]],
+        )
+        axes.plot(
+            self.corrections[["iteration"]],
+            self.corrections[["index"]],
+        )
+
+        return Plot(axes)
+
+
+@dataclass
+class Plot:
+    """Container class for plots generated with Plotter class."""
+
+    axes: plt.Axes
+
+    @property
+    def figure(self) -> fig.Figure:
+        """Axes figure."""
+        return self.axes.figure
+
+    def configure(self, width: int = 8, height: int = 6) -> Self:
+        """Set the size of the current figure.
+
+        Parameters
+        ----------
+        width : int, optional
+            The width of the figure in inches. Default is 10.
+        height : int, optional
+            The height of the figure in inches. Default is 10.
+
+        Returns
+        -------
+        Self
+            Returns the instance of the object to allow for method chaining.
+
+        """
+        self.axes.figure.set_figwidth(width)
+        self.axes.figure.set_figheight(height)
+        return self
+
+    def save_plot(
+        self,
+        dest: Path | BytesIO,
+        dpi: int = 300,
+        file_format: Optional[str] = None,
+    ) -> None:
+        """Save figure to file.
+
+        Parameters
+        ----------
+        dest : Path | BytesIO
+            Path to file or writable BytesIO.
+        dpi : int, optional
+            Plot output dpi, by default 150
+        file_format : Optional[str], optional
+            File format, when None, deduced from file path, by default None
+
+        """
+        self.axes.figure.savefig(
+            dest.as_posix() if isinstance(dest, Path) else dest,
+            dpi=dpi,
+            format=file_format,
+        )
+
+    def base64_encode(self, file_format: Optional[str] = None) -> str:
+        """Encode plot as base64 string.
+
+        Parameters
+        ----------
+        file_format : Optional[str], optional
+            Preferred file format, by default None
+
+        Returns
+        -------
+        str
+            Encoded image.
+
+        """
+        io = BytesIO()
+        self.save_plot(io, file_format=file_format)
+        io.seek(0)
+
+        return base64.b64encode(io.read()).decode("utf-8")
+
+
+@dataclass
+class SlopeProperties:
+    """Class that encapsulates slope properties and provides methods to calculate
+    correction values and find slope properties for a given dataset.
+
+    Attributes
     ----------
-    corrections : pandas.DataFrame
-        A DataFrame containing the distance decay corrections. The DataFrame
-        should have an "index" column and a "value" column.
+    optimum: np.float64
+        The optimum value found during the slope property calculation.
+    r_value: np.float64
+        The r-value calculated for the slope properties.
+    aa1: np.float64
+        The slope of the trend line of the correction index with respect to iteration
+        index.
+    bb1: np.float64
+        The exponential decay coefficient calculated for the slope properties.
 
-    Returns
+    Methods
     -------
-    matplotlib.axes.Axes
-        The axes object for the created plot.
-
-    Notes
-    -----
-    The function creates a line plot of the distance decay corrections,
-    with the "index" column on the x-axis and the "value" column on the
-    y-axis. The plot includes a grid and axis labels, and a title indicating
-    that it shows distance decay.
-
-    The function returns the axes object for the created plot, which can be
-    further customized or saved using the methods of the matplotlib API.
+    get_correction(x: npt.NDArray[np.float64]) -> np.float64:
+        Returns the correction values for a given input array `x`.
+    find(data: npt.NDArray[np.float64]) -> 'SlopeProperties':
+        Finds the slope properties for a given dataset `data`.
 
     """
-    plt.figure()
-    axes = plt.subplot()
 
-    axes.plot(corrections[["index"]], corrections[["value"]])
-    axes.grid(visible=True)
+    optimum: np.float64
+    r_value: np.float64
+    aa1: np.float64
+    bb1: np.float64
 
-    axes.set_xlabel("Correction index")
-    axes.set_ylabel("Correction value")
+    def get_correction_count(self, x: np.float64) -> np.float64:
+        """Return the correction values for a given input array `x`.
 
-    axes.set_title("Distance decay")
+        Parameters
+        ----------
+        x: npt.NDArray[np.float64]
+            Input array for which correction values will be calculated.
 
-    return axes
+        Returns
+        -------
+        np.float64
+            The correction values calculated for the input array `x`.
 
+        """
+        return np.multiply(  # type: ignore[no-any-return]
+            np.power(x, self.aa1),
+            self.bb1,
+        )
 
-def create_iteration_linear_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create a plot of iteration linear corrections.
+    @classmethod
+    def find(cls, data: npt.NDArray[np.float64]) -> Self:
+        """Find the slope properties for a given dataset `data`.
 
-    Parameters
-    ----------
-    corrections : pandas.DataFrame
-        A DataFrame containing the iteration linear corrections. The DataFrame
-        should have columns "iteration" and "index" containing the iteration
-        number and correction index, respectively.
+        Parameters
+        ----------
+        data: npt.NDArray[np.float64]
+            The dataset for which slope properties will be calculated.
 
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axes object for the created plot.
+        Returns
+        -------
+        SlopeProperties
+            An instance of the SlopeProperties class representing the slope properties
+            of the input data.
 
-    Notes
-    -----
-    The function creates a line plot of the iteration linear corrections,
-    with the "iteration" column on the x-axis and the correction values on
-    the y-axis. The correction values are calculated using the
-    `SlopeProperties` class, which takes the "index" column as input and
-    returns the corresponding correction values for each iteration.
+        """
+        iteration_index: npt.NDArray[np.float64] = data[:, 0]
+        correction_index: npt.NDArray[np.float64] = data[:, 1]
+        correction_value: npt.NDArray[np.float64] = data[int(2 * len(data) / 3) :, 2]
 
-    The plot includes a grid and axis labels, but no title. The function returns
-    the axes object for the created plot, which can be further customized or
-    saved using the methods of the matplotlib API.
+        optimum = find_correction_optimum(data[:, 2])
 
-    """
-    plt.figure()
-    axes = plt.subplot()
+        r_value = R(correction_value, optimum)
 
-    axes.grid(visible=True)
+        aa1 = trend(iteration_index, correction_index)
+        bb1 = np.exp(offset(iteration_index, correction_index))
 
-    props = SlopeProperties.find(corrections.to_numpy())
-    axes.plot(
-        corrections[["iteration"]],
-        props.get_correction(corrections[["index"]].to_numpy()),
-    )
+        return cls(optimum, r_value, aa1, bb1)
 
-    return axes
+    def save_to(self, dest: Path) -> None:
+        """Save properties to file."""
+        with dest.open("w", encoding="utf-8") as file:
+            json.dump(asdict(self), file)
 
 
 def cov(
@@ -306,83 +637,3 @@ def display_short_report(data: npt.NDArray[np.float64]) -> None:
     sys.stdout.write(
         f"The dependence between correction and trail is approximately: {expr}\n",
     )
-
-
-@dataclass
-class SlopeProperties:
-    """Class that encapsulates slope properties and provides methods to calculate
-    correction values and find slope properties for a given dataset.
-
-    Attributes
-    ----------
-    optimum: np.float64
-        The optimum value found during the slope property calculation.
-    r_value: np.float64
-        The r-value calculated for the slope properties.
-    aa1: np.float64
-        The slope of the trend line of the correction index with respect to iteration
-        index.
-    bb1: np.float64
-        The exponential decay coefficient calculated for the slope properties.
-
-    Methods
-    -------
-    get_correction(x: npt.NDArray[np.float64]) -> np.float64:
-        Returns the correction values for a given input array `x`.
-    find(data: npt.NDArray[np.float64]) -> 'SlopeProperties':
-        Finds the slope properties for a given dataset `data`.
-
-    """
-
-    optimum: np.float64
-    r_value: np.float64
-    aa1: np.float64
-    bb1: np.float64
-
-    def get_correction(self, x: np.float64) -> np.float64:
-        """Return the correction values for a given input array `x`.
-
-        Parameters
-        ----------
-        x: npt.NDArray[np.float64]
-            Input array for which correction values will be calculated.
-
-        Returns
-        -------
-        np.float64
-            The correction values calculated for the input array `x`.
-
-        """
-        return np.multiply(  # type: ignore[no-any-return]
-            np.power(x, self.aa1),
-            self.bb1,
-        )
-
-    @classmethod
-    def find(cls, data: npt.NDArray[np.float64]) -> Self:
-        """Find the slope properties for a given dataset `data`.
-
-        Parameters
-        ----------
-        data: npt.NDArray[np.float64]
-            The dataset for which slope properties will be calculated.
-
-        Returns
-        -------
-        SlopeProperties
-            An instance of the SlopeProperties class representing the slope properties
-            of the input data.
-
-        """
-        iteration_index: npt.NDArray[np.float64] = data[:, 0]
-        correction_index: npt.NDArray[np.float64] = data[:, 1]
-        correction_value: npt.NDArray[np.float64] = data[int(2 * len(data) / 3) :, 2]
-
-        optimum = find_correction_optimum(data[:, 2])
-
-        r_value = R(correction_value, optimum)
-
-        aa1 = trend(iteration_index, correction_index)
-        bb1 = np.exp(offset(iteration_index, correction_index))
-
-        return cls(optimum, r_value, aa1, bb1)

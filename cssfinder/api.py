@@ -30,11 +30,7 @@ from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.hooks import save_corrections_hook, save_matrix_hook
 from cssfinder.io.asset_loader import GilbertAssetLoader
 from cssfinder.io.output_loader import GilbertOutputLoader
-from cssfinder.report import (
-    create_corrections_plot,
-    create_iteration_linear_plot,
-    display_short_report,
-)
+from cssfinder.report import HTMLReport, Plotter, display_short_report
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -141,15 +137,31 @@ def create_report(project: CSSFProject, task: str) -> None:
 
     corrections = GilbertOutputLoader().load_corrections(task_object)
 
-    axes = create_corrections_plot(corrections)
-    axes.figure.set_figwidth(10)
-    axes.figure.set_figheight(10)
-    axes.figure.savefig((task_object.output / "decay.png").as_posix(), dpi=300)
+    plotter = Plotter(corrections)
 
-    axes = create_iteration_linear_plot(corrections)
-    axes.figure.set_figwidth(10)
-    axes.figure.set_figheight(10)
-    axes.figure.savefig((task_object.output / "iterations.png").as_posix(), dpi=300)
+    decay = plotter.plot_corrections().configure()
+    decay.save_plot(task_object.output / "decay.png")
+
+    inverse_decay = plotter.plot_corrections_inverse().configure()
+    inverse_decay.save_plot(task_object.output / "inverse_decay.png")
+
+    iterations = plotter.plot_iteration().configure()
+    iterations.save_plot(task_object.output / "iterations.png")
+
+    plotter.slope_props.save_to(task_object.output / "slope_props.json")
+
+    o = HTMLReport(
+        plotter.slope_props,
+        [
+            plotter.plot_corrections().configure(),
+            plotter.plot_corrections_inverse().configure(),
+            plotter.plot_iteration().configure(),
+        ],
+        task_object,
+    ).render()
+
+    o.save_to(task_object.output / "report.html")
+    o.save_pdf(task_object.output / "report.pdf")
 
     display_short_report(corrections.to_numpy())
 

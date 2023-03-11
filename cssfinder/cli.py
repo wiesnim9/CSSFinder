@@ -38,6 +38,7 @@ from cssfinder.cssfproject import (
     ProjectFileNotFoundError,
 )
 from cssfinder.log import configure_logger
+from cssfinder.reports.renderer import ReportType
 
 VERBOSITY_INFO: int = 2
 
@@ -137,16 +138,45 @@ def _run(ctx: Ctx, tasks: list[str] | None) -> None:
 @click.argument(
     "task",
 )
+@click.option(
+    "--html",
+    "--no-html",
+    is_flag=True,
+    default=False,
+    help="Include HTML report.",
+)
+@click.option(
+    "--pdf",
+    "--no-pdf",
+    is_flag=True,
+    default=False,
+    help="Include PDF report.",
+)
 @click.pass_obj
-def _task_report(ctx: Ctx, task: str) -> None:
+def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool) -> None:
     """Create short report for task.
 
     TASK - name pattern matching exactly one task, for which report should be created.
 
     """
     assert ctx.project_path is not None
+
+    include_report_types = []
+
+    if html:
+        include_report_types.append(ReportType.HTML)
+
+    if pdf:
+        include_report_types.append(ReportType.PDF)
+
+    if len(include_report_types) == 0:
+        logging.critical(
+            "No report type was selected therefore nothing will be calculated, exiting."
+        )
+        raise SystemExit(0)
+
     try:
-        create_report_from(ctx.project_path, task)
+        create_report_from(ctx.project_path, task, include_report_types)
 
     except AmbiguousTaskKeyError as exc:
         logging.critical(exc.args[0])

@@ -29,11 +29,12 @@ from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.hooks import save_corrections_hook, save_matrix_hook
 from cssfinder.io.asset_loader import GilbertAssetLoader
-from cssfinder.io.output_loader import GilbertOutputLoader
-from cssfinder.report import HTMLReport, Plotter, display_short_report
+from cssfinder.reports.manager import ReportManager
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from cssfinder.reports.renderer import ReportType
 
 
 def run_project_from(
@@ -107,7 +108,9 @@ def run_gilbert(
     )
 
 
-def create_report_from(project_file_path: Path | str, task: str) -> None:
+def create_report_from(
+    project_file_path: Path | str, task: str, reports: list[ReportType]
+) -> None:
     """Load project (`cssfproject.json`) and create report for task selected by
     pattern.
     """
@@ -118,10 +121,10 @@ def create_report_from(project_file_path: Path | str, task: str) -> None:
         project.meta.author,
         project.meta.email,
     )
-    create_report(project, task)
+    return create_report(project, task, reports)
 
 
-def create_report(project: CSSFProject, task: str) -> None:
+def create_report(project: CSSFProject, task: str, reports: list[ReportType]) -> None:
     """Create report for task selected by pattern from project object."""
     tasks = project.select_tasks([task])
 
@@ -135,35 +138,12 @@ def create_report(project: CSSFProject, task: str) -> None:
 
     task_object, *_ = tasks
 
-    corrections = GilbertOutputLoader().load_corrections(task_object)
-
-    plotter = Plotter(corrections)
-
-    decay = plotter.plot_corrections().configure()
-    decay.save_plot(task_object.output / "decay.png")
-
-    inverse_decay = plotter.plot_corrections_inverse().configure()
-    inverse_decay.save_plot(task_object.output / "inverse_decay.png")
-
-    iterations = plotter.plot_iteration().configure()
-    iterations.save_plot(task_object.output / "iterations.png")
-
-    plotter.slope_props.save_to(task_object.output / "slope_props.json")
-
-    o = HTMLReport(
-        plotter.slope_props,
-        [
-            plotter.plot_corrections().configure(),
-            plotter.plot_corrections_inverse().configure(),
-            plotter.plot_iteration().configure(),
-        ],
-        task_object,
-    ).render()
-
-    o.save_to(task_object.output / "report.html")
-    o.save_pdf(task_object.output / "report.pdf")
-
-    display_short_report(corrections.to_numpy())
+    manager = ReportManager(project, task_object)
+    prepared_manager = manager.prepare()
+    for report_type in reports:
+        prepared_manager.request_report(report_type).save_to(
+            task_object.output / f"report.{report_type.name.lower()}"
+        )
 
 
 class AmbiguousTaskKeyError(KeyError):

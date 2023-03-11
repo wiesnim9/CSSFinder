@@ -46,7 +46,7 @@ class WEasyPrintNotAvailableError(Exception):
 try:
     import weasyprint
 
-except ImportError:
+except (ImportError, OSError):
 
     class weasyprint:  # type: ignore[no-redef] # noqa: N801
         """Dummy class for Mac OS where weasyprint fails to import."""

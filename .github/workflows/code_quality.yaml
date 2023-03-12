@@ -32,12 +32,12 @@ on:
 
 concurrency:
   group: ${{ github.workflow_ref }}-${{ github.ref }}-code-quality
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   code-quality-check:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.9", "3.10"]

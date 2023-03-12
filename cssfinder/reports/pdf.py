@@ -24,6 +24,8 @@
 
 from __future__ import annotations
 
+import logging
+from platform import system
 from typing import TYPE_CHECKING, Any
 
 from cssfinder.reports.html import HTMLRenderer
@@ -32,21 +34,33 @@ if TYPE_CHECKING:
     from cssfinder.reports.renderer import Report
 
 
+WEASYPRINT_NOT_AVAILABLE = (
+    "CSSFinder failed to load PDF rendering backend. Therefore PDF reports are "
+    "unavailable. To overcome this issue, visit `weasyprint` documentation "
+    "installation guidelines on "
+    "https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#installation "
+    "and follow instructions for you platform ("
+    f"{system() if system() != 'Darwin' else 'macOS'}). "
+)
+
+
 class WEasyPrintNotAvailableError(Exception):
     """Error raised on Mac OS when attempting to generate PDF report."""
 
     def __init__(self) -> None:
-        super().__init__(
-            "PDF report can't be generated as weasyprint library failed to import."
-            "To resolve this issue, you can try running `brew install pango` on Mac or "
-            "`sudo apt-get install -y libpangocairo-1.0-0` on linux."
-        )
+        super().__init__(WEASYPRINT_NOT_AVAILABLE)
 
 
 try:
     import weasyprint
 
-except (ImportError, OSError):
+except (ImportError, OSError) as exc:
+    logging.warning(WEASYPRINT_NOT_AVAILABLE)
+    logging.warning(
+        "Error details:\n\n%s: %s",
+        exc.__class__.__qualname__,
+        str(exc),
+    )
 
     class weasyprint:  # type: ignore[no-redef] # noqa: N801
         """Dummy class for Mac OS where weasyprint fails to import."""

@@ -1,5 +1,5 @@
 ---
-name: System Tests
+name: Reports Tests
 
 on:
   push:
@@ -31,11 +31,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.ref }}-system-tests
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-reports-tests
   cancel-in-progress: false
 
 jobs:
-  system-tests:
+  reports-tests:
     strategy:
       fail-fast: false
       matrix:
@@ -60,9 +60,23 @@ jobs:
       - name: Install dependencies
         run: poetry install --sync
 
-      - name: Generate debug numpy backend
-        # This step generates numpy backend with all debug options enabled.
-        run: poetry run poe gen-numpy-impl --disable-jit --debug-dtype-checks
+      - name: Expect PDF reports fails (Windows only)
+        if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
+        run: poetry run poe test-reports --pdf-expect-fail
 
-      - name: Run system tests
-        run: poetry run poe test-system
+      - name: Install MSYS2 and GTK3 (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install -y msys2
+          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
+          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
+
+      - name: Install brew and GTK3 (macOS only)
+        if: matrix.os == 'macOS-latest'
+        run: |
+          /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+          brew update
+          brew install gtk+3
+
+      - name: Run reports tests
+        run: poetry run poe test-reports

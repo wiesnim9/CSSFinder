@@ -18,54 +18,16 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Tests validating reports generation."""
+"""Groups tests for PDF reports generation."""
 
 from __future__ import annotations
 
-from pathlib import Path
-from platform import system
-from test.test_system.base import SetupRunProjectMixin
+from test.test_reports.base import ReportTestBase
 
 import pytest
 
-from cssfinder.api import create_report_from
 from cssfinder.reports.pdf import WEasyPrintNotAvailableError
 from cssfinder.reports.renderer import ReportType
-
-
-class ReportTestBase(SetupRunProjectMixin):
-    """Validate report behavior."""
-
-    PROJECT_PATH = Path.cwd() / "examples" / "5qubits"
-    TEST_TASK_NAME: str = "test_fsnqd_5qubits"
-    REPORT_TYPE: ReportType
-
-    def generate_report(self, report_type: ReportType) -> None:
-        """Generate report."""
-        create_report_from(
-            self.get_project_directory(), self.TEST_TASK_NAME, [report_type]
-        )
-
-    def get_report_path(self, report_type: ReportType) -> Path:
-        """Find report file."""
-        return self.get_output_directory() / f"report.{report_type.name.lower()}"
-
-    def delete_report(self, report_type: ReportType) -> None:
-        """Delete report file."""
-        self.get_report_path(report_type).unlink()
-
-    def test_report_exists(self) -> None:
-        """Find HTML report file."""
-        self.generate_report(self.REPORT_TYPE)
-        report_path = self.get_report_path(self.REPORT_TYPE)
-
-        assert report_path.exists()
-
-
-class TestReportHTML(ReportTestBase):
-    """Validate report behavior."""
-
-    REPORT_TYPE = ReportType.HTML
 
 
 class TestReportPDF(ReportTestBase):
@@ -73,10 +35,8 @@ class TestReportPDF(ReportTestBase):
 
     REPORT_TYPE = ReportType.PDF
 
-    def test_report_exists(self) -> None:
+    @pytest.mark.pdf_expect_fail()
+    def test_expect_pdf_rendering_fail(self) -> None:
         """Find HTML report file."""
-        if system() == "Darwin":
-            with pytest.raises(WEasyPrintNotAvailableError):
-                super().test_report_exists()
-        else:
+        with pytest.raises(WEasyPrintNotAvailableError):
             super().test_report_exists()

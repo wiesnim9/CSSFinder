@@ -24,13 +24,11 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar, Type
 
 from cssfinder.io.output_loader import GilbertOutputLoader
-from cssfinder.reports.html import HTMLRenderer
-from cssfinder.reports.pdf import PDFRenderer
 from cssfinder.reports.plotting import Plot, Plotter
-from cssfinder.reports.renderer import Report, ReportType
+from cssfinder.reports.renderer import Renderer, Report, ReportType
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -94,27 +92,29 @@ class PreparedReportManager:
     task: Task
     corrections: pd.DataFrame
 
-    def request_report(self, report_type: ReportType) -> Report:
+    RENDERERS: ClassVar[dict[ReportType, Type[Renderer]]] = {}
+
+    @classmethod
+    def register_renderer(
+        cls, renderer_cls: Type[Renderer], report_type: ReportType
+    ) -> None:
+        """Register renderer for report type."""
+        cls.RENDERERS[report_type] = renderer_cls
+
+    def request_report(self, report_type: ReportType | Any) -> Report:
         """Generate report."""
-        if report_type == ReportType.HTML:
-            return HTMLRenderer(
-                self.props,
-                [p.configure() for p in self.plots.values()],
-                self.task,
-            ).render()
+        renderer_cls = self.RENDERERS.get(report_type)
 
-        if report_type == ReportType.PDF:
-            return PDFRenderer(
-                self.props, [p.configure() for p in self.plots.values()], self.task
-            ).render()
+        if renderer_cls is None:
+            if isinstance(report_type, ReportType):
+                msg = f"Report type {report_type.name} is not supported yet."
+                raise NotImplementedError(msg)
 
-        if report_type == ReportType.TXT:
-            msg = "Rendering of report type txt is not supported yet."
-            raise NotImplementedError(msg)
+            msg = f"Unknown report type {report_type!r}"
+            raise KeyError(msg)
 
-        if report_type == ReportType.ARCHIVE:
-            msg = "Rendering of report type archive is not supported yet."
-            raise NotImplementedError(msg)
-
-        msg = f"Unsupported report type {report_type.name!r}"
-        raise TypeError(msg)
+        return renderer_cls(
+            self.props,
+            [p.configure() for p in self.plots.values()],
+            self.task,
+        ).render()

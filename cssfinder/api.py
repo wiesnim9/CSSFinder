@@ -23,7 +23,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
@@ -34,7 +34,7 @@ from cssfinder.reports.manager import ReportManager
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from cssfinder.reports.renderer import ReportType
+    from cssfinder.reports.renderer import Report, ReportType
 
 
 def run_project_from(
@@ -110,9 +110,29 @@ def run_gilbert(
 
 def create_report_from(
     project_file_path: Path | str, task: str, reports: list[ReportType]
-) -> None:
-    """Load project (`cssfproject.json`) and create report for task selected by
-    pattern.
+) -> Iterable[Report]:
+    """Load project (`cssfproject.json`) and create report for task selected by pattern.
+
+    Parameters
+    ----------
+    project_file_path : Path | str
+        Path to cssfinder.json file or directory containing one.
+    task : str
+        Name or glob expression matching task name, expected to result in selection of
+        single task.
+    reports : list[ReportType]
+        _description_
+
+    Returns
+    -------
+    Iterable[Report]
+        _description_
+
+    Yields
+    ------
+    Iterator[Iterable[Report]]
+        _description_
+
     """
     project = CSSFProject.load_project(project_file_path)
     logging.info(
@@ -121,10 +141,12 @@ def create_report_from(
         project.meta.author,
         project.meta.email,
     )
-    return create_report(project, task, reports)
+    yield from create_report(project, task, reports)
 
 
-def create_report(project: CSSFProject, task: str, reports: list[ReportType]) -> None:
+def create_report(
+    project: CSSFProject, task: str, reports: list[ReportType]
+) -> Iterable[Report]:
     """Create report for task selected by pattern from project object."""
     tasks = project.select_tasks([task])
 
@@ -141,9 +163,7 @@ def create_report(project: CSSFProject, task: str, reports: list[ReportType]) ->
     manager = ReportManager(project, task_object)
     prepared_manager = manager.prepare()
     for report_type in reports:
-        prepared_manager.request_report(report_type).save_to(
-            task_object.output / f"report.{report_type.name.lower()}"
-        )
+        yield prepared_manager.request_report(report_type)
 
 
 class AmbiguousTaskKeyError(KeyError):

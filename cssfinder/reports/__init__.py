@@ -22,3 +22,11 @@
 """Report generation tools."""
 
 from __future__ import annotations
+
+from cssfinder.reports.html import HTMLRenderer
+from cssfinder.reports.manager import PreparedReportManager
+from cssfinder.reports.pdf import PDFRenderer
+from cssfinder.reports.renderer import ReportType
+
+PreparedReportManager.register_renderer(HTMLRenderer, ReportType.HTML)
+PreparedReportManager.register_renderer(PDFRenderer, ReportType.PDF)

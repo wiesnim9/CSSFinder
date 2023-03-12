@@ -41,9 +41,10 @@ class ReportTestBase(SetupRunProjectMixin):
 
     def generate_report(self, report_type: ReportType) -> None:
         """Generate report."""
-        create_report_from(
+        for report in create_report_from(
             self.get_project_directory(), self.TEST_TASK_NAME, [report_type]
-        )
+        ):
+            report.save_default()
 
     def get_report_path(self, report_type: ReportType) -> Path:
         """Find report file."""

@@ -25,14 +25,12 @@
 from __future__ import annotations
 
 import logging
+import os
 from platform import system
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from cssfinder.reports.html import HTMLRenderer
-
-if TYPE_CHECKING:
-    from cssfinder.reports.renderer import Report
-
+from cssfinder.reports.renderer import Report, ReportType
 
 WEASYPRINT_NOT_AVAILABLE = (
     "CSSFinder failed to load PDF rendering backend. Therefore PDF reports are "
@@ -42,6 +40,11 @@ WEASYPRINT_NOT_AVAILABLE = (
     "and follow instructions for you platform ("
     f"{system() if system() != 'Darwin' else 'macOS'}). "
 )
+
+if system() == "Windows":
+    os.add_dll_directory(  # type: ignore[attr-defined]
+        os.environ.get("WEASYPRINT_DLL_DIRECTORIES", "C:/tools/msys64/mingw64/bin")
+    )
 
 
 class WEasyPrintNotAvailableError(Exception):
@@ -74,8 +77,8 @@ class PDFRenderer(HTMLRenderer):
     def render(self) -> Report:
         """Generate report content."""
         report = super().render()
-        report.content = weasyprint.HTML(
-            string=report.content.decode("utf-8")
-        ).write_pdf()
-
-        return report
+        return Report(
+            weasyprint.HTML(string=report.content.decode("utf-8")).write_pdf(),
+            ReportType.PDF,
+            self.ctx.task.output / "report.pdf",
+        )

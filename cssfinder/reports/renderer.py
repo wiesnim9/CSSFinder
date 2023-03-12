@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -103,11 +103,19 @@ class Ctx:
         )
 
 
+@dataclass
 class Report:
     """Container for rendered report."""
 
-    def __init__(self, content: bytes) -> None:
-        self.content = content
+    content: bytes
+    report_type: ReportType
+    default_dest: Optional[Path] = None
+
+    def save_default(self) -> None:
+        """Save file to default destination."""
+        if self.default_dest is None:
+            raise DefaultDestinationNotSpecifiedError(self.report_type)
+        self.save_to(self.default_dest)
 
     def save_to(self, dest: Path) -> None:
         """Save report to a file.
@@ -119,3 +127,13 @@ class Report:
 
         """
         dest.write_bytes(self.content)
+
+
+class DefaultDestinationNotSpecifiedError(Exception):
+    """Raised when save_default() was called on Report object with no default_dest."""
+
+    def __init__(self, report_type: ReportType) -> None:
+        super().__init__(
+            f"Default destination for report object of type {report_type.name!r} "
+            "was not specified."
+        )

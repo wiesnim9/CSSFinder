@@ -176,7 +176,8 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool) -> None:
         raise SystemExit(0)
 
     try:
-        create_report_from(ctx.project_path, task, include_report_types)
+        for report in create_report_from(ctx.project_path, task, include_report_types):
+            report.save_default()
 
     except AmbiguousTaskKeyError as exc:
         logging.critical(exc.args[0])

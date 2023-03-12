@@ -71,8 +71,6 @@ jobs:
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-python3-gobject"
-          echo "WEASYPRINT_DLL_DIRECTORIES=C:/tools/msys64/mingw64/bin" >> $GITHUB_ENV
-          echo "C:/tools/msys64/mingw64/bin" >> $GITHUB_PATH
 
       - name: Install brew and GTK3 (macOS only)
         if: matrix.os == 'macOS-latest'

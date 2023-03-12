@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 
 import jinja2
 
-from cssfinder.reports.renderer import Renderer, Report
+from cssfinder.reports.renderer import Renderer, Report, ReportType
 
 if TYPE_CHECKING:
     from cssfinder.cssfproject import Task
@@ -47,4 +47,8 @@ class HTMLRenderer(Renderer):
     def render(self) -> Report:
         """Generate report content."""
         template = self.env.get_template("report.html.jinja2")
-        return Report(template.render(ctx=self.ctx).encode("utf-8"))
+        return Report(
+            template.render(ctx=self.ctx).encode("utf-8"),
+            ReportType.HTML,
+            self.ctx.task.output / "report.html",
+        )

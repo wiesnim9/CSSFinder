@@ -55,12 +55,10 @@ try:
     import weasyprint
 
 except (ImportError, OSError) as exc:
-    logging.warning(WEASYPRINT_NOT_AVAILABLE)
-    logging.warning(
-        "Error details:\n\n%s: %s",
-        exc.__class__.__qualname__,
-        str(exc),
+    WEASYPRINT_NOT_AVAILABLE += (
+        f"\n\nError details:\n\n{exc.__class__.__qualname__}: {exc}"
     )
+    logging.warning(WEASYPRINT_NOT_AVAILABLE)
 
     class weasyprint:  # type: ignore[no-redef] # noqa: N801
         """Dummy class for Mac OS where weasyprint fails to import."""

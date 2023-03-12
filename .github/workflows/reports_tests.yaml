@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies
         run: poetry install --sync
 
-      - name: Expect PDF reports fails (Windows only)
+      - name: Expect PDF reports fails (Windows|macOS)
         if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
         run: poetry run poe test-reports --pdf-expect-fail
 
@@ -70,6 +70,7 @@ jobs:
           choco install -y msys2
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
           C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
+          echo "WEASYPRINT_DLL_DIRECTORIES=C:/tools/msys64/mingw64/bin" >> $GITHUB_ENV
 
       - name: Install brew and GTK3 (macOS only)
         if: matrix.os == 'macOS-latest'

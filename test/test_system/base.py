@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -37,34 +38,27 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class ModeTest:
-    """Base class for simple mode test suite."""
+class SetupRunProjectMixin:
+    """Mixin class providing class setup running specific project."""
 
-    @dataclass
-    class MinMax:
-        """Well named container for max and min values of floating range."""
-
-        min: float  # noqa: A003  # not needed in this scope
-        """Minimal value of range."""
-
-        max: float  # noqa: A003  # not needed in this scope
-        """Maximal value of range."""
-
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int
     PROJECT_PATH: Path
     TEST_TASK_NAME: str
-
-    OUT_STATE_ROW_COUNT: int
-    OUT_STATE_COL_COUNT: int
-
-    MIN_CORRECTION_VALUE: float
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax
 
     corrections: pd.DataFrame
     """List of corrections obtained from cssfinder."""
 
     state: npt.NDArray[np.complex128]
     """Final state matrix."""
+
+    @classmethod
+    def get_project_directory(cls) -> Path:
+        """Path to project directory."""
+        return cls.PROJECT_PATH
+
+    @classmethod
+    def get_output_directory(cls) -> Path:
+        """Path to output directory."""
+        return cls.PROJECT_PATH / "output" / cls.TEST_TASK_NAME
 
     @classmethod
     def setup_class(cls) -> None:
@@ -83,9 +77,35 @@ class ModeTest:
         )
 
     @classmethod
-    def get_output_directory(cls) -> Path:
-        """Path to output directory."""
-        return cls.PROJECT_PATH / "output" / cls.TEST_TASK_NAME
+    def teardown_class(cls) -> None:
+        """Clean up after class.
+
+        Executed once for class, shared between tests within class.
+
+        """
+        shutil.rmtree(cls.get_output_directory())
+
+
+class ModeTest(SetupRunProjectMixin):
+    """Base class for simple mode test suite."""
+
+    @dataclass
+    class MinMax:
+        """Well named container for max and min values of floating range."""
+
+        min: float  # noqa: A003  # not needed in this scope
+        """Minimal value of range."""
+
+        max: float  # noqa: A003  # not needed in this scope
+        """Maximal value of range."""
+
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int
+
+    OUT_STATE_ROW_COUNT: int
+    OUT_STATE_COL_COUNT: int
+
+    MIN_CORRECTION_VALUE: float
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax
 
     def test_number_of_corrections(self) -> None:
         """Check if valid number of corrections was saved."""

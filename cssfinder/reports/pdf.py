@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from platform import system
 from typing import Any
 
@@ -41,7 +42,7 @@ WEASYPRINT_NOT_AVAILABLE = (
     f"{system() if system() != 'Darwin' else 'macOS'}). "
 )
 
-if system() == "Windows":
+if system() == "Windows" and Path("C:/tools/msys64/mingw64/bin").exists():
     os.add_dll_directory(  # type: ignore[attr-defined]
         os.environ.get("WEASYPRINT_DLL_DIRECTORIES", "C:/tools/msys64/mingw64/bin")
     )

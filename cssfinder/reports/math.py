@@ -18,103 +18,109 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Utilities for runtime report creation."""
+
+"""Report math utilities."""
 
 from __future__ import annotations
 
+import json
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import numpy.typing as npt
-    import pandas as pd
     from typing_extensions import Self
 
 
-def create_corrections_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create a plot of distance decay corrections.
+@dataclass
+class SlopeProperties:
+    """Class that encapsulates slope properties and provides methods to calculate
+    correction values and find slope properties for a given dataset.
 
-    Parameters
+    Attributes
     ----------
-    corrections : pandas.DataFrame
-        A DataFrame containing the distance decay corrections. The DataFrame
-        should have an "index" column and a "value" column.
+    optimum: np.float64
+        The optimum value found during the slope property calculation.
+    r_value: np.float64
+        The r-value calculated for the slope properties.
+    aa1: np.float64
+        The slope of the trend line of the correction index with respect to iteration
+        index.
+    bb1: np.float64
+        The exponential decay coefficient calculated for the slope properties.
 
-    Returns
+    Methods
     -------
-    matplotlib.axes.Axes
-        The axes object for the created plot.
-
-    Notes
-    -----
-    The function creates a line plot of the distance decay corrections,
-    with the "index" column on the x-axis and the "value" column on the
-    y-axis. The plot includes a grid and axis labels, and a title indicating
-    that it shows distance decay.
-
-    The function returns the axes object for the created plot, which can be
-    further customized or saved using the methods of the matplotlib API.
+    get_correction(x: npt.NDArray[np.float64]) -> np.float64:
+        Returns the correction values for a given input array `x`.
+    find(data: npt.NDArray[np.float64]) -> 'SlopeProperties':
+        Finds the slope properties for a given dataset `data`.
 
     """
-    plt.figure()
-    axes = plt.subplot()
 
-    axes.plot(corrections[["index"]], corrections[["value"]])
-    axes.grid(visible=True)
+    optimum: np.float64
+    r_value: np.float64
+    aa1: np.float64
+    bb1: np.float64
 
-    axes.set_xlabel("Correction index")
-    axes.set_ylabel("Correction value")
+    def get_correction_count(self, x: np.float64) -> np.float64:
+        """Return the correction values for a given input array `x`.
 
-    axes.set_title("Distance decay")
+        Parameters
+        ----------
+        x: npt.NDArray[np.float64]
+            Input array for which correction values will be calculated.
 
-    return axes
+        Returns
+        -------
+        np.float64
+            The correction values calculated for the input array `x`.
 
+        """
+        return np.multiply(  # type: ignore[no-any-return]
+            np.power(x, self.aa1),
+            self.bb1,
+        )
 
-def create_iteration_linear_plot(corrections: pd.DataFrame) -> plt.Axes:
-    """Create a plot of iteration linear corrections.
+    @classmethod
+    def find(cls, data: npt.NDArray[np.float64]) -> Self:
+        """Find the slope properties for a given dataset `data`.
 
-    Parameters
-    ----------
-    corrections : pandas.DataFrame
-        A DataFrame containing the iteration linear corrections. The DataFrame
-        should have columns "iteration" and "index" containing the iteration
-        number and correction index, respectively.
+        Parameters
+        ----------
+        data: npt.NDArray[np.float64]
+            The dataset for which slope properties will be calculated.
 
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axes object for the created plot.
+        Returns
+        -------
+        SlopeProperties
+            An instance of the SlopeProperties class representing the slope properties
+            of the input data.
 
-    Notes
-    -----
-    The function creates a line plot of the iteration linear corrections,
-    with the "iteration" column on the x-axis and the correction values on
-    the y-axis. The correction values are calculated using the
-    `SlopeProperties` class, which takes the "index" column as input and
-    returns the corresponding correction values for each iteration.
+        """
+        iteration_index: npt.NDArray[np.float64] = data[:, 0]
+        correction_index: npt.NDArray[np.float64] = data[:, 1]
+        correction_value: npt.NDArray[np.float64] = data[int(2 * len(data) / 3) :, 2]
 
-    The plot includes a grid and axis labels, but no title. The function returns
-    the axes object for the created plot, which can be further customized or
-    saved using the methods of the matplotlib API.
+        optimum = find_correction_optimum(data[:, 2])
 
-    """
-    plt.figure()
-    axes = plt.subplot()
+        r_value = R(correction_value, optimum)
 
-    axes.grid(visible=True)
+        aa1 = trend(iteration_index, correction_index)
+        bb1 = np.exp(offset(iteration_index, correction_index))
 
-    props = SlopeProperties.find(corrections.to_numpy())
-    axes.plot(
-        corrections[["iteration"]],
-        props.get_correction(corrections[["index"]].to_numpy()),
-    )
+        return cls(optimum, r_value, aa1, bb1)
 
-    return axes
+    def save_to(self, dest: Path) -> None:
+        """Save properties to file."""
+        with dest.open("w", encoding="utf-8") as file:
+            json.dump(asdict(self), file)
 
 
 def cov(
@@ -306,83 +312,3 @@ def display_short_report(data: npt.NDArray[np.float64]) -> None:
     sys.stdout.write(
         f"The dependence between correction and trail is approximately: {expr}\n",
     )
-
-
-@dataclass
-class SlopeProperties:
-    """Class that encapsulates slope properties and provides methods to calculate
-    correction values and find slope properties for a given dataset.
-
-    Attributes
-    ----------
-    optimum: np.float64
-        The optimum value found during the slope property calculation.
-    r_value: np.float64
-        The r-value calculated for the slope properties.
-    aa1: np.float64
-        The slope of the trend line of the correction index with respect to iteration
-        index.
-    bb1: np.float64
-        The exponential decay coefficient calculated for the slope properties.
-
-    Methods
-    -------
-    get_correction(x: npt.NDArray[np.float64]) -> np.float64:
-        Returns the correction values for a given input array `x`.
-    find(data: npt.NDArray[np.float64]) -> 'SlopeProperties':
-        Finds the slope properties for a given dataset `data`.
-
-    """
-
-    optimum: np.float64
-    r_value: np.float64
-    aa1: np.float64
-    bb1: np.float64
-
-    def get_correction(self, x: np.float64) -> np.float64:
-        """Return the correction values for a given input array `x`.
-
-        Parameters
-        ----------
-        x: npt.NDArray[np.float64]
-            Input array for which correction values will be calculated.
-
-        Returns
-        -------
-        np.float64
-            The correction values calculated for the input array `x`.
-
-        """
-        return np.multiply(  # type: ignore[no-any-return]
-            np.power(x, self.aa1),
-            self.bb1,
-        )
-
-    @classmethod
-    def find(cls, data: npt.NDArray[np.float64]) -> Self:
-        """Find the slope properties for a given dataset `data`.
-
-        Parameters
-        ----------
-        data: npt.NDArray[np.float64]
-            The dataset for which slope properties will be calculated.
-
-        Returns
-        -------
-        SlopeProperties
-            An instance of the SlopeProperties class representing the slope properties
-            of the input data.
-
-        """
-        iteration_index: npt.NDArray[np.float64] = data[:, 0]
-        correction_index: npt.NDArray[np.float64] = data[:, 1]
-        correction_value: npt.NDArray[np.float64] = data[int(2 * len(data) / 3) :, 2]
-
-        optimum = find_correction_optimum(data[:, 2])
-
-        r_value = R(correction_value, optimum)
-
-        aa1 = trend(iteration_index, correction_index)
-        bb1 = np.exp(offset(iteration_index, correction_index))
-
-        return cls(optimum, r_value, aa1, bb1)

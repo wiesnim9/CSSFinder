@@ -29,15 +29,12 @@ from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.hooks import save_corrections_hook, save_matrix_hook
 from cssfinder.io.asset_loader import GilbertAssetLoader
-from cssfinder.io.output_loader import GilbertOutputLoader
-from cssfinder.report import (
-    create_corrections_plot,
-    create_iteration_linear_plot,
-    display_short_report,
-)
+from cssfinder.reports.manager import ReportManager
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from cssfinder.reports.renderer import ReportType
 
 
 def run_project_from(
@@ -111,7 +108,9 @@ def run_gilbert(
     )
 
 
-def create_report_from(project_file_path: Path | str, task: str) -> None:
+def create_report_from(
+    project_file_path: Path | str, task: str, reports: list[ReportType]
+) -> None:
     """Load project (`cssfproject.json`) and create report for task selected by
     pattern.
     """
@@ -122,10 +121,10 @@ def create_report_from(project_file_path: Path | str, task: str) -> None:
         project.meta.author,
         project.meta.email,
     )
-    create_report(project, task)
+    return create_report(project, task, reports)
 
 
-def create_report(project: CSSFProject, task: str) -> None:
+def create_report(project: CSSFProject, task: str, reports: list[ReportType]) -> None:
     """Create report for task selected by pattern from project object."""
     tasks = project.select_tasks([task])
 
@@ -139,19 +138,12 @@ def create_report(project: CSSFProject, task: str) -> None:
 
     task_object, *_ = tasks
 
-    corrections = GilbertOutputLoader().load_corrections(task_object)
-
-    axes = create_corrections_plot(corrections)
-    axes.figure.set_figwidth(10)
-    axes.figure.set_figheight(10)
-    axes.figure.savefig((task_object.output / "decay.png").as_posix(), dpi=300)
-
-    axes = create_iteration_linear_plot(corrections)
-    axes.figure.set_figwidth(10)
-    axes.figure.set_figheight(10)
-    axes.figure.savefig((task_object.output / "iterations.png").as_posix(), dpi=300)
-
-    display_short_report(corrections.to_numpy())
+    manager = ReportManager(project, task_object)
+    prepared_manager = manager.prepare()
+    for report_type in reports:
+        prepared_manager.request_report(report_type).save_to(
+            task_object.output / f"report.{report_type.name.lower()}"
+        )
 
 
 class AmbiguousTaskKeyError(KeyError):

@@ -274,6 +274,9 @@ class Task(CommonBaseModel):
     _task_name: str = Field(default="")
     """Name of task assigned to it in project."""
 
+    _project: CSSFProject = Field(default="")
+    """Reference to project object."""
+
     @property
     def output(self) -> Path:
         """Path to output directory of task."""
@@ -284,12 +287,18 @@ class Task(CommonBaseModel):
         """Name of this task in project."""
         return self._task_name
 
+    @property
+    def project(self) -> CSSFProject:
+        """Get project owning this task."""
+        return self._project
+
     def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
         """Evaluate dynamic path expressions."""
         if self.gilbert is not None:
             self.gilbert.eval_dynamic(project, task_name, task)
             self._output = project.output / task_name
             self._task_name = task_name
+            self._project = project
 
 
 class GilbertCfg(CommonBaseModel):

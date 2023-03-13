@@ -42,10 +42,17 @@ WEASYPRINT_NOT_AVAILABLE = (
     f"{system() if system() != 'Darwin' else 'macOS'}). "
 )
 
-if system() == "Windows" and Path("C:/tools/msys64/mingw64/bin").exists():
-    os.add_dll_directory(  # type: ignore[attr-defined]
-        os.environ.get("WEASYPRINT_DLL_DIRECTORIES", "C:/tools/msys64/mingw64/bin")
-    )
+if system() == "Windows":
+    GTK_BIN_PATHS_WIN32: list[Path] = [
+        Path(R"C:/tools/msys64/mingw64/bin"),
+        Path(R"C:/msys64/usr/bin"),
+    ]
+    if (environ_path := os.environ.get("WEASYPRINT_DLL_DIRECTORIES")) is not None:
+        GTK_BIN_PATHS_WIN32.append(Path(environ_path))
+
+    for path in GTK_BIN_PATHS_WIN32:
+        if path.exists():
+            os.add_dll_directory(path.as_posix())  # type: ignore[attr-defined]
 
 
 class WEasyPrintNotAvailableError(Exception):

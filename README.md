@@ -191,3 +191,77 @@ Then You can view output using [snakeviz](https://pypi.org/project/snakeviz/):
 ```
 snakeviz "#examples_profile_5qubits_prof.prof"
 ```
+
+## Command Line Interface
+
+The `CSSFinder` is a script that finds the closest separable states. The script
+offers a command-line interface that allows you to execute different tasks
+related to your CSSFinder project. This documentation will provide a summary of
+the commands and options available.
+
+Once you have installed CSSFinder, you can use it from the command line:
+
+`cssfinder [OPTIONS] COMMAND [ARGS]... `
+
+You can run `cssfinder` without any arguments to display a help message.
+
+## Options
+
+The following options are available:
+
+- `-v`, `--verbose`: increases the verbosity of logging messages. You can use
+  `-v` up to `-vvv` to increase the verbosity level.
+- `--debug`: enables debug mode.
+- `-V`, `--version`: shows the version number of CSSFinder and exits.
+
+## Commands
+
+The following commands are available:
+
+### project
+
+This command allows you to interact with a CSSFinder project. You need to
+provide the path to your project as an argument.
+
+#### run
+
+This command runs all tasks in a CSSFinder project.
+
+`cssfinder project run [OPTIONS] `
+
+##### Options
+
+- `-t`, `--tasks`: run specific tasks from the project. You can specify
+  multiple tasks by using this option multiple times.
+
+#### task-report
+
+This command generates a short report for a single task in a CSSFinder project.
+
+`cssfinder project task-report TASK [OPTIONS] `
+
+##### Arguments
+
+- `TASK`: the name of the task to generate the report for.
+
+##### Options
+
+- `--html`, `--no-html`: include or exclude an HTML report in the generated
+  report.
+- `--pdf`, `--no-pdf`: include or exclude a PDF report in the generated report.
+
+- `--open`, `--no-open`: automatically open report in web browser.
+
+## Examples
+
+Here are some examples of how to use CSSFinder from the command line:
+
+`cssfinder -vvv project ./examples/5qubits/ run`
+
+This will run all tasks in the specified project and increase the verbosity
+level of logging messages to the maximum (debug).
+
+`cssfinder project ./examples/5qubits/ task-report main --html`
+
+This will generate an HTML report for the `my_task` task in the specified
+project.

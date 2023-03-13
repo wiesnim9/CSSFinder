@@ -64,17 +64,6 @@ jobs:
         if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
         run: poetry run poe test-reports --pdf-expect-fail
 
-      - name: Download and extract GTK3 (Windows only)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd C:/
-          git clone https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer GTK3
-          cd GTK3
-          git checkout "2022-01-04"
-          cd ..
-          echo "WEASYPRINT_DLL_DIRECTORIES=$(pwd)/GTK3/bin" >> $GITHUB_ENV
-          echo "$(pwd)/GTK3/bin" >> $GITHUB_PATH
-
       - name: Install brew and GTK3 (macOS only)
         if: matrix.os == 'macOS-latest'
         run: |
@@ -83,4 +72,5 @@ jobs:
           brew install gtk+3
 
       - name: Run reports tests
+        if: matrix.os != 'windows-latest'
         run: poetry run poe test-reports

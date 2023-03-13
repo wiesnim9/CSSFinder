@@ -48,7 +48,7 @@ class ReportTestBase(SetupRunProjectMixin):
 
     def get_report_path(self, report_type: ReportType) -> Path:
         """Find report file."""
-        return self.get_output_directory() / f"report.{report_type.name.lower()}"
+        return self.get_output_directory() / report_type.get_file_name()
 
     def delete_report(self, report_type: ReportType) -> None:
         """Delete report file."""

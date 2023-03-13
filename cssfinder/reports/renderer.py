@@ -28,11 +28,10 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from cssfinder.cssfproject import Task
     from cssfinder.reports.math import SlopeProperties
     from cssfinder.reports.plotting import Plot
@@ -45,6 +44,10 @@ class ReportType(Enum):
     PDF = "pdf"
     ARCHIVE = "zip"
     TXT = "txt"
+
+    def get_file_name(self) -> str:
+        """Return default file name for specific type of report."""
+        return f"report.{self.value}"
 
 
 class Renderer(ABC):
@@ -110,6 +113,13 @@ class Report:
     content: bytes
     report_type: ReportType
     default_dest: Optional[Path] = None
+
+    def get_default_dest(self) -> Path:
+        """Return path to default destination of report file."""
+        if self.default_dest is not None:
+            return self.default_dest
+
+        return Path.cwd() / self.report_type.get_file_name()
 
     def save_default(self) -> None:
         """Save file to default destination."""

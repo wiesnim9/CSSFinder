@@ -188,7 +188,8 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> 
         for report in create_report_from(ctx.project_path, task, include_report_types):
             report.save_default()
             if open_:
-                webbrowser.open(url=f"file:///{report.default_dest.as_posix()}")
+                report.get_default_dest()
+                webbrowser.open(url=report.get_default_dest().as_uri())
 
     except AmbiguousTaskKeyError as exc:
         logging.critical(exc.args[0])

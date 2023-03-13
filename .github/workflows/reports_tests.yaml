@@ -64,13 +64,16 @@ jobs:
         if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
         run: poetry run poe test-reports --pdf-expect-fail
 
-      - name: Install MSYS2 and GTK3 (Windows only)
+      - name: Download and extract GTK3 (Windows only)
         if: matrix.os == 'windows-latest'
         run: |
-          choco install -y msys2
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-x86_64-python3-gobject"
+          cd C:/
+          git clone https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer GTK3
+          cd GTK3
+          git checkout "2022-01-04"
+          cd ..
+          echo "WEASYPRINT_DLL_DIRECTORIES=$(pwd)/GTK3/bin" >> $GITHUB_ENV
+          echo "$(pwd)/GTK3/bin" >> $GITHUB_PATH
 
       - name: Install brew and GTK3 (macOS only)
         if: matrix.os == 'macOS-latest'

@@ -25,8 +25,6 @@
 from __future__ import annotations
 
 import logging
-import os
-from pathlib import Path
 from platform import system
 from typing import Any
 
@@ -41,18 +39,6 @@ WEASYPRINT_NOT_AVAILABLE = (
     "and follow instructions for you platform ("
     f"{system() if system() != 'Darwin' else 'macOS'}). "
 )
-
-if system() == "Windows":
-    GTK_BIN_PATHS_WIN32: list[Path] = [
-        Path(R"C:/tools/msys64/mingw64/bin"),
-        Path(R"C:/msys64/usr/bin"),
-    ]
-    if (environ_path := os.environ.get("WEASYPRINT_DLL_DIRECTORIES")) is not None:
-        GTK_BIN_PATHS_WIN32.append(Path(environ_path))
-
-    for path in GTK_BIN_PATHS_WIN32:
-        if path.exists():
-            os.add_dll_directory(path.as_posix())  # type: ignore[attr-defined]
 
 
 class WEasyPrintNotAvailableError(Exception):

@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import logging
+import webbrowser
 from dataclasses import dataclass
 
 import click
@@ -152,8 +153,16 @@ def _run(ctx: Ctx, tasks: list[str] | None) -> None:
     default=False,
     help="Include PDF report.",
 )
+@click.option(
+    "--open",
+    "--no-open",
+    "open_",
+    is_flag=True,
+    default=False,
+    help="Automatically open report in web browser.",
+)
 @click.pass_obj
-def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool) -> None:
+def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> None:
     """Create short report for task.
 
     TASK - name pattern matching exactly one task, for which report should be created.
@@ -178,6 +187,8 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool) -> None:
     try:
         for report in create_report_from(ctx.project_path, task, include_report_types):
             report.save_default()
+            if open_:
+                webbrowser.open(url=f"file:///{report.default_dest.as_posix()}")
 
     except AmbiguousTaskKeyError as exc:
         logging.critical(exc.args[0])

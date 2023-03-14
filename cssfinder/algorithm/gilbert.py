@@ -39,8 +39,9 @@ if TYPE_CHECKING:
 class Gilbert:
     """Class interface of gilbert algorithm."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
+        *,
         initial: npt.NDArray[np.complex128],
         depth: int,
         quantity: int,
@@ -50,7 +51,6 @@ class Gilbert:
         visibility: float,
         symmetries: list[list[npt.NDArray[np.complex128]]],
         projection: Optional[npt.NDArray[np.complex128]],
-        *,
         is_debug: bool = False,
     ) -> None:
         self.initial = initial
@@ -120,7 +120,7 @@ class Gilbert:
 
             iterations_executed = (epoch_index + 1) * iterations_per_epoch
             logging.debug(
-                "Executed %r iterations, total %r / %r (%.2f)",
+                "Executed %r iterations, total %r / %r (%.2f%%)",
                 iterations_per_epoch,
                 iterations_executed,
                 total_iterations,

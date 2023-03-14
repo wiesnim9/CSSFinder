@@ -582,6 +582,30 @@ class State(CommonBaseModel, _TaskFieldMixin):
             .as_posix()
         )
 
+    def is_predefined_dimensions(self) -> bool:
+        """Return True when both dimensions are available."""
+        return self.depth is not None and self.quantity is not None
+
+    def get_depth(self) -> int:
+        """Return system depth or raise NoDimensionsError if not specified in config."""
+        if self.depth is None:
+            msg = "Depth is not specified."
+            raise NoDimensionsError(msg)
+        return self.depth
+
+    def get_quantity(self) -> int:
+        """Return system quantity or raise NoDimensionsError if not specified in
+        config.
+        """
+        if self.quantity is None:
+            msg = "quantity is not specified."
+            raise NoDimensionsError(msg)
+        return self.quantity
+
+
+class NoDimensionsError(ValueError):
+    """Raised when system dimensions were requested but are not specified in config."""
+
 
 class RuntimeCfg(CommonBaseModel):
     """Configuration of runtime limits and parameters influencing algorithm run time."""

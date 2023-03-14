@@ -87,23 +87,7 @@ def run_gilbert(
 
     task_output_directory.mkdir(0o764, parents=True, exist_ok=True)
 
-    initial_state = asset_io.load_state(config.get_state().file)
-    state_dimensions = ModeUtil.new(config.mode).get_dimensions(initial_state)
-
-    symmetries = asset_io.load_symmetries(config.get_resources().symmetries)
-    projection = asset_io.load_projection(config.get_resources().projection)
-
-    algorithm = Gilbert(
-        initial_state,
-        **state_dimensions.unpack(),
-        mode=config.mode,
-        backend=config.get_backend().name,
-        precision=config.get_backend().precision,
-        visibility=config.runtime.visibility,
-        symmetries=symmetries,
-        projection=projection,
-        is_debug=is_debug,
-    )
+    algorithm = create_gilbert(config, asset_io, is_debug=is_debug)
 
     for epoch_index in algorithm.run(
         max_epochs=config.runtime.max_epochs,
@@ -111,7 +95,7 @@ def run_gilbert(
         max_corrections=config.runtime.max_corrections,
     ):
         logging.info(
-            "Executing epoch %r / %r (%.2f) - corrections: %r best: %r",
+            "Executing epoch %r / %r (%.1f%%) - corrections: %r best: %r",
             epoch_index + 1,
             config.runtime.max_epochs,
             ((epoch_index + 1) / config.runtime.max_epochs) * 100,
@@ -124,6 +108,58 @@ def run_gilbert(
         asset_io.dump_corrections(
             algorithm.get_corrections(), config.output_corrections_file
         )
+
+
+def create_gilbert(
+    config: GilbertCfg, asset_io: GilbertIO, *, is_debug: bool
+) -> Gilbert:
+    """Create Gilbert object from configuration with help of specified IO.
+
+    Parameters
+    ----------
+    config : GilbertCfg
+        Algorithm configuration.
+    asset_io : GilbertIO
+        IO manager to use for loading assets.
+    is_debug : bool
+        Debug mode flag.
+
+    Returns
+    -------
+    Gilbert
+        Initialized
+
+    """
+    state_config = config.get_state()
+
+    initial_state = asset_io.load_state(state_config.file)
+
+    if state_config.is_predefined_dimensions():
+        depth = state_config.get_depth()
+        quantity = state_config.get_quantity()
+
+    else:
+        dimensions = ModeUtil.new(config.mode).get_dimensions(initial_state)
+        depth = dimensions.depth
+        quantity = dimensions.quantity
+
+    symmetries = asset_io.load_symmetries(config.get_resources().symmetries)
+    projection = asset_io.load_projection(config.get_resources().projection)
+
+    algorithm = Gilbert(
+        initial=initial_state,
+        depth=depth,
+        quantity=quantity,
+        mode=config.mode,
+        backend=config.get_backend().name,
+        precision=config.get_backend().precision,
+        visibility=config.runtime.visibility,
+        symmetries=symmetries,
+        projection=projection,
+        is_debug=is_debug,
+    )
+
+    return algorithm
 
 
 def create_report_from(

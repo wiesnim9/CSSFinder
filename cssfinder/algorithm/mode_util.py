@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 import math
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from cssfinder.constants import PRIMES
@@ -55,10 +55,6 @@ class Dimensions:
     ie. number of qu(D)its in state. (n)
 
     """
-
-    def unpack(self) -> dict[str, int]:
-        """Convert to dictionary."""
-        return asdict(self)
 
 
 class ModeUtil(ABC):

@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import shutil
 from dataclasses import dataclass
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -32,8 +34,6 @@ from cssfinder.api import run_project_from
 from cssfinder.io.gilbert_io import GilbertIO
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     import numpy.typing as npt
     import pandas as pd
 
@@ -50,15 +50,22 @@ class SetupRunProjectMixin:
     state: npt.NDArray[np.complex128]
     """Final state matrix."""
 
+    _temporary_directory: TemporaryDirectory
+
     @classmethod
     def get_project_directory(cls) -> Path:
         """Path to project directory."""
-        return cls.PROJECT_PATH
+        return cls.get_temporary_directory() / cls.PROJECT_PATH.name
 
     @classmethod
     def get_output_directory(cls) -> Path:
         """Path to output directory."""
-        return cls.PROJECT_PATH / "output" / cls.TEST_TASK_NAME
+        return cls.get_project_directory() / "output" / cls.TEST_TASK_NAME
+
+    @classmethod
+    def get_temporary_directory(cls) -> Path:
+        """Get path to temporary directory shared by tests in this class."""
+        return Path(cls._temporary_directory.name)
 
     @classmethod
     def setup_class(cls) -> None:
@@ -67,7 +74,13 @@ class SetupRunProjectMixin:
         Executed once for class, shared between tests within class.
 
         """
-        run_project_from(cls.PROJECT_PATH, [cls.TEST_TASK_NAME])
+        cls._temporary_directory = TemporaryDirectory()
+        shutil.copytree(
+            cls.PROJECT_PATH.as_posix(), cls.get_project_directory().as_posix()
+        )
+        print(cls.get_project_directory())
+
+        run_project_from(cls.get_project_directory(), [cls.TEST_TASK_NAME])
 
         gilbert_io = GilbertIO()
 
@@ -83,7 +96,6 @@ class SetupRunProjectMixin:
         Executed once for class, shared between tests within class.
 
         """
-        shutil.rmtree(cls.get_output_directory())
 
 
 class ModeTest(SetupRunProjectMixin):

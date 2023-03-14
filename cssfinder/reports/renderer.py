@@ -79,7 +79,7 @@ class Ctx:
     @property
     def title(self) -> str:
         """Document title."""
-        return f"Report {self.task.output.parent.parent.name} / {self.task.name}"
+        return f"Report {self.task.project_directory.name} / {self.task.task_name}"
 
     @property
     def meta(self) -> OrderedDict:
@@ -87,7 +87,7 @@ class Ctx:
         return OrderedDict(
             {
                 "Project name": self.task.project.meta.name,
-                "Task name": self.task.name,
+                "Task name": self.task.task_name,
                 "Author": self.task.project.meta.author,
                 "Email": self.task.project.meta.email,
                 "Description": self.task.project.meta.description,

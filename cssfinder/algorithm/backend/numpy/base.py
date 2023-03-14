@@ -37,7 +37,6 @@ from cssfinder.cssfproject import AlgoMode
 
 if TYPE_CHECKING:
     from cssfinder.algorithm.backend.numpy.impl import Implementation
-    from cssfinder.io.asset_loader import State
 
 PRIMARY = TypeVar("PRIMARY", np.complex128, np.complex64)
 SECONDARY_co = TypeVar("SECONDARY_co", np.float64, np.float32, covariant=True)
@@ -56,15 +55,17 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     primary_t: type[PRIMARY]
     secondary_t: type[SECONDARY_co]
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        initial: State,
+        initial: npt.NDArray[np.complex128],
+        depth: int,
+        quantity: int,
         mode: AlgoMode,
         visibility: float,
         *,
         is_debug: bool = False,
     ) -> None:
-        super().__init__(initial, mode, visibility, is_debug=is_debug)
+        super().__init__(initial, depth, quantity, mode, visibility, is_debug=is_debug)
 
         self._visibility = self._create_visibility_matrix()
         self._intermediate = self._create_intermediate_state()
@@ -92,7 +93,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
 
     def jit(self) -> None:
         """JIT compile performance critical parts of backend with numba."""
-        return
         _update_state = jit(  # type: ignore[assignment]
             forceobj=True,
             cache=True,
@@ -110,12 +110,12 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         self.run_epoch = MethodType(run_epoch, self)  # type: ignore[assignment]
 
     def _create_visibility_matrix(self) -> npt.NDArray[PRIMARY]:
-        vis_state = self.visibility * self.initial.state
+        vis_state = self.visibility * self.initial
         inv_vis_ident = (1 - self.visibility) * np.identity(
-            len(self.initial.state),
+            len(self.initial),
             dtype=np.complex128,
         )
-        return (vis_state + inv_vis_ident / len(self.initial.state)).astype(
+        return (vis_state + inv_vis_ident / len(self.initial)).astype(
             self.primary_t,
         )
 
@@ -124,25 +124,22 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         np.fill_diagonal(intermediate, self._visibility.diagonal())
         return intermediate.astype(self.primary_t)
 
-    @property
-    def state(self) -> npt.NDArray[np.complex128]:
+    def get_state(self) -> npt.NDArray[np.complex128]:
         """Return current system state with all optimizations applied."""
         return self._intermediate.copy().astype(np.complex128)
 
-    @property
-    def corrections(self) -> list[tuple[int, int, float]]:
+    def get_corrections(self) -> list[tuple[int, int, float]]:
         """Return list of all corrections found during optimization."""
         return self._corrections.copy()
 
-    @property
-    def corrections_count(self) -> int:
+    def get_corrections_count(self) -> int:
         """Return number of all corrections found during optimization."""
         return len(self._corrections)
 
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
-        depth = self.initial.depth
-        quantity = self.initial.quantity
+        depth = self.depth
+        quantity = self.quantity
         epochs = 20 * depth * depth * quantity
 
         for iteration_index in range(iterations):
@@ -171,8 +168,8 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         epochs: int,
         iteration_index: int,
     ) -> None:
-        depth = self.initial.depth
-        quantity = self.initial.quantity
+        depth = self.depth
+        quantity = self.quantity
 
         if self.mode == AlgoMode.FSnQd:
             alternative_state = self.impl.optimize_d_fs(

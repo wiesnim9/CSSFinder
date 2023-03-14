@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
     from cssfinder.cssfproject import AlgoMode, Backend, Precision
-    from cssfinder.io.asset_loader import State
 
 BackendT = TypeVar("BackendT", bound="BackendBase")
 
@@ -43,31 +42,32 @@ class BackendBase:
 
     backend_index: dict[tuple[Backend, Precision], type[BackendBase]] = {}
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        initial: State,
+        initial: npt.NDArray[np.complex128],
+        depth: int,
+        quantity: int,
         mode: AlgoMode,
         visibility: float,
         *,
         is_debug: bool = False,
     ) -> None:
+        self.depth = depth
+        self.quantity = quantity
         self.initial = initial
         self.visibility = visibility
         self.mode = mode
         self.is_debug = is_debug
 
-    @property
-    def state(self) -> npt.NDArray[np.complex128]:
+    def get_state(self) -> npt.NDArray[np.complex128]:
         """Return current system state with all optimizations applied."""
         raise NotImplementedError
 
-    @property
-    def corrections(self) -> list[tuple[int, int, float]]:
+    def get_corrections(self) -> list[tuple[int, int, float]]:
         """Return list of all corrections found during optimization."""
         raise NotImplementedError
 
-    @property
-    def corrections_count(self) -> int:
+    def get_corrections_count(self) -> int:
         """Return number of all corrections found during optimization."""
         raise NotImplementedError
 

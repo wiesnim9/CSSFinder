@@ -41,6 +41,8 @@ from cssfinder.enums import CaseInsensitiveEnum
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+PROJECT_FILE_NAME: str = "cssfproject.json"
+
 
 class CSSFProject(CommonBaseModel):
     """CSSFProject file specification."""
@@ -58,7 +60,7 @@ class CSSFProject(CommonBaseModel):
         self,
         meta: Meta,
         tasks: list[Task] | dict[str, Task],
-        project_path: Path,
+        project_path: str | Path,
         *_: Any,
         **_k: Any,
     ) -> None:
@@ -68,7 +70,12 @@ class CSSFProject(CommonBaseModel):
 
         """
         super().__init__(meta=meta, tasks=tasks)
-        self._project_path = project_path
+        if not isinstance(project_path, Path):
+            self._project_path = Path(project_path).expanduser().resolve()
+
+        assert isinstance(project_path, Path)
+        self._project_path = project_path.expanduser().resolve()
+
         self.bind()
 
     @validator("tasks", pre=True, always=True)
@@ -92,18 +99,6 @@ class CSSFProject(CommonBaseModel):
 
         return {str(i): t for i, t in enumerate(value)}
 
-    @validator("file_path", pre=True, always=True)
-    @classmethod
-    def _validate_file_path(cls, value: str | Path) -> Path:
-        if not isinstance(value, Path):
-            file_path = Path(value)
-            return file_path.expanduser().resolve()
-
-        assert isinstance(value, Path)
-        file_path = value.expanduser().resolve()
-
-        return file_path
-
     def bind(self) -> None:
         """Bind fields to this CSSFProject object."""
         self.meta.bind(self)
@@ -114,9 +109,10 @@ class CSSFProject(CommonBaseModel):
     @property
     def project_file(self) -> Path:
         """Path to `cssfproject.json` file."""
-        if self._project_path.name == "cssfinder.json":
+        if self._project_path.name == PROJECT_FILE_NAME:
             return self._project_path
-        return self._project_path / "cssfproject.json"
+
+        return self._project_path / PROJECT_FILE_NAME
 
     @property
     def project_directory(self) -> Path:
@@ -157,19 +153,17 @@ class CSSFProject(CommonBaseModel):
 
         # When points to directory, dir must contain cssfproject.json file
         if file_or_directory.is_dir():
-            file_or_directory /= "cssfproject.json"
-            file_path = file_or_directory
-            del file_or_directory
+            file_or_directory /= PROJECT_FILE_NAME
+            project_path = file_or_directory
 
         else:
-            file_path = file_or_directory
-            del file_or_directory
+            project_path = file_or_directory
 
-        logging.debug("Resolved project path to %r", file_path.as_posix())
+        logging.debug("Resolved project path to %r", project_path.as_posix())
         try:
-            content = file_path.read_text(encoding="utf-8")
+            content = project_path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            error_message = f"Make sure you path is correct: {file_path!r}"
+            error_message = f"Make sure you path is correct: {project_path!r}"
             raise ProjectFileNotFoundError(error_message) from exc
 
         try:
@@ -181,7 +175,7 @@ class CSSFProject(CommonBaseModel):
             logging.critical("Content of cssfproject.json file is not a dictionary.")
             raise InvalidCSSFProjectContentError(content)
 
-        project = cls(**content)
+        project = cls(**content, project_path=project_path)
         return project
 
     def select_tasks(self, patterns: list[str] | None = None) -> list[Task]:
@@ -307,6 +301,9 @@ class Meta(CommonBaseModel, _ProjectFieldMixin):
     version: SemVerStr
     """Version of the project."""
 
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
 
 class SemVerStr(ConstrainedStr):
     """Semantic versioning string regex, see https://semver.org/."""
@@ -327,24 +324,34 @@ class NotBoundToTaskError(NotBoundToProjectError):
 class _TaskMixin(_ProjectFieldMixin):
     """Mixin specifying binding interface for Task object."""
 
-    _name: Optional[str] = None
+    _task_name: Optional[str] = None
     """Name of task assigned to it in project."""
 
     @property
     def task_output_directory(self) -> Path:
         """Path to output directory of task."""
-        if self._name is None:
+        if self._task_name is None:
             raise NotBoundToTaskError(
                 self, "Access to 'task_output_directory' property."
             )
         return self.project.project_output_directory / self.task_name
 
     @property
+    def output_state_file(self) -> Path:
+        """Path to output state file."""
+        return self.task_output_directory / "state.mtx"
+
+    @property
+    def output_corrections_file(self) -> Path:
+        """Path to output corrections file."""
+        return self.task_output_directory / "corrections.json"
+
+    @property
     def task_name(self) -> str:
         """Name of this task in project."""
-        if self._name is None:
+        if self._task_name is None:
             raise NotBoundToTaskError(self, "Access to 'task_name' property.")
-        return self._name
+        return self._task_name
 
     def bind(
         self,
@@ -353,7 +360,7 @@ class _TaskMixin(_ProjectFieldMixin):
     ) -> None:
         """Bind object to specific Task."""
         super().bind(project)
-        self._name = task_name
+        self._task_name = task_name
 
 
 class Task(CommonBaseModel, _TaskMixin):
@@ -361,6 +368,12 @@ class Task(CommonBaseModel, _TaskMixin):
 
     gilbert: Optional[GilbertCfg] = Field(default=None)
     """Configuration of gilbert algorithm."""
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
 
     def bind(self, project: CSSFProject, task_name: Optional[str] = None) -> None:
         """Bind task to specific CSSFProject instance."""
@@ -373,6 +386,7 @@ class _TaskFieldMixin(_TaskMixin):
     """Mixin specifying binding interface for Task field."""
 
     _task: Optional[Task] = None
+    """Reference to task object containing this object."""
 
     @property
     def task(self) -> Task:
@@ -413,6 +427,15 @@ class GilbertCfg(CommonBaseModel, _TaskFieldMixin):
 
     resources: Optional[Resources] = Field(default=None)
     """Additional resources which may be used by algorithm."""
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
 
     @validator("state", always=True)
     @classmethod
@@ -461,7 +484,7 @@ class AlgoMode(CaseInsensitiveEnum):
     FSnQd = "FSnQd"
     """Full separability of n-quDit state."""
 
-    SBiPa = "SBiPi"
+    SBiPa = "SBiPa"
     """Separability of a bipartite state."""
 
     G3PaE3qD = "G3PaE3qD"
@@ -526,6 +549,15 @@ class State(CommonBaseModel, _TaskFieldMixin):
     ie. number of qu(D)its in state. (n)
 
     """
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
 
     def bind(
         self,
@@ -593,6 +625,15 @@ class Resources(CommonBaseModel, _TaskFieldMixin):
 
     projection: Optional[str] = Field(default=None)
     """Path to file containing projection matrix."""
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
 
     def bind(
         self,

@@ -26,7 +26,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, Type
 
-from cssfinder.io.output_loader import GilbertOutputLoader
+from cssfinder.io.gilbert_io import GilbertIO
 from cssfinder.reports.plotting import Plot, Plotter
 from cssfinder.reports.renderer import Renderer, Report, ReportType
 
@@ -53,6 +53,7 @@ class ReportManager:
         """
         self.project = project
         self.task = task
+        self.loader = GilbertIO()
 
     def prepare(self) -> PreparedReportManager:
         """Prepare the data for generating a report.
@@ -67,7 +68,7 @@ class ReportManager:
             generating a report.
 
         """
-        corrections = GilbertOutputLoader().load_corrections(self.task)
+        corrections = self.loader.load_corrections(self.task.output_corrections_file)
 
         plots = OrderedDict()
 

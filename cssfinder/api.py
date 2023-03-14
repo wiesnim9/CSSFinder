@@ -26,9 +26,9 @@ import logging
 from typing import TYPE_CHECKING, Iterable
 
 from cssfinder.algorithm.gilbert import Gilbert
+from cssfinder.algorithm.mode_util import ModeUtil
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
-from cssfinder.hooks import save_corrections_hook, save_matrix_hook
-from cssfinder.io.asset_loader import GilbertAssetLoader
+from cssfinder.io.gilbert_io import GilbertIO
 from cssfinder.reports.manager import ReportManager
 
 if TYPE_CHECKING:
@@ -61,7 +61,6 @@ def run_project(
     is_debug: bool = False,
 ) -> None:
     """Run all tasks defined in project."""
-    project.eval_dynamic()
     logging.debug("Running project %r", project.meta.name)
 
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
@@ -74,38 +73,57 @@ def run_project(
 def run_task(task: Task, *, is_debug: bool = False) -> None:
     """Run task until completed."""
     if task.gilbert:
-        run_gilbert(task.gilbert, task.output, is_debug=is_debug)
+        run_gilbert(task.gilbert, task.task_output_directory, is_debug=is_debug)
 
 
 def run_gilbert(
     config: GilbertCfg,
-    task_output_dir: Path,
+    task_output_directory: Path,
     *,
     is_debug: bool = False,
 ) -> None:
     """Run Gilbert algorithm part of task."""
-    asset_loader = GilbertAssetLoader()
-    assets = asset_loader.load_assets(config)
+    asset_io = GilbertIO()
 
-    task_output_dir.mkdir(0o764, parents=True, exist_ok=True)
+    task_output_directory.mkdir(0o764, parents=True, exist_ok=True)
+
+    initial_state = asset_io.load_state(config.get_state().file)
+    state_dimensions = ModeUtil.new(config.mode).get_dimensions(initial_state)
+
+    symmetries = asset_io.load_symmetries(config.get_resources().symmetries)
+    projection = asset_io.load_projection(config.get_resources().projection)
 
     algorithm = Gilbert(
-        assets.state,
+        initial_state,
+        **state_dimensions.unpack(),
         mode=config.mode,
         backend=config.get_backend().name,
         precision=config.get_backend().precision,
         visibility=config.runtime.visibility,
+        symmetries=symmetries,
+        projection=projection,
         is_debug=is_debug,
     )
-    algorithm.run(
-        epochs=config.runtime.max_epochs,
-        iterations=config.runtime.iters_per_epoch,
+
+    for epoch_index in algorithm.run(
+        max_epochs=config.runtime.max_epochs,
+        iterations_per_epoch=config.runtime.iters_per_epoch,
         max_corrections=config.runtime.max_corrections,
-        save_state_hook=save_matrix_hook(task_output_dir / "state.mtx"),
-        save_corrections_hook=save_corrections_hook(
-            task_output_dir / "corrections.json",
-        ),
-    )
+    ):
+        logging.info(
+            "Executing epoch %r / %r (%.2f) - corrections: %r best: %r",
+            epoch_index + 1,
+            config.runtime.max_epochs,
+            ((epoch_index + 1) / config.runtime.max_epochs) * 100,
+            algorithm.get_corrections_count(),
+            algorithm.get_corrections()[-1][2]
+            if algorithm.get_corrections_count() > 0
+            else None,
+        )
+        asset_io.dump_state(algorithm.get_state(), config.output_state_file)
+        asset_io.dump_corrections(
+            algorithm.get_corrections(), config.output_corrections_file
+        )
 
 
 def create_report_from(
@@ -151,7 +169,7 @@ def create_report(
     tasks = project.select_tasks([task])
 
     if len(tasks) > 1:
-        matched_tasks_names = [t.name for t in tasks]
+        matched_tasks_names = [t.task_name for t in tasks]
         message = (
             f"Pattern {task!r} matches more than one task ({len(tasks)}): "
             f"{matched_tasks_names!r}"

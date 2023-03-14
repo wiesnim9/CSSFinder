@@ -50,5 +50,5 @@ class HTMLRenderer(Renderer):
         return Report(
             template.render(ctx=self.ctx).encode("utf-8"),
             ReportType.HTML,
-            self.ctx.task.output / "report.html",
+            self.ctx.task.task_output_directory / "report.html",
         )

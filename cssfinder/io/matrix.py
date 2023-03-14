@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, ClassVar
 
 import numpy as np
 import scipy.io
@@ -37,31 +38,26 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
 
+class MatrixFormat(Enum):
+    """Enumeration of possible supported matrix formats."""
+
+    MATRIX_MARKET = ".mtx"
+
+
 class MatrixIO(ABC):
     """Abstract base class declaring interface of matrix input-output manager."""
 
-    def __init__(self, file_path: Path) -> None:
-        """Initialize matrix IO.
-
-        Parameters
-        ----------
-        file_path : Path
-            Path to source/destination file.
-
-        """
-        self.file_path = file_path
+    matrix_format: ClassVar[MatrixFormat]
 
     @classmethod
-    def new(cls, file_path: str | Path, file_format: str | None = None) -> MatrixIO:
+    def new(cls, matrix_format: MatrixFormat) -> MatrixIO:
         """Create new instance of matrix loader for file format. When format is None,
         file format is deduced from file extension.
 
         Parameters
         ----------
-        file_path : Path
+        matrix_format : MatrixFormat
             Path to file containing matrix data.
-        file_format : Optional[str], optional
-            File format specifier in form of extension, eg. ".mtx", by default None
 
         Returns
         -------
@@ -69,66 +65,68 @@ class MatrixIO(ABC):
             Matrix loader.
 
         """
-        if isinstance(file_path, str):
-            file_path = Path(file_path)
+        io = FORMAT_TO_LOADER[matrix_format]()
+        logging.debug("Selected matrix IO %r for format %r", io, matrix_format.name)
+        return io
 
-        if file_format is None:
-            file_format = file_path.suffix
-
-        logging.debug(
-            "Using file format %r for file %r",
-            file_format,
-            file_path.as_posix(),
-        )
-
-        return FORMAT_TO_LOADER[file_format](file_path)
-
-    @abstractmethod
-    def load(self) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
+    def load(
+        self, src: str | Path | IO[bytes]
+    ) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
         """Load matrix from file as numpy array."""
+        if isinstance(src, (str, Path)):
+            with Path(src).open("rb") as file:
+                return self._load(file)
+
+        return self._load(file)
 
     @abstractmethod
-    def dump(self, data: npt.NDArray[np.int64 | np.float64 | np.complex128]) -> None:
+    def _load(
+        self, src: IO[bytes]
+    ) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
+        ...
+
+    def dump(
+        self,
+        data: npt.NDArray[np.int64 | np.float64 | np.complex128],
+        dest: str | Path | IO[bytes],
+    ) -> None:
         """Dump matrix to file from numpy array."""
+        if isinstance(dest, (str, Path)):
+            file_path = Path(dest).with_suffix(self.matrix_format.value)
+            with file_path.open("wb") as file:
+                return self._dump(data, file)
+
+        return self._dump(data, file)
+
+    @abstractmethod
+    def _dump(
+        self, data: npt.NDArray[np.int64 | np.float64 | np.complex128], dest: IO[bytes]
+    ) -> None:
+        ...
 
 
 class MatrixMarketIO(MatrixIO):
     """MatrixIO implementation for loading MatrixMarket exchange format files."""
 
-    def load(self) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
-        """Load the data from MatrixMarket exchange format file.
+    matrix_format: ClassVar[MatrixFormat] = MatrixFormat.MATRIX_MARKET
 
-        Returns
-        -------
-        numpy.ndarray
-            An array containing the data from the file in MatrixMarket format.
-
-        """
-        mtx = scipy.io.mmread(self.file_path.as_posix())
+    def _load(
+        self, dest: IO[bytes]
+    ) -> npt.NDArray[np.int64 | np.float64 | np.complex128]:
+        mtx = scipy.io.mmread(dest)
         assert mtx is not None
         return np.array(mtx)
 
-    def dump(self, data: npt.NDArray[np.int64 | np.float64 | np.complex128]) -> None:
-        """Write data to a MatrixMarket exchange format file.
-
-        Parameters
-        ----------
-        data : numpy.ndarray
-            An array containing the data to be written to the file.
-
-        Returns
-        -------
-        None
-
-        """
-        self.file_path.touch(0o664, exist_ok=True)
+    def _dump(
+        self, data: npt.NDArray[np.int64 | np.float64 | np.complex128], dest: IO[bytes]
+    ) -> None:
         scipy.io.mmwrite(
-            self.file_path.as_posix(),
+            dest,
             data,
             comment=f"Created with CSSFinder {cssfinder.__version__}.",
         )
 
 
-FORMAT_TO_LOADER: dict[str, type[MatrixIO]] = {
-    ".mtx": MatrixMarketIO,
+FORMAT_TO_LOADER: dict[MatrixFormat, type[MatrixIO]] = {
+    MatrixFormat.MATRIX_MARKET: MatrixMarketIO,
 }

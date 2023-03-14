@@ -74,5 +74,5 @@ class PDFRenderer(HTMLRenderer):
         return Report(
             weasyprint.HTML(string=report.content.decode("utf-8")).write_pdf(),
             ReportType.PDF,
-            self.ctx.task.output / "report.pdf",
+            self.ctx.task.task_output_directory / "report.pdf",
         )

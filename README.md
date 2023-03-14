@@ -13,6 +13,20 @@ pip install cssfinder
 If you want to use development version, traverse `Development` and `Packaging`
 sections below.
 
+### But there is a catch!
+
+CSSFinder can export PDF reports (and other formats too), but it uses
+`weasyprint` for that and `weasyprint` relies on `GTK3`. Unfortunately it is
+quite hard to get `GTK3` going on windows and `weasyprint` requires it to work.
+Therefore you must handle installation yourself.
+[Here](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)
+you can find official guidelines from `weasyprint`.
+[This repository](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer)
+may also help. Alternatively you can use WSL to install and run CSSFinder, as
+its seamless to do that.
+
+Its worth mentioning that other formats are not affected by this issue.
+
 ## Development
 
 This project uses `Python` programming language and requires at least python

@@ -13,7 +13,7 @@
     "tasks": {
         "main": {
             "gilbert": {
-                "mode": "SBiPi",
+                "mode": "SBiPa",
                 "backend": {
                     "name": "numpy",
                     "precision": "single"
@@ -25,17 +25,17 @@
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.directory}/proj_in.mtx",
+                    "file": "{project.project_directory}/proj_in.mtx",
                     "depth": 3,
                     "quantity": 3
                 },
                 "resources": {
                     "symmetries": null,
-                    "projection": "{project.directory}/proj_proj.mtx"
+                    "projection": "{project.project_directory}/proj_proj.mtx"
                 }
             }
         },
-        "test_sbipi_proj": {
+        "test_sbipa_proj": {
             "gilbert": {
                 "mode": {
                     "$ref": "#/tasks/main/gilbert/mode"

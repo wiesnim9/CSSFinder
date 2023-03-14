@@ -22,7 +22,7 @@
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.directory}/5qubits_in.mtx",
+                    "file": "{project.project_directory}/5qubits_in.mtx",
                     "depth": null,
                     "quantity": null
                 },

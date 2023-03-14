@@ -22,22 +22,26 @@
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.directory}/GHZ3_in.mtx",
+                    "file": "{project.project_directory}/GHZ3_in.mtx",
                     "depth": null,
                     "quantity": null
                 },
                 "resources": {
                     "symmetries": [
-                        "{project.directory}/GHZ3_sym_0_0.mtx",
-                        "{project.directory}/GHZ3_sym_0_1.mtx",
-                        "{project.directory}/GHZ3_sym_1_0.mtx",
-                        "{project.directory}/GHZ3_sym_1_1.mtx",
-                        "{project.directory}/GHZ3_sym_1_2.mtx",
-                        "{project.directory}/GHZ3_sym_1_3.mtx",
-                        "{project.directory}/GHZ3_sym_1_4.mtx",
-                        "{project.directory}/GHZ3_sym_1_5.mtx",
-                        "{project.directory}/GHZ3_sym_1_6.mtx",
-                        "{project.directory}/GHZ3_sym_1_1.mtx"
+                        [
+                            "{project.project_directory}/GHZ3_sym_0_0.mtx",
+                            "{project.project_directory}/GHZ3_sym_0_1.mtx"
+                        ],
+                        [
+                            "{project.project_directory}/GHZ3_sym_1_0.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_1.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_2.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_3.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_4.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_5.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_6.mtx",
+                            "{project.project_directory}/GHZ3_sym_1_1.mtx"
+                        ]
                     ],
                     "projection": null
                 }

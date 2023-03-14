@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from cssfinder.api import run_project_from
-from cssfinder.io.output_loader import GilbertOutputLoader
+from cssfinder.io.gilbert_io import GilbertIO
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -69,12 +69,12 @@ class SetupRunProjectMixin:
         """
         run_project_from(cls.PROJECT_PATH, [cls.TEST_TASK_NAME])
 
-        cls.corrections = GilbertOutputLoader().load_corrections_from(
+        gilbert_io = GilbertIO()
+
+        cls.corrections = gilbert_io.load_corrections(
             cls.get_output_directory() / "corrections.json"
         )
-        cls.state = GilbertOutputLoader().load_state_from(
-            cls.get_output_directory() / "state.mtx"
-        )
+        cls.state = gilbert_io.load_state(cls.get_output_directory() / "state.mtx")
 
     @classmethod
     def teardown_class(cls) -> None:

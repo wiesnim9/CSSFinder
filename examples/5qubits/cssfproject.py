@@ -80,5 +80,6 @@ run_project(
             version=SemVerStr("1.0.0"),
         ),
         tasks=TASKS,
+        project_path=Path("./examples/5qubits/cssfproject.json"),
     ),
 )

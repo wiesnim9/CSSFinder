@@ -18,24 +18,26 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Module groups system level test of FSnQd mode of Gilbert algorithm."""
+
+"""Root package of examples collection."""
+
 
 from __future__ import annotations
 
-from test.test_system.base import ModeTest
+from enum import Enum
+from pathlib import Path
 
-from cssfinder.examples import Example
+EXAMPLES_DIR = Path(__file__).parent
 
 
-class Test_FSnQd(ModeTest):  # noqa: N801  # Underscore used for readability.
-    """Test behavior of FSnQd mode of Gilbert algorithm."""
+class Example(Enum):
+    """Enumeration of available examples."""
 
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Example.e5qubits.get_path()
-    TEST_TASK_NAME: str = "test_fsnqd_5qubits"
+    e5qubits = "5qubits"
+    GHZ3 = "GHZ3"
+    GHZ4 = "GHZ4"
+    proj = "proj"
 
-    OUT_STATE_ROW_COUNT: int = 32
-    OUT_STATE_COL_COUNT: int = 32
-
-    MIN_CORRECTION_VALUE: float = 0.100
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.100, 0.130)
+    def get_path(self) -> Path:
+        """Return path to directory containing example."""
+        return EXAMPLES_DIR / self.value

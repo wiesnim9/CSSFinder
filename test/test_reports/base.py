@@ -22,20 +22,22 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from test.test_system.base import SetupRunProjectMixin
 from typing import TYPE_CHECKING
 
 from cssfinder.api import create_report_from
+from cssfinder.examples import Example
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from cssfinder.reports.renderer import ReportType
 
 
 class ReportTestBase(SetupRunProjectMixin):
     """Validate report behavior."""
 
-    PROJECT_PATH = Path.cwd() / "examples" / "5qubits"
+    PROJECT_PATH = Example.e5qubits.get_path()
     TEST_TASK_NAME: str = "test_fsnqd_5qubits"
     REPORT_TYPE: ReportType
 

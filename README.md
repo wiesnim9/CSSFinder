@@ -197,7 +197,7 @@ and add stage fixes. Then you may retry running `git commit`.
 To run simple profiling, You can use following command:
 
 ```
-python -mcProfile -o "#examples_profile_5qubits_prof.prof" "examples/profiling/5qubits_prof/cssfproject.py"
+python -mcProfile -o "#examples_profile_5qubits_prof.prof" "assets/profiling/5qubits_prof/cssfproject.py"
 ```
 
 Then You can view output using [snakeviz](https://pypi.org/project/snakeviz/):
@@ -265,17 +265,3 @@ This command generates a short report for a single task in a CSSFinder project.
 - `--pdf`, `--no-pdf`: include or exclude a PDF report in the generated report.
 
 - `--open`, `--no-open`: automatically open report in web browser.
-
-## Examples
-
-Here are some examples of how to use CSSFinder from the command line:
-
-`cssfinder -vvv project ./examples/5qubits/ run`
-
-This will run all tasks in the specified project and increase the verbosity
-level of logging messages to the maximum (debug).
-
-`cssfinder project ./examples/5qubits/ task-report main --html`
-
-This will generate an HTML report for the `my_task` task in the specified
-project.

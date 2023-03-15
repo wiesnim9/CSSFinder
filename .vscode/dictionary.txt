@@ -41,6 +41,7 @@ qubits
 redef
 savefig
 scipy
+sdist
 snakeviz
 swapaxes
 tensordot

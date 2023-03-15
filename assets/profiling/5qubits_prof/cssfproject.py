@@ -60,26 +60,26 @@ TASKS = [
             state=State(file=path.as_posix()),
             runtime=RuntimeCfg(
                 visibility=0.4,
-                max_epochs=1000,
+                max_epochs=10,
                 iters_per_epoch=1000,
-                max_corrections=1000,
+                max_corrections=100,
             ),
         ),
     )
     for path in Path(__file__).parent.glob("*_in.mtx")
 ]
 
-
-run_project(
-    CSSFProject(
-        meta=Meta(
-            author="Example",
-            email=EmailStr("example@example.com"),
-            name="5qubits",
-            description="Project description",
-            version=SemVerStr("1.0.0"),
-        ),
-        tasks=TASKS,
-        project_path=Path("./examples/5qubits/cssfproject.json"),
+project = CSSFProject(
+    meta=Meta(
+        author="Example",
+        email=EmailStr("example@example.com"),
+        name="5qubits_prof",
+        description="Project description",
+        version=SemVerStr("1.0.0"),
     ),
+    tasks=TASKS,
+    project_path=Path(__file__).parent / "cssfinder.json",
 )
+
+
+run_project(project)

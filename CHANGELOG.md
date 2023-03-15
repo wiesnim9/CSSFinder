@@ -7,6 +7,7 @@ NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 - Add HTML and PDF reports.
 - Fix matrix shape deduction in SBiPa mode.
 - Fix system tests when run in parallel.
+- Add examples to `CSSFinder` package (wheel/sdist).
 
 ### 0.2.0 - Mar 10, 2023
 

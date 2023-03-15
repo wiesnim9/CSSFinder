@@ -248,7 +248,7 @@ def _create_file_handler(
     max_log_files: int,
 ) -> logging.Handler:
     # Create logging directory before trying to put files there.
-    log_dir.mkdir(0o777, parents=True, exist_ok=True)
+    log_dir.mkdir(0o764, parents=True, exist_ok=True)
     log_file = log_dir / logger_name
     # If file already exists, logger may decide to start appending its logs to it,
     # which is not desired - preferably, one file for one session.

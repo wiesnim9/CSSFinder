@@ -19,11 +19,14 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""Report generation tools."""
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+from cssfinder.reports.html import HTMLRenderer
+from cssfinder.reports.manager import PreparedReportManager
+from cssfinder.reports.pdf import PDFRenderer
+from cssfinder.reports.renderer import ReportType
+
+PreparedReportManager.register_renderer(HTMLRenderer, ReportType.HTML)
+PreparedReportManager.register_renderer(PDFRenderer, ReportType.PDF)

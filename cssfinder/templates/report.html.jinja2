@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ ctx.title }}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=swap" rel="stylesheet">
+
+
+    <style>
+        body {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.4cm;
+        }
+
+        .A4-container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        .box-shadow {
+            box-shadow: 2px 2px 5px black;
+        }
+
+        .A4 {
+            width: 19cm;
+            height: 100%;
+            margin: auto;
+            margin-top: 1cm;
+            margin-bottom: 1cm;
+            padding: 1cm;
+            text-align: center;
+        }
+
+        @media print {
+
+            .box-shadow {
+                box-shadow: none;
+            }
+
+            .A4 {
+                width: 100%;
+                height: 100%;
+                margin: auto;
+                text-align: center;
+                margin-top: 0;
+                margin-bottom: 0;
+                padding: 0;
+            }
+
+        }
+
+        .meta-container {
+            width: 100%;
+            margin: auto;
+        }
+
+        .meta {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .meta tr td:first-child {
+            text-align: end;
+            font-weight: 400;
+            padding-right: 0.1cm;
+        }
+
+        .meta tr td:nth-child(2) {
+            text-align: start;
+            font-weight: 300;
+            padding-left: 0.1cm;
+        }
+
+        .meta tr td {
+            width: 50%;
+        }
+
+        .horizontal-separator {
+            border-bottom: 1px solid black;
+            width: 70%;
+            margin: auto;
+            margin-top: 1cm;
+            margin-bottom: 1cm;
+        }
+
+        @media print {
+
+            .horizontal-separator {
+                border-bottom: 1px solid black;
+                width: 70%;
+                margin: auto;
+                margin-top: 0.2cm;
+                margin-bottom: 0.2cm;
+            }
+
+        }
+
+        .plot-container {
+            width: 100%;
+            margin: auto;
+        }
+
+        .plot {
+            height: 10cm;
+            margin: auto;
+            display: block;
+        }
+
+        @media print {
+            .plot {
+                height: 9cm;
+            }
+        }
+    </style>
+
+</head>
+
+<body class="A4-container">
+    <main class="A4 box-shadow">
+        <h1 class="main-title">CSSFinder Report</h1>
+        <div class="meta-container">
+            <table class="meta">
+                {% for key, value in ctx.meta.items() %}
+                <tr>
+                    <td>
+                        {{ key }}
+                    </td>
+                    <td>
+                        {{ value }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="horizontal-separator"></div>
+        <div class="meta-container">
+            <table class="meta">
+                {% for key, value in ctx.math_props.items() %}
+                <tr>
+                    <td>
+                        {{ key }}
+                    </td>
+                    <td>
+                        {{ value }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="horizontal-separator"></div>
+        {% for plot in ctx.plots %}
+        <div class="plot-container">
+            <img class="plot" src="data:image/png;base64, {{ plot.base64_encode() }}" alt="Plot" />
+        </div>
+        {% endfor %}
+    </main>
+</body>
+
+</html>

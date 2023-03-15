@@ -7,10 +7,13 @@
         "description": "Project description",
         "version": "1.0.0"
     },
+    "execution": {
+        "process_pool_size": "auto"
+    },
     "tasks": {
         "main": {
             "gilbert": {
-                "mode": "FSnQd",
+                "mode": "SBiPa",
                 "backend": {
                     "name": "numpy",
                     "precision": "single"
@@ -18,21 +21,21 @@
                 "runtime": {
                     "visibility": 0.4,
                     "max_epochs": 1000,
-                    "iters_per_epoch": 2000,
+                    "iters_per_epoch": 1000,
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.directory}/5qubits_in.mtx",
-                    "depth": null,
-                    "quantity": null
+                    "file": "{project.project_directory}/proj_in.mtx",
+                    "depth": 3,
+                    "quantity": 3
                 },
                 "resources": {
                     "symmetries": null,
-                    "projection": null
+                    "projection": "{project.project_directory}/proj_proj.mtx"
                 }
             }
         },
-        "test_fsnqd_5qubits": {
+        "test_sbipa_proj": {
             "gilbert": {
                 "mode": {
                     "$ref": "#/tasks/main/gilbert/mode"

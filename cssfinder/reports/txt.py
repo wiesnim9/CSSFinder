@@ -18,12 +18,6 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""Text based report renderer."""
 
 from __future__ import annotations
-
-__version__ = "0.3.0"

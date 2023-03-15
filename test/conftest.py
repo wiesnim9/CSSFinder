@@ -18,12 +18,44 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""Pytest configuration hooks."""
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+from typing import Iterable
+
+import pytest
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Define a new option, pytest hook."""
+    parser.addoption(
+        "--pdf-expect-fail",
+        action="store_true",
+        default=False,
+        help="run slow tests",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Modify pytest configuration, pytest hook."""
+    config.addinivalue_line("markers", "pdf_expect_fail: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: Iterable[pytest.Item]
+) -> None:
+    """Modify list of tests."""
+    if config.getoption("--pdf-expect-fail"):
+        skip_mark = pytest.mark.skip(
+            reason="Running only @pytest.mark.pdf_expect_fail (--pdf-expect-fail used)."
+        )
+        for item in items:
+            if "pdf_expect_fail" not in item.keywords:
+                item.add_marker(skip_mark)
+
+    else:
+        skip_mark = pytest.mark.skip(reason="use --pdf-expect-fail to run.")
+        for item in items:
+            if "pdf_expect_fail" in item.keywords:
+                item.add_marker(skip_mark)

@@ -11,7 +11,7 @@ repos:
             -d,
             cssfinder,
             -d,
-            tests,
+            test,
             -d,
             scripts,
             -d,

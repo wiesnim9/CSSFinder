@@ -41,6 +41,8 @@ from cssfinder.enums import CaseInsensitiveEnum
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+PROJECT_FILE_NAME: str = "cssfproject.json"
+
 
 class CSSFProject(CommonBaseModel):
     """CSSFProject file specification."""
@@ -51,15 +53,14 @@ class CSSFProject(CommonBaseModel):
     tasks: Dict[str, Task]
     """List of tasks within project which can be executed."""
 
-    _file: Optional[Path] = None
-    """Path to loaded project file."""
-
-    _is_evaluated: bool = False
+    _project_path: Path
+    """Path to cssfproject.json file."""
 
     def __init__(
         self,
         meta: Meta,
         tasks: list[Task] | dict[str, Task],
+        project_path: str | Path,
         *_: Any,
         **_k: Any,
     ) -> None:
@@ -69,6 +70,13 @@ class CSSFProject(CommonBaseModel):
 
         """
         super().__init__(meta=meta, tasks=tasks)
+        if not isinstance(project_path, Path):
+            self._project_path = Path(project_path).expanduser().resolve()
+
+        assert isinstance(project_path, Path)
+        self._project_path = project_path.expanduser().resolve()
+
+        self.bind()
 
     @validator("tasks", pre=True, always=True)
     @classmethod
@@ -91,38 +99,30 @@ class CSSFProject(CommonBaseModel):
 
         return {str(i): t for i, t in enumerate(value)}
 
-    def eval_dynamic(self) -> None:
-        """Evaluate dynamic path expressions."""
-        if self._is_evaluated:
-            return
+    def bind(self) -> None:
+        """Bind fields to this CSSFProject object."""
+        self.meta.bind(self)
 
         for task_name, task in self.tasks.items():
-            task.eval_dynamic(self, task_name, task)
-
-        self._is_evaluated = True
-
-    def set_file_path(self, file: Path) -> None:
-        """Set `cssfproject.json` file path."""
-        self._file = file.expanduser().resolve()
+            task.bind(self, task_name)
 
     @property
-    def file(self) -> Path:
+    def project_file(self) -> Path:
         """Path to `cssfproject.json` file."""
-        if self._file is None:
-            return Path.cwd() / "cssfproject.json"
-        return self._file
+        if self._project_path.name == PROJECT_FILE_NAME:
+            return self._project_path
+
+        return self._project_path / PROJECT_FILE_NAME
 
     @property
-    def directory(self) -> Path:
+    def project_directory(self) -> Path:
         """Path to directory containing `cssfproject.json` file."""
-        if self._file is None:
-            return Path.cwd()
-        return self._file.parent
+        return self.project_file.parent
 
     @property
-    def output(self) -> Path:
+    def project_output_directory(self) -> Path:
         """Path to output directory for this project."""
-        directory = self.directory / "output"
+        directory = self.project_directory / "output"
         directory.mkdir(0o764, parents=True, exist_ok=True)
         return directory
 
@@ -153,19 +153,17 @@ class CSSFProject(CommonBaseModel):
 
         # When points to directory, dir must contain cssfproject.json file
         if file_or_directory.is_dir():
-            file_or_directory /= "cssfproject.json"
-            file_path = file_or_directory
-            del file_or_directory
+            file_or_directory /= PROJECT_FILE_NAME
+            project_path = file_or_directory
 
         else:
-            file_path = file_or_directory
-            del file_or_directory
+            project_path = file_or_directory
 
-        logging.debug("Resolved project path to %r", file_path.as_posix())
+        logging.debug("Resolved project path to %r", project_path.as_posix())
         try:
-            content = file_path.read_text(encoding="utf-8")
+            content = project_path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            error_message = f"Make sure you path is correct: {file_path!r}"
+            error_message = f"Make sure you path is correct: {project_path!r}"
             raise ProjectFileNotFoundError(error_message) from exc
 
         try:
@@ -177,10 +175,7 @@ class CSSFProject(CommonBaseModel):
             logging.critical("Content of cssfproject.json file is not a dictionary.")
             raise InvalidCSSFProjectContentError(content)
 
-        project = cls(**content)
-        project.set_file_path(file_path)
-        project.eval_dynamic()
-
+        project = cls(**content, project_path=project_path)
         return project
 
     def select_tasks(self, patterns: list[str] | None = None) -> list[Task]:
@@ -233,7 +228,62 @@ class ProjectFileNotFoundError(FileNotFoundError):
     """Raised when project file can't be found in expected place."""
 
 
-class Meta(CommonBaseModel):
+class _ProjectFieldMixin:
+    """Mixin class for CSSFProject CommonBaseModel based fields."""
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    @property
+    def project(self) -> CSSFProject:
+        """Get project owning this task."""
+        if self._project is None:
+            raise NotBoundToProjectError(self, "Access to 'project' property.")
+        return self._project
+
+    @property
+    def project_file(self) -> Path:
+        """Path to `cssfproject.json` file."""
+        if self._project is None:
+            raise NotBoundToProjectError(self, "Access to 'project_file' property.")
+        return self.project.project_file
+
+    @property
+    def project_directory(self) -> Path:
+        """Path to directory containing `cssfproject.json` file."""
+        if self._project is None:
+            raise NotBoundToProjectError(
+                self, "Access to 'project_directory' property."
+            )
+        return self.project.project_directory
+
+    @property
+    def project_output_directory(self) -> Path:
+        """Path to output directory for this project."""
+        if self._project is None:
+            raise NotBoundToProjectError(
+                self, "Access to 'project_output_directory' property."
+            )
+        return self.project.project_output_directory
+
+    def bind(self, project: CSSFProject) -> None:
+        """Bind object to specific CSSFProject."""
+        self._project = project
+
+
+class NotBoundToProjectError(Exception):
+    """Raised when unbound object is used in context requiring it to be bound to
+    CSSFProject instance.
+    """
+
+    def __init__(self, ob: Any, context_msg: str) -> None:
+        super().__init__(
+            f"Attempted to use unbound object {ob} in context requiring it to be "
+            f"bound. ({context_msg})"
+        )
+
+
+class Meta(CommonBaseModel, _ProjectFieldMixin):
     """Project meta information."""
 
     author: str
@@ -251,6 +301,9 @@ class Meta(CommonBaseModel):
     version: SemVerStr
     """Version of the project."""
 
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
 
 class SemVerStr(ConstrainedStr):
     """Semantic versioning string regex, see https://semver.org/."""
@@ -262,37 +315,98 @@ class SemVerStr(ConstrainedStr):
     )
 
 
-class Task(CommonBaseModel):
+class NotBoundToTaskError(NotBoundToProjectError):
+    """Raised when unbound object is used in context requiring it to be bound to Task
+    instance.
+    """
+
+
+class _TaskMixin(_ProjectFieldMixin):
+    """Mixin specifying binding interface for Task object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    @property
+    def task_output_directory(self) -> Path:
+        """Path to output directory of task."""
+        if self._task_name is None:
+            raise NotBoundToTaskError(
+                self, "Access to 'task_output_directory' property."
+            )
+        return self.project.project_output_directory / self.task_name
+
+    @property
+    def output_state_file(self) -> Path:
+        """Path to output state file."""
+        return self.task_output_directory / "state.mtx"
+
+    @property
+    def output_corrections_file(self) -> Path:
+        """Path to output corrections file."""
+        return self.task_output_directory / "corrections.json"
+
+    @property
+    def task_name(self) -> str:
+        """Name of this task in project."""
+        if self._task_name is None:
+            raise NotBoundToTaskError(self, "Access to 'task_name' property.")
+        return self._task_name
+
+    def bind(
+        self,
+        project: CSSFProject,
+        task_name: Optional[str] = None,
+    ) -> None:
+        """Bind object to specific Task."""
+        super().bind(project)
+        self._task_name = task_name
+
+
+class Task(CommonBaseModel, _TaskMixin):
     """Container representing CSSFinder task with some algorithm."""
 
     gilbert: Optional[GilbertCfg] = Field(default=None)
     """Configuration of gilbert algorithm."""
 
-    _output: Path = Field(default=Path.cwd())
-    """Path default output directory."""
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
 
-    _task_name: str = Field(default="")
+    _task_name: Optional[str] = None
     """Name of task assigned to it in project."""
 
-    @property
-    def output(self) -> Path:
-        """Path to output directory of task."""
-        return self._output
-
-    @property
-    def name(self) -> str:
-        """Name of this task in project."""
-        return self._task_name
-
-    def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
-        """Evaluate dynamic path expressions."""
+    def bind(self, project: CSSFProject, task_name: Optional[str] = None) -> None:
+        """Bind task to specific CSSFProject instance."""
+        super().bind(project, task_name)
         if self.gilbert is not None:
-            self.gilbert.eval_dynamic(project, task_name, task)
-            self._output = project.output / task_name
-            self._task_name = task_name
+            self.gilbert.bind(project, task_name, self)
 
 
-class GilbertCfg(CommonBaseModel):
+class _TaskFieldMixin(_TaskMixin):
+    """Mixin specifying binding interface for Task field."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
+
+    @property
+    def task(self) -> Task:
+        """Name of this task in project."""
+        if self._task is None:
+            raise NotBoundToTaskError(self, "Access to 'task' property.")
+        return self._task
+
+    def bind(
+        self,
+        project: CSSFProject,
+        task_name: Optional[str] = None,
+        task: Optional[Task] = None,
+    ) -> None:
+        """Evaluate dynamic fields of CSSFProject element."""
+        super().bind(project, task_name)
+        self._task = task
+
+
+class GilbertCfg(CommonBaseModel, _TaskFieldMixin):
     """Gilbert algorithm configuration container class."""
 
     mode: AlgoMode
@@ -305,7 +419,7 @@ class GilbertCfg(CommonBaseModel):
 
     """
 
-    state: Union[State, str, Path]
+    state: Union[State, str]
     """Path to file containing initial state matrix."""
 
     runtime: RuntimeCfg
@@ -313,6 +427,23 @@ class GilbertCfg(CommonBaseModel):
 
     resources: Optional[Resources] = Field(default=None)
     """Additional resources which may be used by algorithm."""
+
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
+
+    @validator("state", always=True)
+    @classmethod
+    def _validate_state(cls, value: str | State) -> State:
+        if not isinstance(value, State):
+            return State(file=value)
+
+        return value
 
     def get_backend(self) -> BackendCfg:
         """Return resources object."""
@@ -326,16 +457,18 @@ class GilbertCfg(CommonBaseModel):
             self.resources = Resources()
         return self.resources
 
-    def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
+    def bind(
+        self,
+        project: CSSFProject,
+        task_name: Optional[str] = None,
+        task: Optional[Task] = None,
+    ) -> None:
         """Evaluate dynamic path expressions."""
-        if isinstance(self.state, str):
-            self.state = State(file=self.state)
+        super().bind(project, task_name, task)
+        assert isinstance(self.state, State)
 
-        elif isinstance(self.state, Path):
-            self.state = State(file=self.state.expanduser().resolve().as_posix())
-
-        self.state.eval_dynamic(project, task_name, task)
-        self.get_resources().eval_dynamic(project, task_name, task)
+        self.state.bind(project, task_name, task)
+        self.get_resources().bind(project, task_name, task)
 
     def get_state(self) -> State:
         """Return initial state information."""
@@ -351,7 +484,7 @@ class AlgoMode(CaseInsensitiveEnum):
     FSnQd = "FSnQd"
     """Full separability of n-quDit state."""
 
-    SBiPa = "SBiPi"
+    SBiPa = "SBiPa"
     """Separability of a bipartite state."""
 
     G3PaE3qD = "G3PaE3qD"
@@ -397,7 +530,7 @@ class Precision(CaseInsensitiveEnum):
     # pylint: enable=invalid-name
 
 
-class State(CommonBaseModel):
+class State(CommonBaseModel, _TaskFieldMixin):
     """State configuration."""
 
     file: str
@@ -417,9 +550,61 @@ class State(CommonBaseModel):
 
     """
 
-    def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
-        """Evaluate dynamic path expressions."""
-        self.file = self.file.format(project=project, task_name=task_name, task=task)
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
+
+    def bind(
+        self,
+        project: CSSFProject,
+        task_name: Optional[str] = None,
+        task: Optional[Task] = None,
+    ) -> None:
+        """Evaluate dynamic path expressions.
+
+        Path expands user (~) and is resolved only when correctly bound to project.
+
+        """
+        super().bind(project, task_name, task)
+
+        if task_name is None or task is None:
+            return
+
+        self.file = (
+            Path(self.file.format(project=project, task_name=task_name, task=task))
+            .expanduser()
+            .resolve()
+            .as_posix()
+        )
+
+    def is_predefined_dimensions(self) -> bool:
+        """Return True when both dimensions are available."""
+        return self.depth is not None and self.quantity is not None
+
+    def get_depth(self) -> int:
+        """Return system depth or raise NoDimensionsError if not specified in config."""
+        if self.depth is None:
+            msg = "Depth is not specified."
+            raise NoDimensionsError(msg)
+        return self.depth
+
+    def get_quantity(self) -> int:
+        """Return system quantity or raise NoDimensionsError if not specified in
+        config.
+        """
+        if self.quantity is None:
+            msg = "quantity is not specified."
+            raise NoDimensionsError(msg)
+        return self.quantity
+
+
+class NoDimensionsError(ValueError):
+    """Raised when system dimensions were requested but are not specified in config."""
 
 
 class RuntimeCfg(CommonBaseModel):
@@ -456,30 +641,70 @@ class RuntimeCfg(CommonBaseModel):
     """
 
 
-class Resources(CommonBaseModel):
+class Resources(CommonBaseModel, _TaskFieldMixin):
     """Project resources."""
 
-    symmetries: Optional[List[str]] = Field(default=None)
+    symmetries: Optional[List[List[str]]] = Field(default=None)
     """List of paths to files containing symmetry matrices."""
 
     projection: Optional[str] = Field(default=None)
     """Path to file containing projection matrix."""
 
-    def eval_dynamic(self, project: CSSFProject, task_name: str, task: Task) -> None:
-        """Evaluate dynamic path expressions."""
+    _project: Optional[CSSFProject] = None
+    """Reference to project object."""
+
+    _task_name: Optional[str] = None
+    """Name of task assigned to it in project."""
+
+    _task: Optional[Task] = None
+    """Reference to task object containing this object."""
+
+    def bind(
+        self,
+        project: CSSFProject,
+        task_name: Optional[str] = None,
+        task: Optional[Task] = None,
+    ) -> None:
+        """Evaluate dynamic path expressions.
+
+        Paths expands user (~) and are resolved only when correctly bound to project.
+
+        """
+        super().bind(project, task_name, task)
+
+        if task_name is None or task is None:
+            return
+
         if self.symmetries is not None:
-            for i, sym in enumerate(self.symmetries):
-                self.symmetries[i] = sym.format(
-                    project=project,
-                    task_name=task_name,
-                    task=task,
-                )
+            self.symmetries = [
+                [
+                    Path(
+                        sym.format(
+                            project=project,
+                            task_name=task_name,
+                            task=task,
+                        )
+                    )
+                    .expanduser()
+                    .resolve()
+                    .as_posix()
+                    for sym in row
+                ]
+                for row in self.symmetries
+            ]
 
         if self.projection is not None:
-            self.projection = self.projection.format(
-                project=project,
-                task_name=task_name,
-                task=task,
+            self.projection = (
+                Path(
+                    self.projection.format(
+                        project=project,
+                        task_name=task_name,
+                        task=task,
+                    )
+                )
+                .expanduser()
+                .resolve()
+                .as_posix()
             )
 
 

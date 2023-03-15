@@ -45,7 +45,11 @@ def main() -> None:
 @main.command()
 @click.argument("version", type=str)
 def create(version: str) -> None:
-    """Create release branch and change version of package."""
+    """Create release branch and change version of package.
+
+    VERSION - valid SemVer version string, eg. 1.3.2, without 'v' prefix.
+
+    """
     retval = subprocess.run(["git", "branch", "--show-current"], capture_output=True)
     print(retval.stdout.decode("utf-8"))
     is_dev = retval.stdout.decode("utf-8").startswith("dev")

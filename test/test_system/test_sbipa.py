@@ -18,12 +18,24 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""Module groups system level test of FSnQd mode of Gilbert algorithm."""
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+from test.test_system.base import ModeTest
+
+from cssfinder.examples import Example
+
+
+class Test_SBiPa(ModeTest):  # noqa: N801  # Underscore used for readability.
+    """Test behavior of SBiPa mode of Gilbert algorithm."""
+
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+    PROJECT_PATH = Example.proj.get_path()
+    TEST_TASK_NAME: str = "test_sbipa_proj"
+
+    OUT_STATE_ROW_COUNT: int = 9
+    OUT_STATE_COL_COUNT: int = 9
+
+    MIN_CORRECTION_VALUE: float = 0.070
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.120)

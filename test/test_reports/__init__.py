@@ -18,23 +18,6 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"""Module groups system level test of FSnQd mode of Gilbert algorithm."""
+"""Groups tests for reports generation."""
 
 from __future__ import annotations
-
-from pathlib import Path
-from test.test_system.base import ModeTest
-
-
-class Test_SBiPi(ModeTest):  # noqa: N801  # Underscore used for readability.
-    """Test behavior of SBiPi mode of Gilbert algorithm."""
-
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Path.cwd() / "examples" / "proj"
-    TEST_TASK_NAME: str = "test_sbipi_proj"
-
-    OUT_STATE_ROW_COUNT: int = 9
-    OUT_STATE_COL_COUNT: int = 9
-
-    MIN_CORRECTION_VALUE: float = 0.070
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.120)

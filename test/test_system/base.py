@@ -22,22 +22,83 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from cssfinder.api import run_project_from
-from cssfinder.io.output_loader import GilbertOutputLoader
+from cssfinder.io.gilbert_io import GilbertIO
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     import numpy.typing as npt
     import pandas as pd
 
 
-class ModeTest:
+class SetupRunProjectMixin:
+    """Mixin class providing class setup running specific project."""
+
+    PROJECT_PATH: Path
+    TEST_TASK_NAME: str
+
+    corrections: pd.DataFrame
+    """List of corrections obtained from cssfinder."""
+
+    state: npt.NDArray[np.complex128]
+    """Final state matrix."""
+
+    _temporary_directory: TemporaryDirectory
+
+    @classmethod
+    def get_project_directory(cls) -> Path:
+        """Path to project directory."""
+        return cls.get_temporary_directory() / cls.PROJECT_PATH.name
+
+    @classmethod
+    def get_output_directory(cls) -> Path:
+        """Path to output directory."""
+        return cls.get_project_directory() / "output" / cls.TEST_TASK_NAME
+
+    @classmethod
+    def get_temporary_directory(cls) -> Path:
+        """Get path to temporary directory shared by tests in this class."""
+        return Path(cls._temporary_directory.name)
+
+    @classmethod
+    def setup_class(cls) -> None:
+        """Run class setup.
+
+        Executed once for class, shared between tests within class.
+
+        """
+        cls._temporary_directory = TemporaryDirectory()
+        shutil.copytree(
+            cls.PROJECT_PATH.as_posix(), cls.get_project_directory().as_posix()
+        )
+        print(cls.get_project_directory())
+
+        run_project_from(cls.get_project_directory(), [cls.TEST_TASK_NAME])
+
+        gilbert_io = GilbertIO()
+
+        cls.corrections = gilbert_io.load_corrections(
+            cls.get_output_directory() / "corrections.json"
+        )
+        cls.state = gilbert_io.load_state(cls.get_output_directory() / "state.mtx")
+
+    @classmethod
+    def teardown_class(cls) -> None:
+        """Clean up after class.
+
+        Executed once for class, shared between tests within class.
+
+        """
+
+
+class ModeTest(SetupRunProjectMixin):
     """Base class for simple mode test suite."""
 
     @dataclass
@@ -51,41 +112,12 @@ class ModeTest:
         """Maximal value of range."""
 
     EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int
-    PROJECT_PATH: Path
-    TEST_TASK_NAME: str
 
     OUT_STATE_ROW_COUNT: int
     OUT_STATE_COL_COUNT: int
 
     MIN_CORRECTION_VALUE: float
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax
-
-    corrections: pd.DataFrame
-    """List of corrections obtained from cssfinder."""
-
-    state: npt.NDArray[np.complex128]
-    """Final state matrix."""
-
-    @classmethod
-    def setup_class(cls) -> None:
-        """Run class setup.
-
-        Executed once for class, shared between tests within class.
-
-        """
-        run_project_from(cls.PROJECT_PATH, [cls.TEST_TASK_NAME])
-
-        cls.corrections = GilbertOutputLoader().load_corrections_from(
-            cls.get_output_directory() / "corrections.json"
-        )
-        cls.state = GilbertOutputLoader().load_state_from(
-            cls.get_output_directory() / "state.mtx"
-        )
-
-    @classmethod
-    def get_output_directory(cls) -> Path:
-        """Path to output directory."""
-        return cls.PROJECT_PATH / "output" / cls.TEST_TASK_NAME
 
     def test_number_of_corrections(self) -> None:
         """Check if valid number of corrections was saved."""

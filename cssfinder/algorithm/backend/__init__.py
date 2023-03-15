@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from cssfinder.algorithm.backend.base import BackendBase
 
 
-def new(backend: Backend, precision: Precision) -> type[BackendBase]:
+def select(backend: Backend, precision: Precision) -> type[BackendBase]:
     """Select one of the backends with fixed precision."""
     if backend == Backend.NumPy:
         if precision == Precision.DOUBLE:

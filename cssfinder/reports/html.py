@@ -18,12 +18,37 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""HTML document based report renderer."""
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+from typing import TYPE_CHECKING
+
+import jinja2
+
+from cssfinder.reports.renderer import Renderer, Report, ReportType
+
+if TYPE_CHECKING:
+    from cssfinder.cssfproject import Task
+    from cssfinder.reports.math import SlopeProperties
+    from cssfinder.reports.plotting import Plot
+
+
+class HTMLRenderer(Renderer):
+    """Renderer implementation outputting HTML files content."""
+
+    def __init__(self, props: SlopeProperties, plots: list[Plot], task: Task) -> None:
+        super().__init__(props, plots, task)
+        self.env = jinja2.Environment(
+            loader=jinja2.PackageLoader("cssfinder"),
+            autoescape=jinja2.select_autoescape(),
+        )
+
+    def render(self) -> Report:
+        """Generate report content."""
+        template = self.env.get_template("report.html.jinja2")
+        return Report(
+            template.render(ctx=self.ctx).encode("utf-8"),
+            ReportType.HTML,
+            self.ctx.task.task_output_directory / "report.html",
+        )

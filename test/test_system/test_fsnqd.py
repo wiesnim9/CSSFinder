@@ -22,15 +22,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from test.test_system.base import ModeTest
+
+from cssfinder.examples import Example
 
 
 class Test_FSnQd(ModeTest):  # noqa: N801  # Underscore used for readability.
     """Test behavior of FSnQd mode of Gilbert algorithm."""
 
     EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Path.cwd() / "examples" / "5qubits"
+    PROJECT_PATH = Example.e5qubits.get_path()
     TEST_TASK_NAME: str = "test_fsnqd_5qubits"
 
     OUT_STATE_ROW_COUNT: int = 32

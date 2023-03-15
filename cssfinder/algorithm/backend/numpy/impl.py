@@ -87,6 +87,35 @@ class Implementation(Generic[PRIMARY, SECONDARY_co], Protocol):
         """Sandwich an operator with a unitary."""
         ...
 
+    @staticmethod
+    def apply_symmetries(
+        rho: npt.NDArray[PRIMARY], symmetries: list[list[npt.NDArray[PRIMARY]]]
+    ) -> npt.NDArray[PRIMARY]:
+        """Apply symmetries to density matrix.
+
+        Parameters
+        ----------
+        rho : npt.NDArray[PRIMARY]
+            Density matrix to which we want to apply symmetries.
+        symmetries : list[list[npt.NDArray[PRIMARY]]]
+            List of matrices representing the symmetries.
+
+        Returns
+        -------
+        npt.NDArray[PRIMARY]
+            The result of applying the symmetries to the given density matrix.
+
+        Notes
+        -----
+        The first input `rho` is modified by this function. If you don't want to modify
+        the original array, make a copy before passing it to this function.
+
+        This function calculates the trace of output density matrix and normalizes it
+        before returning.
+
+        """
+        ...
+
     #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
     #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
     #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501

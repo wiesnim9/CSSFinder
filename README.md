@@ -13,6 +13,20 @@ pip install cssfinder
 If you want to use development version, traverse `Development` and `Packaging`
 sections below.
 
+### But there is a catch!
+
+CSSFinder can export PDF reports (and other formats too), but it uses
+`weasyprint` for that and `weasyprint` relies on `GTK3`. Unfortunately it is
+quite hard to get `GTK3` going on windows and `weasyprint` requires it to work.
+Therefore you must handle installation yourself.
+[Here](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html#windows)
+you can find official guidelines from `weasyprint`.
+[This repository](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer)
+may also help. Alternatively you can use WSL to install and run CSSFinder, as
+its seamless to do that.
+
+Its worth mentioning that other formats are not affected by this issue.
+
 ## Development
 
 This project uses `Python` programming language and requires at least python
@@ -71,27 +85,27 @@ poe build
 
 ![poe_build](https://user-images.githubusercontent.com/56170852/223251363-61fc4d00-68ad-429c-9fbb-8ab7f4712451.png)
 
-This will create `dist/` directory with `cssfinder-0.2.1` or alike inside.
+This will create `dist/` directory with `cssfinder-0.3.0` or alike inside.
 
 Wheel file can be installed with
 
 ```
-pip install ./dist/cssfinder-0.2.1
+pip install ./dist/cssfinder-0.3.0
 ```
 
 What you expect is
 
 ```
-Successfully installed cssfinder-0.2.1
+Successfully installed cssfinder-0.3.0
 ```
 
 or rather something like
 
 ```
-Successfully installed click-8.1.3 contourpy-1.0.7 cssfinder-0.2.1 cycler-0.11.0 dnspython-2.3.0 email-validator-1.3.1 fonttools-4.39.0 idna-3.4 jsonref-1.1.0 kiwisolver-1.4.4 llvmlite-0.39.1 markdown-it-py-2.2.0 matplotlib-3.7.1 mdurl-0.1.2 numba-0.56.4 numpy-1.23.5 packaging-23.0 pandas-1.5.3 pendulum-2.1.2 pillow-9.4.0 pydantic-1.10.5 pygments-2.14.0 pyparsing-3.0.9 python-dateutil-2.8.2 pytz-2022.7.1 pytzdata-2020.1 rich-13.3.2 scipy-1.10.1 six-1.16.0 typing-extensions-4.5.0
+Successfully installed click-8.1.3 contourpy-1.0.7 cssfinder-0.3.0 cycler-0.11.0 dnspython-2.3.0 email-validator-1.3.1 fonttools-4.39.0 idna-3.4 jsonref-1.1.0 kiwisolver-1.4.4 llvmlite-0.39.1 markdown-it-py-2.2.0 matplotlib-3.7.1 mdurl-0.1.2 numba-0.56.4 numpy-1.23.5 packaging-23.0 pandas-1.5.3 pendulum-2.1.2 pillow-9.4.0 pydantic-1.10.5 pygments-2.14.0 pyparsing-3.0.9 python-dateutil-2.8.2 pytz-2022.7.1 pytzdata-2020.1 rich-13.3.2 scipy-1.10.1 six-1.16.0 typing-extensions-4.5.0
 ```
 
-But `cssfinder-0.2.1` should be included in this list.
+But `cssfinder-0.3.0` should be included in this list.
 
 ## Code quality
 
@@ -183,7 +197,7 @@ and add stage fixes. Then you may retry running `git commit`.
 To run simple profiling, You can use following command:
 
 ```
-python -mcProfile -o "#examples_profile_5qubits_prof.prof" "examples/profiling/5qubits_prof/cssfproject.py"
+python -mcProfile -o "#examples_profile_5qubits_prof.prof" "assets/profiling/5qubits_prof/cssfproject.py"
 ```
 
 Then You can view output using [snakeviz](https://pypi.org/project/snakeviz/):
@@ -191,3 +205,63 @@ Then You can view output using [snakeviz](https://pypi.org/project/snakeviz/):
 ```
 snakeviz "#examples_profile_5qubits_prof.prof"
 ```
+
+## Command Line Interface
+
+The `CSSFinder` is a script that finds the closest separable states. The script
+offers a command-line interface that allows you to execute different tasks
+related to your CSSFinder project. This documentation will provide a summary of
+the commands and options available.
+
+Once you have installed CSSFinder, you can use it from the command line:
+
+`cssfinder [OPTIONS] COMMAND [ARGS]... `
+
+You can run `cssfinder` without any arguments to display a help message.
+
+## Options
+
+The following options are available:
+
+- `-v`, `--verbose`: increases the verbosity of logging messages. You can use
+  `-v` up to `-vvv` to increase the verbosity level.
+- `--debug`: enables debug mode.
+- `-V`, `--version`: shows the version number of CSSFinder and exits.
+
+## Commands
+
+The following commands are available:
+
+### project
+
+This command allows you to interact with a CSSFinder project. You need to
+provide the path to your project as an argument.
+
+#### run
+
+This command runs all tasks in a CSSFinder project.
+
+`cssfinder project run [OPTIONS] `
+
+##### Options
+
+- `-t`, `--tasks`: run specific tasks from the project. You can specify
+  multiple tasks by using this option multiple times.
+
+#### task-report
+
+This command generates a short report for a single task in a CSSFinder project.
+
+`cssfinder project task-report TASK [OPTIONS] `
+
+##### Arguments
+
+- `TASK`: the name of the task to generate the report for.
+
+##### Options
+
+- `--html`, `--no-html`: include or exclude an HTML report in the generated
+  report.
+- `--pdf`, `--no-pdf`: include or exclude a PDF report in the generated report.
+
+- `--open`, `--no-open`: automatically open report in web browser.

@@ -19,11 +19,25 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""CSSFinder (Closest Separable State Finder) is a package containing implementation of
-Gilbert algorithm for finding an upper bound on the Hilbert-Schmidt distance between a
-given state and the set of separable states.
-"""
+"""Root package of examples collection."""
+
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+from enum import Enum
+from pathlib import Path
+
+EXAMPLES_DIR = Path(__file__).parent
+
+
+class Example(Enum):
+    """Enumeration of available examples."""
+
+    e5qubits = "5qubits"
+    GHZ3 = "GHZ3"
+    GHZ4 = "GHZ4"
+    proj = "proj"
+
+    def get_path(self) -> Path:
+        """Return path to directory containing example."""
+        return EXAMPLES_DIR / self.value

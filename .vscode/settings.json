@@ -72,5 +72,19 @@
     ],
     "python.analysis.autoImportCompletions": true,
     "python.analysis.completeFunctionParens": false,
-    "python.analysis.useLibraryCodeForTypes": true
+    "python.analysis.useLibraryCodeForTypes": true,
+    "cSpell.ignoreWords": [
+        "contourpy",
+        "dateutil",
+        "dnspython",
+        "fonttools",
+        "idna",
+        "kiwisolver",
+        "llvmlite",
+        "mdurl",
+        "pygments",
+        "pyparsing",
+        "pytz",
+        "pytzdata"
+    ]
 }

@@ -1,5 +1,5 @@
 ---
-name: Code Quality Check
+name: Reports Tests
 
 on:
   push:
@@ -31,16 +31,16 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow_ref }}-${{ github.ref }}-code-quality
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-reports-tests
   cancel-in-progress: false
 
 jobs:
-  code-quality-check:
+  reports-tests:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.10"]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        python-version: ["3.8", "3.9", "3.10"]
 
     runs-on: ${{ matrix.os }}
 
@@ -60,5 +60,17 @@ jobs:
       - name: Install dependencies
         run: poetry install --sync
 
-      - name: Run code quality checkers
-        run: poetry run poe run-hooks
+      - name: Expect PDF reports fails (Windows|macOS)
+        if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
+        run: poetry run poe test-reports --pdf-expect-fail
+
+      - name: Install brew and GTK3 (macOS only)
+        if: matrix.os == 'macOS-latest'
+        run: |
+          /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+          brew update
+          brew install gtk+3
+
+      - name: Run reports tests
+        if: matrix.os != 'windows-latest'
+        run: poetry run poe test-reports

@@ -78,7 +78,8 @@ project = CSSFProject(
         version=SemVerStr("1.0.0"),
     ),
     tasks=TASKS,
+    project_path=Path(__file__).parent / "cssfinder.json",
 )
-project.set_file_path(Path("examples/profiling/5qubits_prof/cssfproject.py"))
+
 
 run_project(project)

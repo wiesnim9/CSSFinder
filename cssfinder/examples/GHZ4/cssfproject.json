@@ -25,7 +25,7 @@
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.directory}/GHZ4_in.mtx",
+                    "file": "{project.project_directory}/GHZ4_in.mtx",
                     "depth": null,
                     "quantity": null
                 },

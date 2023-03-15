@@ -34,6 +34,7 @@ Spec
 
 - Floating precision:   {{floating}}
 - Complex precision:    {{complex}}
+
 """
 
 from __future__ import annotations
@@ -212,11 +213,55 @@ def rotate(
 
     return rho2a  # type: ignore[no-any-return]
 
+
+{{ jit_nopython() }}
+def apply_symmetries(
+    rho: npt.NDArray[{{complex}}], symmetries: list[list[npt.NDArray[{{complex}}]]]
+) -> npt.NDArray[{{complex}}]:
+    """Apply symmetries to density matrix.
+
+    Parameters
+    ----------
+    rho : npt.NDArray[{{complex}}]
+        Density matrix to which we want to apply symmetries.
+    symmetries : list[list[npt.NDArray[{{complex}}]]]
+        List of matrices representing the symmetries.
+
+    Returns
+    -------
+    npt.NDArray[{{complex}}]
+        The result of applying the symmetries to the given density matrix.
+
+    Notes
+    -----
+    The first input `rho` is modified by this function. If you don't want to modify the
+    original array, make a copy before passing it to this function.
+
+    This function calculates the trace of output density matrix and normalizes it before
+    returning.
+
+    """
+    {% if debug_dtype_checks %}assert_dtype(rho, {{complex}}){% endif %}
+    {% if debug_dtype_checks %}
+    for row_ in symmetries:
+        for sym_ in row_:
+            assert_dtype(sym_, {{complex}})
+    {% endif %}
+    output = rho
+    for row in symmetries:
+        for sym in row:
+            output += rotate(output, sym)
+
+    output /= np.trace(output)
+    return output
+
+
 #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
 #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
 #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501
 #   ██   ██    ██              ██            ██  ██  ██    ██    ██    ██   ██    ██        # noqa: E501
 #   ██████     ██         ███████            ██      ██     ██████     ██████     ███████   # noqa: E501
+
 
 {{ jit_forceobj() }}
 def optimize_d_fs(
@@ -433,6 +478,7 @@ def optimize_bs(
     -------
     npt.NDArray[{{complex}}]
         Optimized state.
+
     """
     {% if debug_dtype_checks %}assert_dtype(new_state, {{complex}}){% endif %}
     {% if debug_dtype_checks %}assert_dtype(visibility_state, {{complex}}){% endif %}

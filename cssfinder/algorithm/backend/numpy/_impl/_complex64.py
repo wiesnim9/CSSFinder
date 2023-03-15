@@ -147,6 +147,42 @@ def rotate(
     return rho2a  # type: ignore[no-any-return]
 
 
+@jit(nopython=True, nogil=True, cache=True)
+def apply_symmetries(
+    rho: npt.NDArray[np.complex64], symmetries: list[list[npt.NDArray[np.complex64]]]
+) -> npt.NDArray[np.complex64]:
+    """Apply symmetries to density matrix.
+
+    Parameters
+    ----------
+    rho : npt.NDArray[np.complex64]
+        Density matrix to which we want to apply symmetries.
+    symmetries : list[list[npt.NDArray[np.complex64]]]
+        List of matrices representing the symmetries.
+
+    Returns
+    -------
+    npt.NDArray[np.complex64]
+        The result of applying the symmetries to the given density matrix.
+
+    Notes
+    -----
+    The first input `rho` is modified by this function. If you don't want to modify the
+    original array, make a copy before passing it to this function.
+
+    This function calculates the trace of output density matrix and normalizes it before
+    returning.
+
+    """
+    output = rho
+    for row in symmetries:
+        for sym in row:
+            output += rotate(output, sym)
+
+    output /= np.trace(output)
+    return output
+
+
 #   ██████     ███████    ███████            ███    ███     ██████     ██████     ███████   # noqa: E501
 #   ██   ██    ██         ██                 ████  ████    ██    ██    ██   ██    ██        # noqa: E501
 #   ██   ██    █████      ███████            ██ ████ ██    ██    ██    ██   ██    █████     # noqa: E501

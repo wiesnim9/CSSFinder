@@ -25,8 +25,9 @@ specific precision.
 
 from __future__ import annotations
 
+import logging
 from types import MethodType
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -50,6 +51,8 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     _visibility_reduced: npt.NDArray[PRIMARY]
 
     _corrections: list[tuple[int, int, float]]
+    _symmetries: list[list[npt.NDArray[PRIMARY]]]
+    _projection: Optional[npt.NDArray[PRIMARY]]
 
     impl: Implementation[PRIMARY, SECONDARY_co]
     primary_t: type[PRIMARY]
@@ -67,9 +70,14 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     ) -> None:
         super().__init__(initial, depth, quantity, mode, visibility, is_debug=is_debug)
 
+        self.initial = initial.astype(self.primary_t)
+
         self._visibility = self._create_visibility_matrix()
         self._intermediate = self._create_intermediate_state()
         self._corrections = []
+
+        self._symmetries = []
+        self._projection = None
 
         self._aa4: SECONDARY_co = 2 * self.impl.product(
             self._visibility,
@@ -91,6 +99,71 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         if not self.is_debug:
             self.jit()
 
+    def _create_visibility_matrix(self) -> npt.NDArray[PRIMARY]:
+        vis_state = self.visibility * self.initial
+        inv_vis_ident = (1 - self.visibility) * np.identity(
+            len(self.initial),
+            dtype=np.complex128,
+        )
+        return (vis_state + inv_vis_ident / len(self.initial)).astype(
+            self.primary_t,
+        )
+
+    def _create_intermediate_state(self) -> npt.NDArray[PRIMARY]:
+        intermediate = np.zeros_like(self._visibility, dtype=np.complex128)
+        np.fill_diagonal(intermediate, self._visibility.diagonal())
+        return intermediate.astype(self.primary_t)
+
+    def set_symmetries(
+        self, symmetries: list[list[npt.NDArray[np.complex128]]]
+    ) -> None:
+        """Set symmetries to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        symmetries : list[list[npt.NDArray[np.complex128]]]
+            Array of symmetries.
+
+        """
+        self._symmetries = [
+            [cell.astype(self.primary_t) for cell in row] for row in symmetries
+        ]
+        if self._symmetries:
+            self._intermediate = self.impl.apply_symmetries(
+                self._intermediate, self._symmetries
+            )
+
+    def set_projection(self, projection: npt.NDArray[np.complex128]) -> None:
+        """Set projection to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        projection : npt.NDArray[np.complex128]
+            Projection matrix.
+
+        """
+        self._projection = projection.astype(self.primary_t)
+        self._intermediate = self.impl.rotate(self._intermediate, self._projection)
+        logging.debug("Projection have been set %r", self._projection)
+
+    def get_state(self) -> npt.NDArray[np.complex128]:
+        """Return current system state with all optimizations applied."""
+        return self._intermediate.copy().astype(np.complex128)
+
+    def get_corrections(self) -> list[tuple[int, int, float]]:
+        """Return list of all corrections found during optimization."""
+        return self._corrections.copy()
+
+    def get_corrections_count(self) -> int:
+        """Return number of all corrections found during optimization."""
+        return len(self._corrections)
+
     def jit(self) -> None:
         """JIT compile performance critical parts of backend with numba."""
         _update_state = jit(  # type: ignore[assignment]
@@ -108,33 +181,6 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         )
 
         self.run_epoch = MethodType(run_epoch, self)  # type: ignore[assignment]
-
-    def _create_visibility_matrix(self) -> npt.NDArray[PRIMARY]:
-        vis_state = self.visibility * self.initial
-        inv_vis_ident = (1 - self.visibility) * np.identity(
-            len(self.initial),
-            dtype=np.complex128,
-        )
-        return (vis_state + inv_vis_ident / len(self.initial)).astype(
-            self.primary_t,
-        )
-
-    def _create_intermediate_state(self) -> npt.NDArray[PRIMARY]:
-        intermediate = np.zeros_like(self._visibility, dtype=np.complex128)
-        np.fill_diagonal(intermediate, self._visibility.diagonal())
-        return intermediate.astype(self.primary_t)
-
-    def get_state(self) -> npt.NDArray[np.complex128]:
-        """Return current system state with all optimizations applied."""
-        return self._intermediate.copy().astype(np.complex128)
-
-    def get_corrections(self) -> list[tuple[int, int, float]]:
-        """Return list of all corrections found during optimization."""
-        return self._corrections.copy()
-
-    def get_corrections_count(self) -> int:
-        """Return number of all corrections found during optimization."""
-        return len(self._corrections)
 
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
@@ -187,6 +233,13 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
                 quantity,
                 epochs,
             )
+
+        if self._symmetries:
+            self._intermediate = self.impl.apply_symmetries(
+                self._intermediate, self._symmetries
+            )
+        if self._projection is not None:
+            self._intermediate = self.impl.rotate(self._intermediate, self._projection)
 
         aa3: SECONDARY_co = self.impl.product(alternative_state, alternative_state)
         aa2: SECONDARY_co = 2 * self.impl.product(self._visibility, alternative_state)

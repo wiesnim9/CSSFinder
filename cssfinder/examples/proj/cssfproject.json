@@ -31,7 +31,7 @@
                 },
                 "resources": {
                     "symmetries": null,
-                    "projection": "{project.project_directory}/proj_proj.mtx"
+                    "projection": null
                 }
             }
         },
@@ -54,6 +54,29 @@
                 },
                 "resources": {
                     "$ref": "#/tasks/main/gilbert/resources"
+                }
+            }
+        },
+        "test_sbipa_proj_with_projection": {
+            "gilbert": {
+                "mode": {
+                    "$ref": "#/tasks/main/gilbert/mode"
+                },
+                "backend": {
+                    "$ref": "#/tasks/main/gilbert/backend"
+                },
+                "runtime": {
+                    "visibility": 0.4,
+                    "max_epochs": 10,
+                    "iters_per_epoch": 10,
+                    "max_corrections": 10
+                },
+                "state": {
+                    "$ref": "#/tasks/main/gilbert/state"
+                },
+                "resources": {
+                    "symmetries": null,
+                    "projection": "{project.project_directory}/proj_proj.mtx"
                 }
             }
         }

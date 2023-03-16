@@ -59,18 +59,48 @@ class BackendBase:
         self.mode = mode
         self.is_debug = is_debug
 
+    def set_symmetries(
+        self, symmetries: list[list[npt.NDArray[np.complex128]]]
+    ) -> None:
+        """Set symmetries to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        symmetries : list[list[npt.NDArray[np.complex128]]]
+            Array of symmetries.
+
+        """
+        raise NotImplementedError(self.set_symmetries.__qualname__)
+
+    def set_projection(self, projection: npt.NDArray[np.complex128]) -> None:
+        """Set projection to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        projection : npt.NDArray[np.complex128]
+            Projection matrix.
+
+        """
+        raise NotImplementedError(self.set_projection.__qualname__)
+
     def get_state(self) -> npt.NDArray[np.complex128]:
         """Return current system state with all optimizations applied."""
-        raise NotImplementedError
+        raise NotImplementedError(self.get_state.__qualname__)
 
     def get_corrections(self) -> list[tuple[int, int, float]]:
         """Return list of all corrections found during optimization."""
-        raise NotImplementedError
+        raise NotImplementedError(self.get_corrections.__qualname__)
 
     def get_corrections_count(self) -> int:
         """Return number of all corrections found during optimization."""
-        raise NotImplementedError
+        raise NotImplementedError(self.get_corrections_count.__qualname__)
 
     def run_epoch(self, iterations: int, epoch_index: int) -> None:
         """Run sequence of iterations without stopping to check any stop conditions."""
-        raise NotImplementedError
+        raise NotImplementedError(self.run_epoch.__qualname__)

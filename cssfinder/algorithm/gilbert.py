@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from time import perf_counter
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable
 
 from cssfinder.algorithm import backend as _backend
 
@@ -49,8 +49,6 @@ class Gilbert:
         backend: Backend,
         precision: Precision,
         visibility: float,
-        symmetries: list[list[npt.NDArray[np.complex128]]],
-        projection: Optional[npt.NDArray[np.complex128]],
         is_debug: bool = False,
     ) -> None:
         self.initial = initial
@@ -60,9 +58,6 @@ class Gilbert:
         self.mode = mode
         self.precision = precision
         self.visibility = visibility
-
-        self.symmetries = symmetries
-        self.projection = projection
 
         self.is_debug = is_debug
 
@@ -75,6 +70,36 @@ class Gilbert:
             self.visibility,
             is_debug=self.is_debug,
         )
+
+    def set_symmetries(
+        self, symmetries: list[list[npt.NDArray[np.complex128]]]
+    ) -> None:
+        """Set symmetries to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        symmetries : list[list[npt.NDArray[np.complex128]]]
+            Array of symmetries.
+
+        """
+        self.backend.set_symmetries(symmetries)
+
+    def set_projection(self, projection: npt.NDArray[np.complex128]) -> None:
+        """Set projection to use during calculations.
+
+        This operation may involve type conversion and copying of symmetries, therefore
+        if may be slow and should should be done only once.
+
+        Parameters
+        ----------
+        projection : npt.NDArray[np.complex128]
+            Projection matrix.
+
+        """
+        self.backend.set_projection(projection)
 
     def run(
         self,

@@ -2,6 +2,11 @@
 
 NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 
+### 0.4.0 - Mar 17, 2023
+
+- Add interface for accessing bundled examples.
+- Add support for projections and symmetries.
+
 ### 0.3.0 - Mar 15, 2023
 
 - Add HTML and PDF reports.

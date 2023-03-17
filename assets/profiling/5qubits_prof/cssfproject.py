@@ -78,7 +78,7 @@ project = CSSFProject(
         version=SemVerStr("1.0.0"),
     ),
     tasks=TASKS,
-    project_path=Path(__file__).parent / "cssfinder.json",
+    project_path=Path(__file__).parent / "cssfproject.json",
 )
 
 

@@ -39,3 +39,19 @@ class Test_SBiPa(ModeTest):  # noqa: N801  # Underscore used for readability.
 
     MIN_CORRECTION_VALUE: float = 0.070
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.120)
+
+
+class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readability.
+    ModeTest
+):
+    """Test behavior of SBiPa mode of Gilbert algorithm with projections."""
+
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+    PROJECT_PATH = Example.proj.get_path()
+    TEST_TASK_NAME: str = "test_sbipa_proj_with_projection"
+
+    OUT_STATE_ROW_COUNT: int = 9
+    OUT_STATE_COL_COUNT: int = 9
+
+    MIN_CORRECTION_VALUE: float = 0.090
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.130)

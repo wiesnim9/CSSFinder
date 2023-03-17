@@ -46,3 +46,13 @@ class CaseInsensitiveEnum(Enum):
 
 class NoMatchingEnumValueError(AttributeError):
     """Raised when CaseInsensitiveEnum subclass can't find matching enum value."""
+
+
+class ExitCode:
+    """Enumeration of standardized CSSFinder exit codes."""
+
+    EXAMPLE_SHA_NOR_NAME_GIVEN = 67465
+    EXAMPLE_WITH_NAME_NOT_FOUND = 67470
+    EXAMPLE_WITH_SHA_NOT_FOUND = 67475
+
+    EXAMPLE_DESTINATION_ALREADY_EXISTS = 67480

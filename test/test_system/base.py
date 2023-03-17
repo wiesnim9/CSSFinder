@@ -74,6 +74,8 @@ class SetupRunProjectMixin:
         Executed once for class, shared between tests within class.
 
         """
+        np.random.seed(0)  # noqa: NPY002
+
         cls._temporary_directory = TemporaryDirectory()
         shutil.copytree(
             cls.PROJECT_PATH.as_posix(), cls.get_project_directory().as_posix()
@@ -142,7 +144,11 @@ class ModeTest(SetupRunProjectMixin):
         values = self.corrections["value"]
         first, last = values.iloc[0], values.iloc[-1]
 
-        assert first > last > self.MIN_CORRECTION_VALUE
+        assert first > last > self.MIN_CORRECTION_VALUE, (
+            first,
+            last,
+            self.MIN_CORRECTION_VALUE,
+        )
 
     def test_state_shape(self) -> None:
         """Check if output state has correct shape."""

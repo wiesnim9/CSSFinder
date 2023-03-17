@@ -154,10 +154,11 @@ def create_gilbert(
         backend=config.get_backend().name,
         precision=config.get_backend().precision,
         visibility=config.runtime.visibility,
-        symmetries=symmetries,
-        projection=projection,
         is_debug=is_debug,
     )
+    algorithm.set_symmetries(symmetries)
+    if projection is not None:
+        algorithm.set_projection(projection)
 
     return algorithm
 
@@ -170,7 +171,7 @@ def create_report_from(
     Parameters
     ----------
     project_file_path : Path | str
-        Path to cssfinder.json file or directory containing one.
+        Path to cssfproject.json file or directory containing one.
     task : str
         Name or glob expression matching task name, expected to result in selection of
         single task.

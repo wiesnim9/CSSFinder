@@ -1,3 +1,4 @@
+__qualname__
 addinivalue
 addoption
 arange
@@ -5,6 +6,7 @@ astype
 autocopyright
 autoflake
 biseparable
+crossplatform
 cssfinder
 cssfproject
 docformatter
@@ -15,6 +17,7 @@ figsize
 figwidth
 forceobj
 fsnqd
+hlines
 iloc
 isort
 isreal
@@ -22,7 +25,9 @@ jsonref
 Krzysztof
 levelname
 libpangocairo
+linestyles
 looplift
+Marcin
 matplotlib
 mmread
 mmwrite
@@ -35,11 +40,13 @@ numpy
 offsetted
 pango
 pydantic
+pyjinja
 pyplot
 pytest
 qubits
 redef
 savefig
+sbipa
 scipy
 sdist
 snakeviz
@@ -47,6 +54,7 @@ swapaxes
 tensordot
 tracebacks
 weasyprint
+Wieśniak
 Wiśniewski
 xlabel
 ylabel

@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "meta": {
-        "author": "Example",
+        "author": "Krzysztof Wiśniewski; Marcin Wieśniak",
         "email": "example@example.com",
         "name": "GHZ3",
         "description": "Project description",
@@ -29,18 +29,18 @@
                 "resources": {
                     "symmetries": [
                         [
-                            "{project.project_directory}/GHZ3_sym_0_0.mtx",
-                            "{project.project_directory}/GHZ3_sym_0_1.mtx"
+                            "{project.project_directory}/symmetries/GHZ3_sym_0_0.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_0_1.mtx"
                         ],
                         [
-                            "{project.project_directory}/GHZ3_sym_1_0.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_1.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_2.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_3.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_4.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_5.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_6.mtx",
-                            "{project.project_directory}/GHZ3_sym_1_1.mtx"
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_0.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_1.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_2.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_3.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_4.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_5.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_6.mtx",
+                            "{project.project_directory}/symmetries/GHZ3_sym_1_1.mtx"
                         ]
                     ],
                     "projection": null

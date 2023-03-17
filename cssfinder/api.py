@@ -171,7 +171,7 @@ def create_report_from(
     Parameters
     ----------
     project_file_path : Path | str
-        Path to cssfinder.json file or directory containing one.
+        Path to cssfproject.json file or directory containing one.
     task : str
         Name or glob expression matching task name, expected to result in selection of
         single task.

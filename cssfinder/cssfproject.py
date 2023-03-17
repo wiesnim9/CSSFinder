@@ -152,7 +152,7 @@ class CSSFProject(CommonBaseModel):
         file_or_directory = Path(file_or_directory).expanduser().resolve()
 
         # When points to directory, dir must contain cssfproject.json file
-        if file_or_directory.is_dir():
+        if not file_or_directory.name.endswith(".json") and file_or_directory.is_dir():
             file_or_directory /= PROJECT_FILE_NAME
             project_path = file_or_directory
 

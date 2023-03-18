@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 class ReportTestBase(SetupRunProjectMixin):
     """Validate report behavior."""
 
-    PROJECT_PATH = Example.e5qubits.get_path()
+    PROJECT_PATH = Example.e5qubits_json.get_path()
     TEST_TASK_NAME: str = "test_fsnqd_5qubits"
     REPORT_TYPE: ReportType
 

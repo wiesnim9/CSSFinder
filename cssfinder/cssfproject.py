@@ -27,6 +27,7 @@ parameters used by gilbert algorithm.
 from __future__ import annotations
 
 import fnmatch
+import importlib.util
 import json
 import logging
 from pathlib import Path
@@ -41,7 +42,23 @@ from cssfinder.enums import CaseInsensitiveEnum
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-PROJECT_FILE_NAME: str = "cssfproject.json"
+
+def project_file_path(directory_or_file: Path) -> Path:
+    """Return path to project file (JSON/PY)."""
+    if directory_or_file.is_file():
+        return directory_or_file
+
+    json_file = directory_or_file / "cssfproject.json"
+
+    if directory_or_file.is_dir() and json_file.exists():
+        return json_file
+
+    py_file = directory_or_file / "cssfproject.py"
+
+    if directory_or_file.is_dir() and py_file.exists():
+        return py_file
+
+    raise FileNotFoundError(directory_or_file)
 
 
 class CSSFProject(CommonBaseModel):
@@ -70,11 +87,14 @@ class CSSFProject(CommonBaseModel):
 
         """
         super().__init__(meta=meta, tasks=tasks)
-        if not isinstance(project_path, Path):
-            self._project_path = Path(project_path).expanduser().resolve()
 
-        assert isinstance(project_path, Path)
+        if not isinstance(project_path, Path):
+            project_path = Path(project_path)
+
         self._project_path = project_path.expanduser().resolve()
+
+        if not self._project_path.exists():
+            raise FileNotFoundError(self._project_path)
 
         self.bind()
 
@@ -109,10 +129,7 @@ class CSSFProject(CommonBaseModel):
     @property
     def project_file(self) -> Path:
         """Path to `cssfproject.json` file."""
-        if self._project_path.name == PROJECT_FILE_NAME:
-            return self._project_path
-
-        return self._project_path / PROJECT_FILE_NAME
+        return project_file_path(self._project_path)
 
     @property
     def project_directory(self) -> Path:
@@ -152,18 +169,24 @@ class CSSFProject(CommonBaseModel):
         file_or_directory = Path(file_or_directory).expanduser().resolve()
 
         # When points to directory, dir must contain cssfproject.json file
-        if not file_or_directory.name.endswith(".json") and file_or_directory.is_dir():
-            file_or_directory /= PROJECT_FILE_NAME
-            project_path = file_or_directory
+        project_path = project_file_path(file_or_directory)
 
-        else:
-            project_path = file_or_directory
+        if project_path.suffix == ".json":
+            return cls._load_json_project(project_path)
 
+        if project_path.suffix == ".py":
+            return cls._load_py_cssfproject(project_path)
+
+        msg = f"Unknown project format {project_path.suffix} of project {project_path}"
+        raise FileNotFoundError(msg)
+
+    @classmethod
+    def _load_json_project(cls, project_path: Path) -> Self:
         logging.debug("Resolved project path to %r", project_path.as_posix())
         try:
             content = project_path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
-            error_message = f"Make sure you path is correct: {project_path!r}"
+            error_message = f"Make sure you path is correct: {project_path}"
             raise ProjectFileNotFoundError(error_message) from exc
 
         try:
@@ -177,6 +200,36 @@ class CSSFProject(CommonBaseModel):
 
         project = cls(**content, project_path=project_path)
         return project
+
+    @classmethod
+    def _load_py_cssfproject(cls, project_path: Path) -> Self:
+        spec = importlib.util.spec_from_file_location(
+            project_path.name[:-3], project_path.as_posix()
+        )
+        if spec is None or spec.loader is None:
+            msg = f"Failed to load project file {project_path}"
+            raise ImportError(msg)
+
+        project_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(project_module)
+
+        project_object = getattr(project_module, "__project__", None)
+
+        if project_object is None:
+            msg = (
+                "Missing '__project__' field containing CSSFProject object.\n"
+                f"From {project_path}."
+            )
+            raise ImportError(msg)
+
+        if not isinstance(project_object, cls):
+            msg = (
+                "Incorrect object in '__project__' field, should contain "
+                f"CSSFProject object.\nFrom {project_path}."
+            )
+
+        assert isinstance(project_object, cls)
+        return project_object
 
     def select_tasks(self, patterns: list[str] | None = None) -> list[Task]:
         """Select all tasks matching list of patterns."""

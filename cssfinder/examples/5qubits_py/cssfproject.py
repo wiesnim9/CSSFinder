@@ -60,26 +60,27 @@ TASKS = [
             state=State(file=path.as_posix()),
             runtime=RuntimeCfg(
                 visibility=0.4,
-                max_epochs=10,
+                max_epochs=1000,
                 iters_per_epoch=1000,
-                max_corrections=100,
+                max_corrections=1000,
             ),
         ),
     )
     for path in Path(__file__).parent.glob("*_in.mtx")
 ]
 
-project = CSSFProject(
+__project__ = CSSFProject(
     meta=Meta(
-        author="Example",
-        email=EmailStr("example@example.com"),
-        name="5qubits_prof",
-        description="Project description",
+        author="Krzysztof Wiśniewski; Marcin Wieśniak",
+        email=EmailStr("argmaster.world@gmail.com"),
+        name="5qubits",
+        description="Example of project configuration for 'Full separability of an "
+        "n-quDit state' mode.",
         version=SemVerStr("1.0.0"),
     ),
     tasks=TASKS,
-    project_path=Path(__file__).parent / "cssfproject.json",
+    project_path=__file__,
 )
 
-
-run_project(project)
+if __name__ == "__main__":
+    run_project(__project__)

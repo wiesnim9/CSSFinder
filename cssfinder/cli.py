@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import traceback
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,7 +78,7 @@ def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
 
     configure_logger(verbosity=verbose, logger_name="cssfinder", use_rich=False)
     logging.getLogger("numba").setLevel(logging.ERROR)
-    logging.info("CSSFinder started at %r", pendulum.now())
+    logging.info("CSSFinder started at %s", pendulum.now().isoformat(sep=" "))
 
     if verbose >= VERBOSITY_INFO:
         print(
@@ -295,17 +296,30 @@ def _examples_clone(
     destination = Path.cwd() if out is None else Path(out).expanduser().resolve()
 
     example = _select_example(sha, name)
+    try:
+        project = example.get_project()
+    except ProjectFileNotFoundError as exc:
+        logging.debug(traceback.format_exc())
+        logging.critical(
+            "Sorry but example is broken. (%s)", exc.__class__.__qualname__
+        )
+        raise SystemExit(ExitCode.BROKEN_EXAMPLE) from exc
 
     rich.print(
-        f"Found example {example.name!r}, {example.get_project().meta.author!r}, "
+        f"Found example {example.name!r}, {project.meta.author!r}, "
         f"{example.get_sha256().hexdigest()[:8]!r}"
     )
 
     destination_project_folder = _get_validated_destination(
         destination, example, force_overwrite=force_overwrite
     )
+    try:
+        example.clone(destination)
 
-    example.clone(destination)
+    except FileNotFoundError as exc:
+        logging.critical(str(exc))
+        raise SystemExit(ExitCode.PROJECT_NOT_FOUND) from exc
+
     if do_open_explorer:
         open_file_explorer(destination_project_folder)
     if do_open_terminal:
@@ -343,15 +357,15 @@ def _select_example(sha: Optional[str], name: Optional[str]) -> examples.Example
     if name is not None:
         try:
             example = examples.Example.select_by_name(name)
-        except KeyError as exc:
-            logging.critical("Example with name %r not found.", sha)
+        except examples.ExampleNotFoundError as exc:
+            logging.critical("%s", exc)
             raise SystemExit(ExitCode.EXAMPLE_WITH_NAME_NOT_FOUND) from exc
 
     elif sha is not None:
         try:
             example = examples.Example.select_by_sha256(sha)
-        except KeyError as exc:
-            logging.critical("Example with sha %r not found.", sha)
+        except examples.ExampleNotFoundError as exc:
+            logging.critical("%s", exc)
             raise SystemExit(ExitCode.EXAMPLE_WITH_SHA_NOT_FOUND) from exc
 
     else:

@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 from types import MethodType
-from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, Generic, Optional, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -57,6 +57,11 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
     impl: Implementation[PRIMARY, SECONDARY_co]
     primary_t: type[PRIMARY]
     secondary_t: type[SECONDARY_co]
+
+    optimize_callback: Callable[
+        [npt.NDArray[PRIMARY], npt.NDArray[PRIMARY], int, int, int],
+        npt.NDArray[PRIMARY],
+    ]
 
     def __init__(  # noqa: PLR0913
         self,
@@ -95,6 +100,11 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
             self._intermediate,
             self._visibility_reduced,
         )
+
+        if self.mode == AlgoMode.FSnQd:
+            self.optimize_callback = self.impl.optimize_d_fs
+        elif self.mode == AlgoMode.SBiPa:
+            self.optimize_callback = self.impl.optimize_bs
 
         if not self.is_debug:
             self.jit()
@@ -217,22 +227,13 @@ class NumPyBase(Generic[PRIMARY, SECONDARY_co], BackendBase):
         depth = self.depth
         quantity = self.quantity
 
-        if self.mode == AlgoMode.FSnQd:
-            alternative_state = self.impl.optimize_d_fs(
-                alternative_state,
-                self._visibility_reduced,
-                depth,
-                quantity,
-                epochs,
-            )
-        elif self.mode == AlgoMode.SBiPa:
-            alternative_state = self.impl.optimize_bs(
-                alternative_state,
-                self._visibility_reduced,
-                depth,
-                quantity,
-                epochs,
-            )
+        alternative_state = self.optimize_callback(
+            alternative_state,
+            self._visibility_reduced,
+            depth,
+            quantity,
+            epochs,
+        )
 
         if self._symmetries:
             self._intermediate = self.impl.apply_symmetries(

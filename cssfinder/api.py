@@ -183,7 +183,7 @@ def create_gilbert(
         logging.info("No symmetries provided.")
 
     projection = asset_io.load_projection(config.get_resources().projection)
-    if projection:
+    if projection is not None:
         logging.info("Loaded projection: %r", projection.shape)
     else:
         logging.info("No projection provided.")

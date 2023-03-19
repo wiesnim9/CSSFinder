@@ -15,7 +15,10 @@ figsize
 figwidth
 forceobj
 fsnqd
+getpid
 iloc
+ionice
+IOPRIO
 isort
 isreal
 jsonref
@@ -23,6 +26,7 @@ Krzysztof
 levelname
 libpangocairo
 looplift
+Marcin
 matplotlib
 mmread
 mmwrite
@@ -34,9 +38,11 @@ numba
 numpy
 offsetted
 pango
+psutil
 pydantic
 pyplot
 pytest
+qualname
 qubits
 redef
 savefig
@@ -47,6 +53,7 @@ swapaxes
 tensordot
 tracebacks
 weasyprint
+Wieśniak
 Wiśniewski
 xlabel
 ylabel

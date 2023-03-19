@@ -23,10 +23,14 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TYPE_CHECKING, Iterable
+
+import psutil
 
 from cssfinder.algorithm.gilbert import Gilbert
 from cssfinder.algorithm.mode_util import ModeUtil
+from cssfinder.crossplatform import IoPriority, Priority, set_priority
 from cssfinder.cssfproject import CSSFProject, GilbertCfg, Task
 from cssfinder.io.gilbert_io import GilbertIO
 from cssfinder.reports.manager import ReportManager
@@ -72,6 +76,18 @@ def run_project(
 
 def run_task(task: Task, *, is_debug: bool = False) -> None:
     """Run task until completed."""
+    try:
+        set_priority(os.getpid(), Priority.REALTIME, IoPriority.HIGH)
+    except (OSError, psutil.AccessDenied):
+        logging.warning(
+            "Failed to elevate process priority. It can negatively affect program "
+            "performance if there are more programs running in background. "
+            "To allow automated priority elevation run this program as super user. "
+            "You can change priority manually for process PID %r.",
+            os.getpid(),
+            stack_info=False,
+        )
+
     if task.gilbert:
         run_gilbert(task.gilbert, task.task_output_directory, is_debug=is_debug)
 
@@ -85,29 +101,42 @@ def run_gilbert(
     """Run Gilbert algorithm part of task."""
     asset_io = GilbertIO()
 
-    task_output_directory.mkdir(0o764, parents=True, exist_ok=True)
+    task_output_directory.mkdir(0o777, parents=True, exist_ok=True)
+    logging.debug("Created directory: %r", task_output_directory.as_posix())
 
     algorithm = create_gilbert(config, asset_io, is_debug=is_debug)
+
+    logging.warning("Task %r started.", config.task_name)
 
     for epoch_index in algorithm.run(
         max_epochs=config.runtime.max_epochs,
         iterations_per_epoch=config.runtime.iters_per_epoch,
         max_corrections=config.runtime.max_corrections,
     ):
-        logging.info(
-            "Executing epoch %r / %r (%.1f%%) - corrections: %r best: %r",
-            epoch_index + 1,
-            config.runtime.max_epochs,
-            ((epoch_index + 1) / config.runtime.max_epochs) * 100,
-            algorithm.get_corrections_count(),
-            algorithm.get_corrections()[-1][2]
-            if algorithm.get_corrections_count() > 0
-            else None,
-        )
-        asset_io.dump_state(algorithm.get_state(), config.output_state_file)
-        asset_io.dump_corrections(
-            algorithm.get_corrections(), config.output_corrections_file
-        )
+        if corrections_count := algorithm.get_corrections_count():
+            corrections = algorithm.get_corrections()
+            state = algorithm.get_state()
+
+            logging.info(
+                "Executing epoch %r / %r (%.1f%%) - corrections: %r best: %r",
+                epoch_index + 1,
+                config.runtime.max_epochs,
+                ((epoch_index + 1) / config.runtime.max_epochs) * 100,
+                corrections_count,
+                corrections[-1][2],
+            )
+            asset_io.dump_state(state, config.output_state_file)
+            asset_io.dump_corrections(corrections, config.output_corrections_file)
+
+        else:
+            logging.info(
+                "Executing epoch %r / %r (%.1f%%) - no corrections.",
+                epoch_index + 1,
+                config.runtime.max_epochs,
+                ((epoch_index + 1) / config.runtime.max_epochs) * 100,
+            )
+
+    logging.warning("Task %r finished.", config.task_name)
 
 
 def create_gilbert(
@@ -137,14 +166,27 @@ def create_gilbert(
     if state_config.is_predefined_dimensions():
         depth = state_config.get_depth()
         quantity = state_config.get_quantity()
+        logging.info("Using fixed dimensions depth=%r quantity=%r", depth, quantity)
 
     else:
         dimensions = ModeUtil.new(config.mode).get_dimensions(initial_state)
         depth = dimensions.depth
         quantity = dimensions.quantity
+        logging.info("Deduced dimensions depth=%r quantity=%r", depth, quantity)
 
     symmetries = asset_io.load_symmetries(config.get_resources().symmetries)
+    if symmetries:
+        logging.info("Loaded symmetries:")
+        for i, row in enumerate(symmetries):
+            logging.info("Row %r: %r", i, [repr(sym.shape) for sym in row])
+    else:
+        logging.info("No symmetries provided.")
+
     projection = asset_io.load_projection(config.get_resources().projection)
+    if projection:
+        logging.info("Loaded projection: %r", projection.shape)
+    else:
+        logging.info("No projection provided.")
 
     algorithm = Gilbert(
         initial=initial_state,

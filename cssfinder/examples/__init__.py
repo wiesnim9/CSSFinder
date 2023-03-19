@@ -128,7 +128,7 @@ class Example(Enum):
         src = self.get_path()
 
         dest_dir = dest / src.name
-        dest_dir.mkdir(0o764, parents=True, exist_ok=True)
+        dest_dir.mkdir(0o777, parents=True, exist_ok=True)
 
         for file in src.iterdir():
             relative_path = file.relative_to(src).as_posix()

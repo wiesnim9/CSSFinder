@@ -140,7 +140,7 @@ class CSSFProject(CommonBaseModel):
     def project_output_directory(self) -> Path:
         """Path to output directory for this project."""
         directory = self.project_directory / "output"
-        directory.mkdir(0o764, parents=True, exist_ok=True)
+        directory.mkdir(0o777, parents=True, exist_ok=True)
         return directory
 
     @classmethod

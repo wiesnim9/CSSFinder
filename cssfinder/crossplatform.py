@@ -28,6 +28,8 @@ import subprocess
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+import psutil
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -46,9 +48,12 @@ class System(Enum):
 
 
 SYSTEM = System(platform.system())
+IS_WIN32 = System.Win32 == SYSTEM
+IS_LINUX = System.Linux == SYSTEM
+IS_MAC = System.MacOS == SYSTEM
 
 
-if System.Win32 == SYSTEM:
+if IS_WIN32:
 
     def open_file_explorer(path: Path) -> None:
         """Open file explorer application specific to platform."""
@@ -58,7 +63,7 @@ if System.Win32 == SYSTEM:
         """Open terminal application specific to platform."""
         subprocess.Popen(["cmd", "/K", f"cd /D {path}"])
 
-elif System.MacOS == SYSTEM:
+elif IS_MAC:
 
     def open_file_explorer(path: Path) -> None:
         """Open file explorer application specific to platform."""
@@ -68,7 +73,7 @@ elif System.MacOS == SYSTEM:
         """Open terminal application specific to platform."""
         subprocess.Popen(["open", "-a", "Terminal", path])
 
-elif System.Linux == SYSTEM:
+elif IS_LINUX:
 
     def open_file_explorer(path: Path) -> None:
         """Open file explorer application specific to platform."""
@@ -79,14 +84,67 @@ elif System.Linux == SYSTEM:
         terminal = os.environ.get("TERMINAL", "x-terminal-emulator")
         subprocess.Popen([terminal, "--working-directory", str(path)])
 
-elif System.Other == SYSTEM:
 
-    def open_file_explorer(path: Path) -> None:  # noqa: ARG001
-        """Open file explorer application specific to platform."""
-        msg = f"Unsupported platform: {platform.system()}"
-        raise ValueError(msg)
+if System.Win32 == SYSTEM:
 
-    def open_terminal(path: Path) -> None:  # noqa: ARG001
-        """Open terminal application specific to platform."""
-        msg = f"Unsupported platform: {platform.system()}"
-        raise ValueError(msg)
+    class Priority(Enum):
+        """Process priority constants."""
+
+        IDLE = psutil.IDLE_PRIORITY_CLASS
+        BELOW_NORMAL = psutil.BELOW_NORMAL_PRIORITY_CLASS
+        NORMAL = psutil.NORMAL_PRIORITY_CLASS
+        ABOVE_NORMAL = psutil.ABOVE_NORMAL_PRIORITY_CLASS
+        HIGH = psutil.HIGH_PRIORITY_CLASS
+        REALTIME = psutil.REALTIME_PRIORITY_CLASS
+
+    class IoPriority(Enum):
+        """Process I/O niceness."""
+
+        HIGH = psutil.IOPRIO_HIGH
+        NORMAL = psutil.IOPRIO_NORMAL
+        LOW = psutil.IOPRIO_LOW
+        NONE = psutil.IOPRIO_VERYLOW
+
+elif System.Linux == SYSTEM or System.MacOS == SYSTEM:
+
+    class Priority(Enum):  # type: ignore[no-redef]
+        """Process priority constants."""
+
+        IDLE = 19
+        BELOW_NORMAL = 10
+        NORMAL = 0
+        ABOVE_NORMAL = -7
+        HIGH = -15
+        REALTIME = -20
+
+    class IoPriority(Enum):  # type: ignore[no-redef]
+        """Process I/O niceness."""
+
+        HIGH = psutil.IOPRIO_CLASS_RT
+        NORMAL = psutil.IOPRIO_CLASS_BE
+        LOW = psutil.IOPRIO_CLASS_IDLE
+        NONE = psutil.IOPRIO_CLASS_NONE
+
+
+def set_priority(pid: int, priority: Priority, io_priority: IoPriority) -> None:
+    """Set process priority. Implemented for win32, linux and macOS, noop elsewhere.
+
+    Can raise psutil.AccessDenied
+
+    """
+    process = psutil.Process(pid)
+    process.nice(priority.value)
+
+    if IS_MAC:
+        return
+
+    if IS_LINUX:
+        if io_priority == IoPriority.HIGH:
+            process.ionice(io_priority.value, value=0)
+            return
+
+        if io_priority == IoPriority.NORMAL:
+            process.ionice(io_priority.value, value=0)
+
+    if IS_WIN32:
+        process.ionice(io_priority.value)

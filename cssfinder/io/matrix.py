@@ -93,6 +93,7 @@ class MatrixIO(ABC):
         """Dump matrix to file from numpy array."""
         if isinstance(dest, (str, Path)):
             file_path = Path(dest).with_suffix(self.matrix_format.value)
+            file_path.touch(0o777, exist_ok=True)
             with file_path.open("wb") as file:
                 return self._dump(data, file)
 

@@ -85,7 +85,7 @@ elif IS_LINUX:
         subprocess.Popen([terminal, "--working-directory", str(path)])
 
 
-if System.Win32 == SYSTEM:
+if IS_WIN32:
 
     class Priority(Enum):
         """Process priority constants."""
@@ -97,15 +97,7 @@ if System.Win32 == SYSTEM:
         HIGH = psutil.HIGH_PRIORITY_CLASS
         REALTIME = psutil.REALTIME_PRIORITY_CLASS
 
-    class IoPriority(Enum):
-        """Process I/O niceness."""
-
-        HIGH = psutil.IOPRIO_HIGH
-        NORMAL = psutil.IOPRIO_NORMAL
-        LOW = psutil.IOPRIO_LOW
-        NONE = psutil.IOPRIO_VERYLOW
-
-elif System.Linux == SYSTEM or System.MacOS == SYSTEM:
+elif IS_MAC or IS_LINUX:
 
     class Priority(Enum):  # type: ignore[no-redef]
         """Process priority constants."""
@@ -117,6 +109,19 @@ elif System.Linux == SYSTEM or System.MacOS == SYSTEM:
         HIGH = -15
         REALTIME = -20
 
+
+if IS_WIN32:
+
+    class IoPriority(Enum):
+        """Process I/O niceness."""
+
+        HIGH = psutil.IOPRIO_HIGH
+        NORMAL = psutil.IOPRIO_NORMAL
+        LOW = psutil.IOPRIO_LOW
+        NONE = psutil.IOPRIO_VERYLOW
+
+elif IS_LINUX:
+
     class IoPriority(Enum):  # type: ignore[no-redef]
         """Process I/O niceness."""
 
@@ -125,11 +130,25 @@ elif System.Linux == SYSTEM or System.MacOS == SYSTEM:
         LOW = psutil.IOPRIO_CLASS_IDLE
         NONE = psutil.IOPRIO_CLASS_NONE
 
+elif IS_MAC:
+
+    class IoPriority(Enum):  # type: ignore[no-redef]
+        """Process I/O niceness.
+
+        Not available on MacOS.
+
+        """
+
+        HIGH = 0
+        NORMAL = 1
+        LOW = 2
+        NONE = 3
+
 
 def set_priority(pid: int, priority: Priority, io_priority: IoPriority) -> None:
     """Set process priority. Implemented for win32, linux and macOS, noop elsewhere.
 
-    Can raise psutil.AccessDenied
+    Can raise psutil.AccessDenied. io_priority is noop on macOS.
 
     """
     process = psutil.Process(pid)

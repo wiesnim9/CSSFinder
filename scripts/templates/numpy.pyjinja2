@@ -110,11 +110,23 @@ def product(
 {{ jit_nopython() }}
 def get_random_haar_1d(depth: int) -> npt.NDArray[{{complex}}]:
     """Generate a random vector with Haar measure."""
+    {% if use_normal_random %}
+
+    real = np.random.normal(0, 1, depth)  # noqa: NPY002
+    imaginary = np.random.normal(0, 1, depth)  # noqa: NPY002
+    # Complex128 is a correct type returned from this expression.
+    # Checked on numpy 1.23.5
+    retval = real + 1j * imaginary
+
+    {% else %}
 
     real = np.random.uniform(0, 1, depth)  # noqa: NPY002
     imag = np.random.uniform(0, 1, depth)  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+
+    {% endif %}
+
     {% if is_32bit %}
     {# np.random.uniform return np.float64 so cast is only needed when using complex64, #}
     {# as real * imag results in np.complex128 type. #}
@@ -129,11 +141,23 @@ def get_random_haar_1d(depth: int) -> npt.NDArray[{{complex}}]:
 {{ jit_nopython() }}
 def get_random_haar_2d(depth: int, quantity: int) -> npt.NDArray[{{complex}}]:
     """Generate multiple random vectors with Haar measure in form of matrix."""
+    {% if use_normal_random %}
+
+    real = np.random.normal(0, 1, (quantity, depth))  # noqa: NPY002
+    imaginary = np.random.normal(0, 1, (quantity, depth))  # noqa: NPY002
+    # Complex128 is a correct type returned from this expression.
+    # Checked on numpy 1.23.5
+    retval = real + 1j * imaginary
+
+    {% else %}
 
     real = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
     imag = np.random.uniform(0, 1, (quantity, depth))  # noqa: NPY002
 
     retval = np.exp(2 * np.pi * 1j * real) * np.sqrt(-np.log(imag))
+
+    {% endif %}
+
     {% if is_32bit %}
     {# np.random.uniform return np.float64 so cast is only needed when using complex64, #}
     {# as real * imag results in np.complex128 type. #}

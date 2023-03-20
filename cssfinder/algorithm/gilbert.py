@@ -52,8 +52,8 @@ class Gilbert:
         is_debug: bool = False,
     ) -> None:
         self.initial = initial
-        self.depth = depth
-        self.quantity = quantity
+        self.depth = int(depth)
+        self.quantity = int(quantity)
 
         self.mode = mode
         self.precision = precision

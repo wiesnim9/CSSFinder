@@ -42,7 +42,7 @@ poetry = "^1.3.2"
 jinja2 = "^3.1.2"
 ruff = "^0.0.254"
 ipykernel = "^6.21.3"
-cssfinder-backend-numpy = "^0.1.1"
+cssfinder-backend-numpy = "^0.2.0"
 
 [tool.poetry.scripts]
 cssfinder = "cssfinder.cli:main"

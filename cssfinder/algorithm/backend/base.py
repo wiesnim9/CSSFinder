@@ -26,13 +26,13 @@ implementations) and exceptions which are expected to be raised from backends.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, ClassVar, TypeVar
 
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
 
-    from cssfinder.cssfproject import AlgoMode, Backend, Precision
+    from cssfinder.cssfproject import AlgoMode
 
 BackendT = TypeVar("BackendT", bound="BackendBase")
 
@@ -40,7 +40,8 @@ BackendT = TypeVar("BackendT", bound="BackendBase")
 class BackendBase:
     """Gilbert algorithm backend (implementation)."""
 
-    backend_index: dict[tuple[Backend, Precision], type[BackendBase]] = {}
+    author: ClassVar[str] = ""
+    description: ClassVar[str] = ""
 
     def __init__(  # noqa: PLR0913
         self,

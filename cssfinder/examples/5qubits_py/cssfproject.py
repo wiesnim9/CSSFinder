@@ -37,7 +37,6 @@ from pydantic import EmailStr
 from cssfinder.api import run_project
 from cssfinder.cssfproject import (
     AlgoMode,
-    Backend,
     BackendCfg,
     CSSFProject,
     GilbertCfg,
@@ -54,7 +53,7 @@ TASKS = [
         gilbert=GilbertCfg(
             mode=AlgoMode.FSnQd,
             backend=BackendCfg(
-                name=Backend.NumPy,
+                name="numpy",
                 precision=Precision.SINGLE,
             ),
             state=State(file=path.as_posix()),

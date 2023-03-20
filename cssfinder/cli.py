@@ -37,6 +37,7 @@ import rich
 
 import cssfinder
 from cssfinder import examples
+from cssfinder.algorithm.backend.loader import Loader
 from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
 from cssfinder.api import AmbiguousTaskKeyError, create_report_from, run_project_from
 from cssfinder.crossplatform import open_file_explorer, open_terminal
@@ -208,6 +209,17 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> 
 def _log_exit(code: int) -> None:
     logging.exception("Exit with code code.")
     raise SystemExit(code)
+
+
+@main.group("backend")
+def _backend() -> None:
+    """Group of commands for inspecting available backends."""
+
+
+@_backend.command("list")
+def _backend_list() -> None:
+    """List available backends."""
+    rich.get_console().print(Loader.new().get_rich_table())
 
 
 @main.group("examples")

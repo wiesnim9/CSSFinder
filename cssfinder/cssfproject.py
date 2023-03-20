@@ -501,7 +501,7 @@ class GilbertCfg(CommonBaseModel, _TaskFieldMixin):
     def get_backend(self) -> BackendCfg:
         """Return resources object."""
         if self.backend is None:
-            self.backend = BackendCfg(name=Backend.NumPy, precision=Precision.DOUBLE)
+            self.backend = BackendCfg(name="numpy", precision=Precision.DOUBLE)
         return self.backend
 
     def get_resources(self) -> Resources:
@@ -552,21 +552,11 @@ class AlgoMode(CaseInsensitiveEnum):
 class BackendCfg(CommonBaseModel):
     """Container class grouping configuration of backend used by Gilbert algorithm."""
 
-    name: Backend
+    name: str
     """Name of backend to use."""
 
     precision: Precision
     """Specify precision of calculations."""
-
-
-class Backend(CaseInsensitiveEnum):
-    """Backend to use for calculations."""
-
-    # pylint: disable=invalid-name
-
-    NumPy = "NumPy"
-
-    # pylint: enable=invalid-name
 
 
 class Precision(CaseInsensitiveEnum):

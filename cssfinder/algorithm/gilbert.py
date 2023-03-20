@@ -27,13 +27,13 @@ import logging
 from time import perf_counter
 from typing import TYPE_CHECKING, Iterable
 
-from cssfinder.algorithm import backend as _backend
+from cssfinder.algorithm.backend.loader import Loader
 
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
 
-    from cssfinder.cssfproject import AlgoMode, Backend, Precision
+    from cssfinder.cssfproject import AlgoMode, Precision
 
 
 class Gilbert:
@@ -46,7 +46,7 @@ class Gilbert:
         depth: int,
         quantity: int,
         mode: AlgoMode,
-        backend: Backend,
+        backend: str,
         precision: Precision,
         visibility: float,
         is_debug: bool = False,
@@ -61,7 +61,7 @@ class Gilbert:
 
         self.is_debug = is_debug
 
-        backend_type = _backend.select(backend, self.precision)
+        backend_type = Loader().new().get_backend(backend, self.precision)
         self.backend = backend_type(
             self.initial,
             self.depth,

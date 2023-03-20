@@ -1,3 +1,4 @@
+__qualname__
 addinivalue
 addoption
 arange
@@ -5,6 +6,7 @@ astype
 autocopyright
 autoflake
 biseparable
+crossplatform
 cssfinder
 cssfproject
 docformatter
@@ -15,6 +17,7 @@ figsize
 figwidth
 forceobj
 fsnqd
+hlines
 getpid
 iloc
 ionice
@@ -25,6 +28,7 @@ jsonref
 Krzysztof
 levelname
 libpangocairo
+linestyles
 looplift
 Marcin
 matplotlib
@@ -40,12 +44,14 @@ offsetted
 pango
 psutil
 pydantic
+pyjinja
 pyplot
 pytest
 qualname
 qubits
 redef
 savefig
+sbipa
 scipy
 sdist
 snakeviz

@@ -80,7 +80,6 @@ class SetupRunProjectMixin:
         shutil.copytree(
             cls.PROJECT_PATH.as_posix(), cls.get_project_directory().as_posix()
         )
-        print(cls.get_project_directory())
 
         run_project_from(cls.get_project_directory(), [cls.TEST_TASK_NAME])
 

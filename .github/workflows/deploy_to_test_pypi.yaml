@@ -25,10 +25,10 @@ jobs:
           architecture: "x64"
 
       - name: Install Poetry 📜
-        run: pip install poetry
+        run: pip install poetry==1.4.0
 
       - name: Install dependencies 🗄️
-        run: poetry install --sync
+        run: poetry install --no-cache --sync
 
       - name: Bump Version for development 🔨 release
         run: |

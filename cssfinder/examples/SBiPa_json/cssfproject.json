@@ -2,15 +2,18 @@
     "version": "1.0.0",
     "meta": {
         "author": "Krzysztof Wiśniewski; Marcin Wieśniak",
-        "email": "example@example.com",
+        "email": "argmaster.world@gmail.com",
         "name": "5qubits",
         "description": "Project description",
         "version": "1.0.0"
     },
+    "execution": {
+        "process_pool_size": "auto"
+    },
     "tasks": {
         "main": {
             "gilbert": {
-                "mode": "FSnQd",
+                "mode": "SBiPa",
                 "backend": {
                     "name": "numpy",
                     "precision": "single"
@@ -18,13 +21,13 @@
                 "runtime": {
                     "visibility": 0.4,
                     "max_epochs": 1000,
-                    "iters_per_epoch": 2000,
+                    "iters_per_epoch": 1000,
                     "max_corrections": 1000
                 },
                 "state": {
-                    "file": "{project.project_directory}/5qubits_in.mtx",
-                    "depth": null,
-                    "quantity": null
+                    "file": "{project.project_directory}/state.mtx",
+                    "depth": 3,
+                    "quantity": 3
                 },
                 "resources": {
                     "symmetries": null,
@@ -32,7 +35,7 @@
                 }
             }
         },
-        "test_fsnqd_5qubits": {
+        "test_sbipa_proj": {
             "gilbert": {
                 "mode": {
                     "$ref": "#/tasks/main/gilbert/mode"
@@ -51,6 +54,29 @@
                 },
                 "resources": {
                     "$ref": "#/tasks/main/gilbert/resources"
+                }
+            }
+        },
+        "test_sbipa_proj_with_projection": {
+            "gilbert": {
+                "mode": {
+                    "$ref": "#/tasks/main/gilbert/mode"
+                },
+                "backend": {
+                    "$ref": "#/tasks/main/gilbert/backend"
+                },
+                "runtime": {
+                    "visibility": 0.4,
+                    "max_epochs": 10,
+                    "iters_per_epoch": 10,
+                    "max_corrections": 10
+                },
+                "state": {
+                    "$ref": "#/tasks/main/gilbert/state"
+                },
+                "resources": {
+                    "symmetries": null,
+                    "projection": "{project.project_directory}/projection.mtx"
                 }
             }
         }

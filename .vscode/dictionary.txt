@@ -18,7 +18,10 @@ figwidth
 forceobj
 fsnqd
 hlines
+getpid
 iloc
+ionice
+IOPRIO
 isort
 isreal
 jsonref
@@ -39,10 +42,12 @@ numba
 numpy
 offsetted
 pango
+psutil
 pydantic
 pyjinja
 pyplot
 pytest
+qualname
 qubits
 redef
 savefig

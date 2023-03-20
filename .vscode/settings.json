@@ -74,17 +74,26 @@
     "python.analysis.completeFunctionParens": false,
     "python.analysis.useLibraryCodeForTypes": true,
     "cSpell.ignoreWords": [
+        "VERYLOW",
+        "barh",
         "contourpy",
+        "corrs",
         "dateutil",
         "dnspython",
+        "errorbar",
+        "facecolor",
+        "fontsize",
         "fonttools",
         "idna",
         "kiwisolver",
+        "labelpad",
+        "linewidth",
         "llvmlite",
         "mdurl",
         "pygments",
         "pyparsing",
         "pytz",
-        "pytzdata"
+        "pytzdata",
+        "xerr"
     ]
 }

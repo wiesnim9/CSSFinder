@@ -41,17 +41,18 @@ DEFAULT_DEST = Path(__file__).parent.parent / "cssfinder/algorithm/backend/numpy
 @click.option("--dest", default=DEFAULT_DEST, type=Path)
 @click.option("--disable-jit", is_flag=True, default=False)
 @click.option("--debug-dtype-checks", is_flag=True, default=False)
-@click.option("--use-legacy-random", is_flag=True, default=False)
+@click.option("--use-normal-random", is_flag=True, default=False)
 def main(
     dest: Path,
     *,
     disable_jit: bool,
     debug_dtype_checks: bool,
-    use_legacy_random: bool,
+    use_normal_random: bool,
 ) -> None:
     """Generate numpy precision backends from template."""
     logging.warning("Option            --disable-jit %r", disable_jit)
     logging.warning("Option     --debug-dtype-checks %r", debug_dtype_checks)
+    logging.warning("Option      --use-normal-random %r", use_normal_random)
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(TEMPLATES_DIR.as_posix()),
@@ -69,7 +70,7 @@ def main(
             complex=complex_,
             disable_jit=disable_jit,
             debug_dtype_checks=debug_dtype_checks,
-            use_legacy_random=use_legacy_random,
+            use_normal_random=use_normal_random,
             is_64bit="64" in floating,
             is_32bit="32" in floating,
         )

@@ -31,7 +31,7 @@ class Test_SBiPa(ModeTest):  # noqa: N801  # Underscore used for readability.
     """Test behavior of SBiPa mode of Gilbert algorithm."""
 
     EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Example.proj.get_path()
+    PROJECT_PATH = Example.SBiPa_json.get_path()
     TEST_TASK_NAME: str = "test_sbipa_proj"
 
     OUT_STATE_ROW_COUNT: int = 9
@@ -47,7 +47,7 @@ class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readabilit
     """Test behavior of SBiPa mode of Gilbert algorithm with projections."""
 
     EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Example.proj.get_path()
+    PROJECT_PATH = Example.SBiPa_json.get_path()
     TEST_TASK_NAME: str = "test_sbipa_proj_with_projection"
 
     OUT_STATE_ROW_COUNT: int = 9

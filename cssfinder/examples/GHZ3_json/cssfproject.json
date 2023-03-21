@@ -2,9 +2,9 @@
     "version": "1.0.0",
     "meta": {
         "author": "Krzysztof Wiśniewski; Marcin Wieśniak",
-        "email": "example@example.com",
+        "email": "argmaster.world@gmail.com",
         "name": "GHZ3",
-        "description": "Project description",
+        "description": "Example of project configuration for 'Genuine 3-partite entanglement of a 3-quDit state' mode.",
         "version": "1.0.0"
     },
     "tasks": {

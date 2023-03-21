@@ -31,7 +31,7 @@ class Test_FSnQd(ModeTest):  # noqa: N801  # Underscore used for readability.
     """Test behavior of FSnQd mode of Gilbert algorithm."""
 
     EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
-    PROJECT_PATH = Example.e5qubits.get_path()
+    PROJECT_PATH = Example.e5qubits_json.get_path()
     TEST_TASK_NAME: str = "test_fsnqd_5qubits"
 
     OUT_STATE_ROW_COUNT: int = 32

@@ -1,6 +1,6 @@
 [tool.poetry] # ANCHOR: tool.poetry
 name = "cssfinder"
-version = "0.4.0"
+version = "0.5.0"
 description = "Tool for Hilbert-Schmidt distance calculation with Gilbert algorithm."
 authors = [
     "Krzysztof Wiśniewski <argmaster.world@gmail.com>",

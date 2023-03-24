@@ -2,6 +2,13 @@
 
 NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 
+### 0.5.0 - Mar 20, 2023
+
+- Add dynamically loaded backends.
+- Remove bundled numpy backend. Now it has to be installed separately from
+  `cssfinder_backend_numpy`.
+- Add automatic priority elevation, may require administrator privileges.
+
 ### 0.4.0 - Mar 17, 2023
 
 - Add interface for accessing bundled examples.

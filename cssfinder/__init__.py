@@ -26,4 +26,4 @@ given state and the set of separable states.
 
 from __future__ import annotations
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

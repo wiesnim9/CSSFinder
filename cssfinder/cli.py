@@ -29,27 +29,16 @@ import traceback
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 import click
 import pendulum
 import rich
 
 import cssfinder
-from cssfinder import examples
-from cssfinder.algorithm.backend.loader import Loader
-from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
-from cssfinder.api import AmbiguousTaskKeyError, create_report_from, run_project_from
-from cssfinder.crossplatform import open_file_explorer, open_terminal
-from cssfinder.cssfproject import (
-    InvalidCSSFProjectContentError,
-    MalformedProjectFileError,
-    ProjectFileNotFoundError,
-)
-from cssfinder.enums import ExitCode
-from cssfinder.interactive import create_new_project
-from cssfinder.log import configure_logger
-from cssfinder.reports.renderer import ReportType
+
+if TYPE_CHECKING:
+    from cssfinder import examples
 
 VERBOSITY_INFO: int = 2
 
@@ -76,9 +65,11 @@ class Ctx:
 @click.option("--debug", is_flag=True, default=False)
 def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
     """CSSFinder is a script for finding closest separable states."""
-    ctx.obj = Ctx(is_debug=debug)
+    from cssfinder.log import configure_logger
 
     configure_logger(verbosity=verbose, logger_name="cssfinder", use_rich=False)
+    ctx.obj = Ctx(is_debug=debug)
+
     logging.getLogger("numba").setLevel(logging.ERROR)
     logging.info("CSSFinder started at %s", pendulum.now().isoformat(sep=" "))
 
@@ -132,6 +123,8 @@ def _project_new(
     project_version: Optional[str],
 ) -> None:
     """Create new project."""
+    from cssfinder.interactive import create_new_project
+
     create_new_project(author, email, name, description, project_version)
 
 
@@ -151,6 +144,14 @@ def _task() -> None:
 @click.pass_obj
 def _run(ctx: Ctx, match_: list[str] | None) -> None:
     """Run tasks from the project."""
+    from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
+    from cssfinder.api import run_project_from
+    from cssfinder.cssfproject import (
+        InvalidCSSFProjectContentError,
+        MalformedProjectFileError,
+        ProjectFileNotFoundError,
+    )
+
     if not match_:
         match_ = None
 
@@ -217,6 +218,9 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> 
     TASK - name pattern matching exactly one task, for which report should be created.
 
     """
+    from cssfinder.api import AmbiguousTaskKeyError, create_report_from
+    from cssfinder.reports.renderer import ReportType
+
     assert ctx.project_path is not None
 
     include_report_types = []
@@ -258,6 +262,8 @@ def _backend() -> None:
 @_backend.command("list")
 def _backend_list() -> None:
     """List available backends."""
+    from cssfinder.algorithm.backend.loader import Loader
+
     rich.get_console().print(Loader.new().get_rich_table())
 
 
@@ -269,6 +275,8 @@ def _examples() -> None:
 @_examples.command("list")
 def _examples_list() -> None:
     """Show list of all available example projects."""
+    from cssfinder import examples
+
     console = rich.get_console()
     table = examples.Example.get_info_table()
     console.print()
@@ -344,6 +352,10 @@ def _examples_clone(
     do_open_explorer: bool,
 ) -> None:
     """Clone one of examples to specific location."""
+    from cssfinder.crossplatform import open_file_explorer, open_terminal
+    from cssfinder.cssfproject import ProjectFileNotFoundError
+    from cssfinder.enums import ExitCode
+
     destination = Path.cwd() if out is None else Path(out).expanduser().resolve()
 
     example = _select_example(sha, name)
@@ -380,6 +392,8 @@ def _examples_clone(
 def _get_validated_destination(
     destination: Path, example: examples.Example, *, force_overwrite: bool
 ) -> Path:
+    from cssfinder.enums import ExitCode
+
     destination_project_folder = destination / example.folder_name
     is_destination_exists = destination_project_folder.exists()
 
@@ -405,6 +419,9 @@ def _get_validated_destination(
 
 
 def _select_example(sha: Optional[str], name: Optional[str]) -> examples.Example:
+    from cssfinder import examples
+    from cssfinder.enums import ExitCode
+
     if name is not None:
         try:
             example = examples.Example.select_by_name(name)

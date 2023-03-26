@@ -24,6 +24,7 @@ matplotlib = "^3.7.0"
 pandas = "^1.5.3"
 weasyprint = "^58.1"
 psutil = "^5.9.4"
+pytermgui = "^7.3.0"
 
 [tool.poetry.group.dev.dependencies] # ANCHOR: tool.poetry.dev-dependencies
 black = ">=22.12,<24.0"

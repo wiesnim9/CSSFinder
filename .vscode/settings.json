@@ -68,6 +68,10 @@
         {
             "name": "numpy",
             "depth": 4
+        },
+        {
+            "name": "pytermgui",
+            "depth": 8
         }
     ],
     "python.analysis.autoImportCompletions": true,

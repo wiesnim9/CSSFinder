@@ -47,6 +47,7 @@ from cssfinder.cssfproject import (
     ProjectFileNotFoundError,
 )
 from cssfinder.enums import ExitCode
+from cssfinder.interactive import create_new_project
 from cssfinder.log import configure_logger
 from cssfinder.reports.renderer import ReportType
 
@@ -94,33 +95,71 @@ def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
         )
 
 
+def _is_path_needed_for_subcommand(
+    ctx: click.Context, param: click.Option, value: Optional[str]  # noqa: ARG001
+) -> str | None:
+    print(type(value))
+    if ctx.invoked_subcommand in ["task"] and not value:
+        msg = "The path parameter is required for this subcommand."
+        raise click.BadParameter(msg)
+    return value
+
+
 @main.group("project")
 @click.pass_context
-@click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True))
+@click.option(
+    "--path",
+    "-p",
+    type=click.Path(exists=True, file_okay=True, dir_okay=True),
+    callback=_is_path_needed_for_subcommand,
+)
 def _project(ctx: click.Context, path: str) -> None:
     """Group of commands for interaction with projects."""
     ctx.obj.project_path = path
 
 
-@_project.command("run")
+@_project.command("new")
+@click.option("--author", default=None, help="Author metadata field value.")
+@click.option("--email", default=None, help="Email metadata field value.")
+@click.option("--name", default=None, help="Name metadata field value.")
+@click.option("--description", default=None, help="Description metadata field value.")
+@click.option("--project-version", default=None, help="Version metadata field value.")
+def _project_new(
+    author: Optional[str],
+    email: Optional[str],
+    name: Optional[str],
+    description: Optional[str],
+    project_version: Optional[str],
+) -> None:
+    """Create new project."""
+    create_new_project(author, email, name, description, project_version)
+
+
+@_project.group("task")
+def _task() -> None:
+    """Group of commands to operate on tasks."""
+
+
+@_task.command("run")
 @click.option(
-    "--tasks",
-    "-t",
+    "--match",
+    "-m",
+    "match_",
     multiple=True,
     help="Use to specify names of tasks to run. When omitted, all tasks are executed.",
 )
 @click.pass_obj
-def _run(ctx: Ctx, tasks: list[str] | None) -> None:
+def _run(ctx: Ctx, match_: list[str] | None) -> None:
     """Run tasks from the project."""
-    if not tasks:
-        tasks = None
+    if not match_:
+        match_ = None
 
     if ctx.project_path is None:
         reason = "ctx.project_path shall not be None."
         raise RuntimeError(reason)
 
     try:
-        run_project_from(ctx.project_path, tasks, is_debug=ctx.is_debug)
+        run_project_from(ctx.project_path, match_, is_debug=ctx.is_debug)
 
     except ProjectFileNotFoundError as exc:
         logging.critical("Project file not found. %s", exc.args[0])
@@ -145,7 +184,7 @@ def _run(ctx: Ctx, tasks: list[str] | None) -> None:
     raise SystemExit(0)
 
 
-@_project.command("task-report")
+@_task.command("report")
 @click.argument(
     "task",
 )

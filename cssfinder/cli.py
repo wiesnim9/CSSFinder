@@ -89,7 +89,6 @@ def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
 def _is_path_needed_for_subcommand(
     ctx: click.Context, param: click.Option, value: Optional[str]  # noqa: ARG001
 ) -> str | None:
-    print(type(value))
     if ctx.invoked_subcommand in ["task"] and not value:
         msg = "The path parameter is required for this subcommand."
         raise click.BadParameter(msg)
@@ -131,6 +130,121 @@ def _project_new(
 @_project.group("task")
 def _task() -> None:
     """Group of commands to operate on tasks."""
+
+
+@_task.group("add")
+def _add() -> None:
+    """Command for adding new tasks."""
+
+
+@_add.command("gilbert")
+@click.pass_obj
+@click.option("--name", default=None, help="Name for the task.")
+@click.option("--mode", default=None, help="Algorithm mode.")
+@click.option(
+    "--backend-name",
+    default=None,
+    help="Name of backend. Use `cssfinder backend list` to show installed backends.",
+)
+@click.option("--precision", default=None, help="Precision of calculations.")
+@click.option(
+    "--state",
+    default=None,
+    help="Path to matrix file containing initial system state.",
+)
+@click.option(
+    "--depth",
+    default=None,
+    help="Depth of system, ie. number of dimensions in qu(D)it. (d)",
+)
+@click.option(
+    "--quantity",
+    default=None,
+    help="Quantity of systems. ie. number of qu(D)its in state. (n)",
+)
+@click.option(
+    "--visibility",
+    default=None,
+    help="Visibility against white noise, Between 0 and 1.",
+)
+@click.option(
+    "--max-epochs", default=None, help="Maximal number of algorithm epochs to perform."
+)
+@click.option(
+    "--iters-per-epoch", default=None, help="Number of iterations per single epoch."
+)
+@click.option(
+    "--max-corrections",
+    default=None,
+    help="Maximal number of corrections to collect. Because halt condition is checked "
+    "once per epoch, number of total corrections might exceed this limit for long "
+    "epochs. Use -1 to disable this limit.",
+)
+@click.option(
+    "--derive",
+    default=None,
+    help="Declare name of other existing task to derive missing field values from.",
+)
+@click.option(
+    "--symmetries",
+    default=None,
+    help="List of lists of files containing symmetries matrices as valid JSON literal.",
+)
+@click.option(
+    "--projection",
+    default=None,
+    help="Path to file containing projection matrix.",
+)
+def _gilbert(  # noqa: PLR0913
+    ctx: Ctx,
+    name: Optional[str],
+    mode: Optional[str],
+    backend_name: Optional[str],
+    precision: Optional[str],
+    state: Optional[str],
+    depth: Optional[str],
+    quantity: Optional[str],
+    visibility: Optional[str],
+    max_epochs: Optional[str],
+    iters_per_epoch: Optional[str],
+    max_corrections: Optional[str],
+    symmetries: Optional[str],
+    projection: Optional[str],
+    derive: Optional[str],
+) -> None:
+    """Add new gilbert algorithm task.
+
+    Task options can either be given by command line parameters or later interactively.
+
+    """
+    from cssfinder.cssfproject import CSSFProject
+    from cssfinder.interactive import GilbertTaskSpec, add_task_gilbert
+
+    if ctx.project_path is None:
+        reason = "ctx.project_path shall not be None."
+        raise RuntimeError(reason)
+
+    project = CSSFProject.load_project(ctx.project_path)
+
+    add_task_gilbert(
+        project,
+        GilbertTaskSpec(
+            name or f"task_{len(project.tasks)}",
+            mode or "FSnQd",
+            backend_name or "numpy_jit",
+            precision or "single",
+            state or "{project.project_directory}/state.mtx",
+            depth,
+            quantity,
+            visibility or "0.4",
+            max_epochs or "100",
+            iters_per_epoch or "10000",
+            max_corrections or "1000",
+            symmetries or "[]",
+            projection,
+            derive,
+        ),
+    )
 
 
 @_task.command("run")

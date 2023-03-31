@@ -233,7 +233,7 @@ def _gilbert(  # noqa: PLR0913
             mode or "FSnQd",
             backend_name or "numpy_jit",
             precision or "single",
-            state or "{project.project_directory}/state.mtx",
+            state,
             depth,
             quantity,
             visibility or "0.4",

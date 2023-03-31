@@ -253,6 +253,10 @@ class GilbertTaskSpec:
 
     def to_task(self) -> Task:
         """Create Task object with values from spec."""
+        if self.state is None:
+            msg = "Path to file containing state matrix must be specified."
+            raise ValueError(msg)
+
         return Task(
             gilbert=GilbertCfg(
                 mode=AlgoMode(self.mode),
@@ -321,6 +325,7 @@ def get_gilbert_task_fields_with_pytermgui(
 ) -> GilbertTaskSpec:
     """Create temporary TUI prompt for entering task configuration."""
     is_interrupted: bool = True
+    df_state = "{project.project_directory}/state.mtx"
 
     with ptg.WindowManager() as manager:
 
@@ -351,7 +356,7 @@ def get_gilbert_task_fields_with_pytermgui(
                     ),
                 ptg.Label("[!gradient(63)]Initial System State", parent_align=0),
                     ptg.Container(
-                (field_state := InputField(spec.state or "?", prompt="State File Path*: ")),
+                (field_state := InputField(spec.state or df_state or "?", prompt="State File Path*: ")),
                 (field_depth := InputField(spec.depth or "None", prompt="System Depth: ")),
                 (field_quantity := InputField(spec.quantity or "None", prompt="System Quantity: ")),
                     ),
@@ -365,7 +370,7 @@ def get_gilbert_task_fields_with_pytermgui(
                     ),
                 ptg.Label("[!gradient(63)]Modifiers", parent_align=0),
                     ptg.Container(
-                (field_symmetries := InputField(spec.symmetries or "None", prompt="Symmetries: ", multiline=True)),
+                (field_symmetries := InputField(spec.symmetries or "None", prompt="Symmetries: ")),
                 (field_projection := InputField(spec.projection or "None", prompt="Projection: ")),
                     ),
                     "",

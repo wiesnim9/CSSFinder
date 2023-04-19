@@ -26,6 +26,8 @@ weasyprint = "^58.1"
 psutil = "^5.9.4"
 pytermgui = "^7.3.0"
 jinja2 = "^3.1.2"
+cssfinder-backend-numpy = { version = ">=0.3.0", optional = true }
+cssfinder-backend-rust = { version = ">=0.1.0", optional = true }
 
 [tool.poetry.group.dev.dependencies] # ANCHOR: tool.poetry.dev-dependencies
 black = ">=22.12,<24.0"
@@ -45,6 +47,10 @@ jinja2 = "^3.1.2"
 ruff = ">=0.0.254"
 ipykernel = "^6.21.3"
 cssfinder-backend-numpy = ">=0.3.0"
+
+[tool.poetry.extras]
+backend-numpy = ["cssfinder-backend-numpy"]
+backend-rust = ["cssfinder-backend-rust"]
 
 [tool.poetry.scripts]
 cssfinder = "cssfinder.cli:main"

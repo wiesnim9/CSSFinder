@@ -24,6 +24,9 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
+from itertools import repeat
 from typing import TYPE_CHECKING, Iterable
 
 import psutil
@@ -70,11 +73,22 @@ def run_project(
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
     logging.info("%s", "\n    |  " + message)
 
-    for task in project.select_tasks(tasks):
-        run_task(task, is_debug=is_debug)
+    with ProcessPoolExecutor() as executor:
+        executor.map(
+            run_task,
+            project.select_tasks(tasks),
+            repeat(TaskOptions(is_debug=is_debug)),
+        )
 
 
-def run_task(task: Task, *, is_debug: bool = False) -> None:
+@dataclass
+class TaskOptions:
+    """Container for extra task options."""
+
+    is_debug: bool
+
+
+def run_task(task: Task, options: TaskOptions) -> None:
     """Run task until completed."""
     try:
         set_priority(os.getpid(), Priority.REALTIME, IoPriority.HIGH)
@@ -89,7 +103,7 @@ def run_task(task: Task, *, is_debug: bool = False) -> None:
         )
 
     if task.gilbert:
-        run_gilbert(task.gilbert, task.task_output_directory, is_debug=is_debug)
+        run_gilbert(task.gilbert, task.task_output_directory, is_debug=options.is_debug)
 
 
 def run_gilbert(

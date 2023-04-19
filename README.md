@@ -10,6 +10,24 @@ To install CSSFinder from PyPI, use `pip` in terminal:
 pip install cssfinder
 ```
 
+Because CSSFinder is a modular tool, you will have to also install a `backend`
+package, which contains concrete implementation of algorithms. Simples way is
+to just install `numpy` or `rust` extras set:
+
+```
+pip install cssfinder[numpy]
+```
+
+```
+pip install cssfinder[rust]
+```
+
+You don't need both, one will be perfectly fine. Alternatively, you may find
+`cssfinder-backend-numpy` and `cssfinder-backend-rust` on PyPI and install them
+manually, with exact same effect. Backends are dynamically detected from all
+locations, Python can import modules, thus any valid way of making backend code
+reachable for interpreter will work.
+
 If you want to use development version, traverse `Development` and `Packaging`
 sections below.
 
@@ -26,6 +44,58 @@ may also help. Alternatively you can use WSL to install and run CSSFinder, as
 its seamless to do that.
 
 Its worth mentioning that other formats are not affected by this issue.
+
+## Examples
+
+Fortunately for all newcomers, CSSFinders comes in with some example projects,
+which may come in handy while starting to describe your first project.
+
+List of examples available with CSSFinder can be obtained with command:
+
+```
+cssfinder examples list
+```
+
+Afterwards you should be presented with table, within console window, similar
+to this one:
+
+![image](https://user-images.githubusercontent.com/56170852/233212801-6cd1fb3e-ae91-4878-81d7-d972431850ed.png)
+
+For sake of example, let's assume that name `5qubits_json` caught our eye, and
+now we are willing to spend some of our precious time diving deeper into what's
+inside. To do that, we have to clone this example somewhere with following
+command:
+
+```
+cssfinder examples clone --name 5qubits_json
+```
+
+> This command, similarly to all other commands of all other CSSFinder
+> commands, can be used with `--help` flag to inspect possible invocation
+> parameters.
+
+As result, you should find `5qubits_json` directory have been created in your
+current working directory.
+
+> Example `5qubits_json` relies on `numpy` backend, make sure to install it, if
+> you haven't done it before.
+
+![image](https://user-images.githubusercontent.com/56170852/233217324-9b51d732-18a6-4297-91d7-b277c73edfd6.png)
+
+Now we can proceed with running tasks defined within the project. That can be
+achieved with following command:
+
+```
+cssfinder project -p ./5qubits_json/ task run
+```
+
+This command will run all tasks, which may take something in between of few
+seconds and few minutes, depending on your hardware.
+
+Result of calculations can be inspected in `output/` directory in project
+folder (`5qubits_json/`).
+
+![image](https://user-images.githubusercontent.com/56170852/233218942-ac47a923-21f7-4b3a-af02-7a7961360abc.png)
 
 ## Development
 

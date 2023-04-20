@@ -49,6 +49,8 @@ def run_project_from(
     tasks: list[str] | None = None,
     *,
     is_debug: bool = False,
+    force_sequential: bool = False,
+    max_parallel: int = -1,
 ) -> None:
     """Load project and run all tasks."""
     project = CSSFProject.load_project(project_file_path)
@@ -58,7 +60,13 @@ def run_project_from(
         project.meta.author,
         project.meta.email,
     )
-    run_project(project, tasks, is_debug=is_debug)
+    run_project(
+        project,
+        tasks,
+        is_debug=is_debug,
+        force_sequential=force_sequential,
+        max_parallel=max_parallel,
+    )
 
 
 def run_project(
@@ -66,6 +74,8 @@ def run_project(
     tasks: list[str] | None = None,
     *,
     is_debug: bool = False,
+    force_sequential: bool = False,
+    max_parallel: int = -1,
 ) -> None:
     """Run all tasks defined in project."""
     logging.debug("Running project %r", project.meta.name)
@@ -73,12 +83,23 @@ def run_project(
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
     logging.info("%s", "\n    |  " + message)
 
-    with ProcessPoolExecutor() as executor:
-        executor.map(
+    if force_sequential:
+        for _ in map(
             run_task,
             project.select_tasks(tasks),
             repeat(TaskOptions(is_debug=is_debug)),
-        )
+        ):
+            pass
+
+    else:
+        with ProcessPoolExecutor(
+            max_parallel if max_parallel > 0 else None
+        ) as executor:
+            executor.map(
+                run_task,
+                project.select_tasks(tasks),
+                repeat(TaskOptions(is_debug=is_debug)),
+            )
 
 
 @dataclass

@@ -77,6 +77,7 @@ import sys
 from logging import LogRecord, getLogger, handlers
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -284,6 +285,23 @@ def _create_file_handler(
         file_handler.doRollover()
 
     return file_handler
+
+
+def enable_performance_logging() -> None:
+    """Enable run time measurement and logging for run_project() function."""
+    import time
+
+    from cssfinder.api import run_project
+
+    def run_project_wrapper(*args: Any, **kwargs: Any) -> None:
+        start_time = time.perf_counter()
+        run_project(*args, **kwargs)
+        end_time = time.perf_counter()
+        execution_time = end_time - start_time
+
+        print(f"Execution time: {execution_time:.6f} seconds")
+
+    patch("cssfinder.api.run_project", new=run_project_wrapper).__enter__()
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@ import pendulum
 import rich
 
 import cssfinder
+from cssfinder.log import enable_performance_logging
 
 if TYPE_CHECKING:
     from cssfinder import examples
@@ -63,7 +64,8 @@ class Ctx:
 )
 @click.version_option(cssfinder.__version__, "-V", "--version", prog_name="cssfinder")
 @click.option("--debug", is_flag=True, default=False)
-def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
+@click.option("--perf-log", is_flag=True, default=False)
+def main(ctx: click.Context, verbose: int, *, debug: bool, perf_log: bool) -> None:
     """CSSFinder is a script for finding closest separable states."""
     from cssfinder.log import configure_logger
 
@@ -72,6 +74,9 @@ def main(ctx: click.Context, verbose: int, *, debug: bool) -> None:
 
     logging.getLogger("numba").setLevel(logging.ERROR)
     logging.info("CSSFinder started at %s", pendulum.now().isoformat(sep=" "))
+
+    if perf_log:
+        enable_performance_logging()
 
     if verbose >= VERBOSITY_INFO:
         print(
@@ -255,8 +260,25 @@ def _gilbert(  # noqa: PLR0913
     multiple=True,
     help="Use to specify names of tasks to run. When omitted, all tasks are executed.",
 )
+@click.option(
+    "--force-sequential",
+    is_flag=True,
+    default=False,
+    help="Enforce sequential execution. As opposed to --max-parallel set to 1, "
+    "this causes code to execute only in main thread.",
+)
+@click.option(
+    "--max-parallel",
+    "-p",
+    type=int,
+    default=-1,
+    help="Limit maximal number of tasks executed in parallel. Note that this never "
+    "changes execution scheme, thus code won't be executed in main thread.",
+)
 @click.pass_obj
-def _run(ctx: Ctx, match_: list[str] | None) -> None:
+def _run(
+    ctx: Ctx, match_: list[str] | None, *, force_sequential: bool, max_parallel: int
+) -> None:
     """Run tasks from the project."""
     from cssfinder.algorithm.gilbert import SaveCorrectionsHookError, SaveStateHookError
     from cssfinder.api import run_project_from
@@ -274,7 +296,13 @@ def _run(ctx: Ctx, match_: list[str] | None) -> None:
         raise RuntimeError(reason)
 
     try:
-        run_project_from(ctx.project_path, match_, is_debug=ctx.is_debug)
+        run_project_from(
+            ctx.project_path,
+            match_,
+            is_debug=ctx.is_debug,
+            force_sequential=force_sequential,
+            max_parallel=max_parallel,
+        )
 
     except ProjectFileNotFoundError as exc:
         logging.critical("Project file not found. %s", exc.args[0])

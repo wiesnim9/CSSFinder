@@ -33,7 +33,7 @@ filelock = "^3.12.0"
 [tool.poetry.group.dev.dependencies] # ANCHOR: tool.poetry.dev-dependencies
 black = ">=22.12,<24.0"
 isort = "^5.11.4"
-docformatter = { extras = ["tomli"], version = "^1.5.1" }
+docformatter = { extras = ["tomli"], version = "==1.5.1" }
 pytest = "^7.2.0"
 autoflake = "^2.0.0"
 pre-commit = ">=2.20,<4.0"
@@ -105,7 +105,6 @@ line_length = 88
 line-length = 88
 target-version = ['py38', 'py39', 'py310', 'py311']
 extend-exclude = "(external)"
-
 
 [tool.mypy] # ANCHOR: tool.mypy
 # ---------------------------------------------------------------------------- #

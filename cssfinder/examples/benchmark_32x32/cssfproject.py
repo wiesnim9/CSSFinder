@@ -77,9 +77,8 @@ __project__ = CSSFProject(
     meta=Meta(
         author="Krzysztof Wiśniewski",
         email=EmailStr("argmaster.world@gmail.com"),
-        name="5qubits",
-        description="Example of project configuration for 'Full separability of an "
-        "n-quDit state' mode.",
+        name="benchmark_32x32",
+        description="Performance benchmark with 64x64 matrices.",
         version=SemVerStr("1.0.0"),
     ),
     tasks=TASKS,

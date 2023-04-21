@@ -76,17 +76,19 @@ def run_project(
     is_debug: bool = False,
     force_sequential: bool = False,
     max_parallel: int = -1,
-) -> None:
+) -> list[Task]:
     """Run all tasks defined in project."""
     logging.debug("Running project %r", project.meta.name)
 
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
     logging.info("%s", "\n    |  " + message)
 
+    task_list = project.select_tasks(tasks)
+
     if force_sequential:
         for _ in map(
             run_task,
-            project.select_tasks(tasks),
+            task_list,
             repeat(TaskOptions(is_debug=is_debug)),
         ):
             pass
@@ -97,9 +99,11 @@ def run_project(
         ) as executor:
             executor.map(
                 run_task,
-                project.select_tasks(tasks),
+                task_list,
                 repeat(TaskOptions(is_debug=is_debug)),
             )
+
+    return task_list
 
 
 @dataclass

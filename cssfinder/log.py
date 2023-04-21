@@ -72,16 +72,21 @@ NoHighlightRichHandler(RichHandler)
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 from logging import LogRecord, getLogger, handlers
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
+from filelock import FileLock
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
+
+if TYPE_CHECKING:
+    from cssfinder.cssfproject import CSSFProject, Task
 
 LOGGER: logging.Logger
 VERBOSITY_MAP: dict[int, int] = {
@@ -293,13 +298,47 @@ def enable_performance_logging() -> None:
 
     from cssfinder.api import run_project
 
-    def run_project_wrapper(*args: Any, **kwargs: Any) -> None:
+    def run_project_wrapper(
+        project: CSSFProject,
+        tasks: list[str] | None = None,
+        *,
+        is_debug: bool = False,
+        force_sequential: bool = False,
+        max_parallel: int = -1,
+    ) -> list[Task]:
         start_time = time.perf_counter()
-        run_project(*args, **kwargs)
+        task_list = run_project(
+            project,
+            tasks,
+            is_debug=is_debug,
+            force_sequential=force_sequential,
+            max_parallel=max_parallel,
+        )
         end_time = time.perf_counter()
         execution_time = end_time - start_time
 
+        perf_file = Path.cwd() / f"perf_{project.meta.name}.json"
+
+        with FileLock(perf_file.with_suffix(".lock").as_posix()):
+            if perf_file.exists():
+                raw_content = perf_file.read_text(encoding="utf-8")
+                try:
+                    perf_index = json.loads(raw_content)
+                except json.JSONDecodeError:
+                    perf_index = {}
+            else:
+                perf_index = {}
+
+            key = str.join("|", tasks) if tasks is not None else "None"
+            perf_results_list = perf_index.get(key, [])
+            perf_results_list.append(execution_time)
+            perf_index[key] = perf_results_list
+
+            serialized_perf_index = json.dumps(perf_index, indent=4)
+            perf_file.write_text(serialized_perf_index, encoding="utf-8")
+
         print(f"Execution time: {execution_time:.6f} seconds")
+        return task_list
 
     patch("cssfinder.api.run_project", new=run_project_wrapper).__enter__()
 

@@ -943,3 +943,6 @@ typechecking/
 *.env
 .ruff_cache
 output/
+*.whl
+*.lock
+perf_*.json

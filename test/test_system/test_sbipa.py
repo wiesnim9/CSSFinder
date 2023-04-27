@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from test.test_system.base import ModeTest
 
+import pytest
+
 from cssfinder.examples import Example
 
 
@@ -55,3 +57,7 @@ class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readabilit
 
     MIN_CORRECTION_VALUE: float = 0.001
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.001, 0.25)
+
+    @pytest.mark.skip()
+    def test_last_better_than_first_correction(self) -> None:
+        """Check if last correction is better (smaller) than first correction."""

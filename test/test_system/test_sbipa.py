@@ -37,7 +37,7 @@ class Test_SBiPa(ModeTest):  # noqa: N801  # Underscore used for readability.
     OUT_STATE_ROW_COUNT: int = 9
     OUT_STATE_COL_COUNT: int = 9
 
-    MIN_CORRECTION_VALUE: float = 0.070
+    MIN_CORRECTION_VALUE: float = 0.010
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.120)
 
 
@@ -53,5 +53,5 @@ class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readabilit
     OUT_STATE_ROW_COUNT: int = 9
     OUT_STATE_COL_COUNT: int = 9
 
-    MIN_CORRECTION_VALUE: float = 0.090
+    MIN_CORRECTION_VALUE: float = 0.010
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.130)

@@ -46,8 +46,8 @@
                 "runtime": {
                     "visibility": 0.4,
                     "max_epochs": 10,
-                    "iters_per_epoch": 10,
-                    "max_corrections": 10
+                    "iters_per_epoch": 100,
+                    "max_corrections": 50
                 },
                 "state": {
                     "$ref": "#/tasks/main/gilbert/state"
@@ -68,8 +68,8 @@
                 "runtime": {
                     "visibility": 0.4,
                     "max_epochs": 10,
-                    "iters_per_epoch": 10,
-                    "max_corrections": 10
+                    "iters_per_epoch": 100,
+                    "max_corrections": 50
                 },
                 "state": {
                     "$ref": "#/tasks/main/gilbert/state"

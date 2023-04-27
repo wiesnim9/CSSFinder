@@ -2,6 +2,24 @@
 
 NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 
+### 0.6.0 - April 27, 2023
+
+- Added 32x32 matrix FSnQd example `benchmark_32x32`.
+- Added 64x64 matrix FSnQd example `benchmark_64x64`.
+- Added automatic flush to json file for perf measurements.
+- Added automated task parallel queue.
+- Added parallel control parameters to `task run` cli.
+- Added extras groups `backend-numpy` and `backend-rust` containing optional
+  backend dependencies.
+- Added CLI/TUI interface for adding new task.
+- Added command for creating new static projects.
+- Changed `cssfinder project ./path/to/project` to
+  `cssfinder project -p ./path/to/project` (replaced argument with an option).
+- Changed logger to output log files with `.log` extension.
+- Fixed `jinja2` dependency missing error.
+- Bump rich from 13.3.2 to 13.3.3 (#33)
+- Bump pydantic from 1.10.6 to 1.10.7 (#32)
+
 ### 0.5.0 - Mar 20, 2023
 
 - Add dynamically loaded backends.

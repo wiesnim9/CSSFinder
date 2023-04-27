@@ -30,12 +30,12 @@ from cssfinder.examples import Example
 class Test_FSnQd(ModeTest):  # noqa: N801  # Underscore used for readability.
     """Test behavior of FSnQd mode of Gilbert algorithm."""
 
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 100
     PROJECT_PATH = Example.e5qubits_json.get_path()
     TEST_TASK_NAME: str = "test_fsnqd_5qubits"
 
     OUT_STATE_ROW_COUNT: int = 32
     OUT_STATE_COL_COUNT: int = 32
 
-    MIN_CORRECTION_VALUE: float = 0.100
+    MIN_CORRECTION_VALUE: float = 0.090
     MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.100, 0.130)

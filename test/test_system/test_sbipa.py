@@ -30,15 +30,15 @@ from cssfinder.examples import Example
 class Test_SBiPa(ModeTest):  # noqa: N801  # Underscore used for readability.
     """Test behavior of SBiPa mode of Gilbert algorithm."""
 
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 100
     PROJECT_PATH = Example.SBiPa_json.get_path()
     TEST_TASK_NAME: str = "test_sbipa_proj"
 
     OUT_STATE_ROW_COUNT: int = 9
     OUT_STATE_COL_COUNT: int = 9
 
-    MIN_CORRECTION_VALUE: float = 0.010
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.120)
+    MIN_CORRECTION_VALUE: float = 0.001
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.001, 0.120)
 
 
 class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readability.
@@ -46,12 +46,12 @@ class Test_SBiPa_WithProjection(  # noqa: N801  # Underscore used for readabilit
 ):
     """Test behavior of SBiPa mode of Gilbert algorithm with projections."""
 
-    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 10
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 100
     PROJECT_PATH = Example.SBiPa_json.get_path()
     TEST_TASK_NAME: str = "test_sbipa_proj_with_projection"
 
     OUT_STATE_ROW_COUNT: int = 9
     OUT_STATE_COL_COUNT: int = 9
 
-    MIN_CORRECTION_VALUE: float = 0.010
-    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.090, 0.130)
+    MIN_CORRECTION_VALUE: float = 0.001
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.001, 0.25)

@@ -85,7 +85,15 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options] # ANCHOR: tool.pytest
 minversion = "7.2.0"
-norecursedirs = ["external", "data", ".venv", ".env", "env", "venv"]
+norecursedirs = [
+    "external",
+    "data",
+    ".venv",
+    ".env",
+    "env",
+    "venv",
+    "cssfinder/examples",
+]
 python_files = ["test_*.py", "*_test.py"]
 testpaths = ["cssfinder", "test"]
 addopts = """ -ra --strict-markers --doctest-modules --log-level=DEBUG --cov-report=term-missing:skip-covered"""

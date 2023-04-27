@@ -48,6 +48,8 @@ class Example(Enum):
     GHZ3_json = "GHZ3_json"
     GHZ4_json = "GHZ4_json"
     SBiPa_json = "SBiPa_json"
+    benchmark_32x32 = "benchmark_32x32"
+    benchmark_64x64 = "benchmark_64x64"
 
     def get_sha256(self) -> hashlib._Hash:  # noqa: SLF001
         """Calculate and return SHA-256 of example project file."""

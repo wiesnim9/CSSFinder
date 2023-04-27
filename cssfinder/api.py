@@ -24,6 +24,9 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
+from itertools import repeat
 from typing import TYPE_CHECKING, Iterable
 
 import psutil
@@ -46,6 +49,8 @@ def run_project_from(
     tasks: list[str] | None = None,
     *,
     is_debug: bool = False,
+    force_sequential: bool = False,
+    max_parallel: int = -1,
 ) -> None:
     """Load project and run all tasks."""
     project = CSSFProject.load_project(project_file_path)
@@ -55,7 +60,13 @@ def run_project_from(
         project.meta.author,
         project.meta.email,
     )
-    run_project(project, tasks, is_debug=is_debug)
+    run_project(
+        project,
+        tasks,
+        is_debug=is_debug,
+        force_sequential=force_sequential,
+        max_parallel=max_parallel,
+    )
 
 
 def run_project(
@@ -63,18 +74,46 @@ def run_project(
     tasks: list[str] | None = None,
     *,
     is_debug: bool = False,
-) -> None:
+    force_sequential: bool = False,
+    max_parallel: int = -1,
+) -> list[Task]:
     """Run all tasks defined in project."""
     logging.debug("Running project %r", project.meta.name)
 
     message = "\n    |  ".join(project.json(indent=2).split("\n"))
     logging.info("%s", "\n    |  " + message)
 
-    for task in project.select_tasks(tasks):
-        run_task(task, is_debug=is_debug)
+    task_list = project.select_tasks(tasks)
+
+    if force_sequential:
+        for _ in map(
+            run_task,
+            task_list,
+            repeat(TaskOptions(is_debug=is_debug)),
+        ):
+            pass
+
+    else:
+        with ProcessPoolExecutor(
+            max_parallel if max_parallel > 0 else None
+        ) as executor:
+            executor.map(
+                run_task,
+                task_list,
+                repeat(TaskOptions(is_debug=is_debug)),
+            )
+
+    return task_list
 
 
-def run_task(task: Task, *, is_debug: bool = False) -> None:
+@dataclass
+class TaskOptions:
+    """Container for extra task options."""
+
+    is_debug: bool
+
+
+def run_task(task: Task, options: TaskOptions) -> None:
     """Run task until completed."""
     try:
         set_priority(os.getpid(), Priority.REALTIME, IoPriority.HIGH)
@@ -89,7 +128,7 @@ def run_task(task: Task, *, is_debug: bool = False) -> None:
         )
 
     if task.gilbert:
-        run_gilbert(task.gilbert, task.task_output_directory, is_debug=is_debug)
+        run_gilbert(task.gilbert, task.task_output_directory, is_debug=options.is_debug)
 
 
 def run_gilbert(

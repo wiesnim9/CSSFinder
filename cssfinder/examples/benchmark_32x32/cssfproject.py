@@ -52,7 +52,7 @@ TASKS = {}
 
 for backend in ["numpy_cython", "numpy", "numpy_jit", "rust_naive"]:
     for precision in [Precision.SINGLE, Precision.DOUBLE]:
-        for i in range(16):
+        for i in range(64):
             TASKS[f"{backend}_{precision.value}_{i}"] = Task(
                 gilbert=GilbertCfg(
                     mode=AlgoMode.FSnQd,

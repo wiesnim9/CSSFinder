@@ -1,0 +1,76 @@
+---
+name: Reports Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+
+  pull_request:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+    types:
+      - opened
+      - reopened
+
+  schedule:
+    - cron: 0 12 * * 6
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-reports-tests
+  cancel-in-progress: false
+
+jobs:
+  reports-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        python-version: ["3.8", "3.9", "3.10"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.1.0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: "x64"
+
+      - name: Install Poetry
+        run: pip install poetry==1.4.0
+
+      - name: Install dependencies
+        run: poetry install --no-cache --sync
+
+      - name: Expect PDF reports fails (Windows|macOS)
+        if: matrix.os == 'windows-latest' || matrix.os == 'macOS-latest'
+        run: poetry run poe test-reports --pdf-expect-fail
+
+      - name: Install brew and GTK3 (macOS only)
+        if: matrix.os == 'macOS-latest'
+        run: |
+          /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+          brew update
+          brew install gtk+3
+
+      - name: Run reports tests
+        if: matrix.os != 'windows-latest'
+        run: poetry run poe test-reports

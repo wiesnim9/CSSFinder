@@ -1,0 +1,20 @@
+{
+    "semi": true,
+    "useTabs": false,
+    "endOfLine": "lf",
+    "printWidth": 79,
+    "overrides": [
+        {
+            "files": ["*.html", "*.js", "*.json", "*.prettierrc"],
+            "options": {
+                "tabWidth": 4
+            }
+        },
+        {
+            "files": ["*.md"],
+            "options": {
+                "proseWrap": "always"
+            }
+        }
+    ]
+}

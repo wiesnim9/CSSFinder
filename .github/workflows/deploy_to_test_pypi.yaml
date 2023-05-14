@@ -1,0 +1,59 @@
+---
+# https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+name: Publish 📦 to Test PyPI
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy-to-pypi:
+    if: github.repository_owner == 'Argmaster'
+    name: Test deploy 📦
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.1.0
+
+      - name: Set up Python 3.10
+
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: "3.10"
+          architecture: "x64"
+
+      - name: Install Poetry 📜
+        run: pip install poetry==1.4.0
+
+      - name: Install dependencies 🗄️
+        run: poetry install --no-cache --sync
+
+      - name: Bump Version for development 🔨 release
+        run: |
+          poetry version patch &&
+          version=$(poetry version | awk '{ print $2 }') &&
+          poetry version $version-dev.$(date +%s)
+
+      - name: Build distribution 📦
+        run: poetry run poe build
+
+      - name: Detect Version of project
+        id: project-version
+        run: |
+          echo "version=$(poetry version | awk '{ print $2 }')" >> $GITHUB_OUTPUT
+
+      - name: Create development 🔨 Tag 🏷️
+        id: tag-version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          custom_tag: ${{ steps.project-version.outputs.version }}
+          github_token: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+      - name: Publish distribution 📦 to Test PyPI
+        # Executed always
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/

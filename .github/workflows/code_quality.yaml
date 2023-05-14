@@ -1,0 +1,64 @@
+---
+name: Code Quality Check
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+
+  pull_request:
+    branches:
+      - main
+      - dev
+      - fix/**
+      - hotfix/**
+      - feature/**
+      - release/**
+      - dependabot/**
+    types:
+      - opened
+      - reopened
+
+  schedule:
+    - cron: 0 12 * * 6
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.ref }}-code-quality
+  cancel-in-progress: false
+
+jobs:
+  code-quality-check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9", "3.10"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.1.0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: "x64"
+
+      - name: Install Poetry
+        run: pip install poetry==1.4.0
+
+      - name: Install dependencies
+        run: poetry install --no-cache --sync
+
+      - name: Run code quality checkers
+        run: poetry run poe run-hooks

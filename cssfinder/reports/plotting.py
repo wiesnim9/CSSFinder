@@ -143,9 +143,9 @@ class Plotter:
         axes.grid(visible=True)
 
         axes.set_xlabel("Correction index")
-        axes.set_ylabel("Correction offsetted inverse value")
+        axes.set_ylabel("Inverse correction value with offset")
 
-        axes.set_title("Distance offsetted inverse decay")
+        axes.set_title("Inverse distance decay with offset")
 
         return Plot(axes)
 

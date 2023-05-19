@@ -81,7 +81,9 @@ class SetupRunProjectMixin:
             cls.PROJECT_PATH.as_posix(), cls.get_project_directory().as_posix()
         )
 
-        run_project_from(cls.get_project_directory(), [cls.TEST_TASK_NAME])
+        run_project_from(
+            cls.get_project_directory(), [cls.TEST_TASK_NAME], force_sequential=True
+        )
 
         gilbert_io = GilbertIO()
 

@@ -64,6 +64,7 @@ class SlopeProperties:
 
     """
 
+    correction_count: int
     optimum: np.float64
     r_value: np.float64
     aa1: np.float64
@@ -108,6 +109,7 @@ class SlopeProperties:
         correction_index: npt.NDArray[np.float64] = data[:, 1]
         correction_value: npt.NDArray[np.float64] = data[int(2 * len(data) / 3) :, 2]
 
+        correction_count = len(data)
         optimum = find_correction_optimum(data[:, 2])
 
         r_value = R(correction_value, optimum)
@@ -115,7 +117,7 @@ class SlopeProperties:
         aa1 = trend(iteration_index, correction_index)
         bb1 = np.exp(offset(iteration_index, correction_index))
 
-        return cls(optimum, r_value, aa1, bb1)
+        return cls(correction_count, optimum, r_value, aa1, bb1)
 
     def save_to(self, dest: Path) -> None:
         """Save properties to file."""

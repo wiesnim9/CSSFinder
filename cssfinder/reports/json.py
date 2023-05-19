@@ -18,17 +18,29 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""Report generation tools."""
+"""HTML document based report renderer."""
 
 from __future__ import annotations
 
-from cssfinder.reports.html import HTMLRenderer
-from cssfinder.reports.json import JSONRenderer
-from cssfinder.reports.manager import PreparedReportManager
-from cssfinder.reports.pdf import PDFRenderer
-from cssfinder.reports.renderer import ReportType
+import json
 
-PreparedReportManager.register_renderer(HTMLRenderer, ReportType.HTML)
-PreparedReportManager.register_renderer(PDFRenderer, ReportType.PDF)
-PreparedReportManager.register_renderer(JSONRenderer, ReportType.JSON)
+from cssfinder.reports.renderer import Renderer, Report, ReportType
+
+
+class JSONRenderer(Renderer):
+    """Renderer implementation outputting HTML files content."""
+
+    def render(self) -> Report:
+        """Generate report content."""
+        return Report(
+            json.dumps(
+                {
+                    "title": self.ctx.title,
+                    "meta": self.ctx.meta,
+                    "math": self.ctx.math_props,
+                },
+                indent=4,
+            ).encode("utf-8"),
+            ReportType.JSON,
+            self.ctx.task.task_output_directory / "report.json",
+        )

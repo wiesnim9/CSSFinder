@@ -36,7 +36,9 @@ import pendulum
 import rich
 
 import cssfinder
+from cssfinder.api import create_report_from
 from cssfinder.log import enable_performance_logging
+from cssfinder.reports.renderer import ReportType
 
 if TYPE_CHECKING:
     from cssfinder import examples
@@ -91,29 +93,79 @@ def main(ctx: click.Context, verbose: int, *, debug: bool, perf_log: bool) -> No
         )
 
 
-def _is_path_needed_for_subcommand(
-    ctx: click.Context, param: click.Option, value: Optional[str]  # noqa: ARG001
-) -> str | None:
-    if ctx.invoked_subcommand in ["task"] and not value:
-        msg = "The path parameter is required for this subcommand."
-        raise click.BadParameter(msg)
-    return value
-
-
-@main.group("project")
+@main.command(name="show-command-tree")
 @click.pass_context
-@click.option(
-    "--path",
-    "-p",
-    type=click.Path(exists=True, file_okay=True, dir_okay=True),
-    callback=_is_path_needed_for_subcommand,
-)
-def _project(ctx: click.Context, path: str) -> None:
-    """Group of commands for interaction with projects."""
-    ctx.obj.project_path = path
+def tree(ctx: click.Context) -> None:
+    """Show the command tree of your CLI."""
+    root_cmd = _build_command_tree(ctx.find_root().command)
+    _print_tree(root_cmd)
 
 
-@_project.command("new")
+class _CommandWrapper:
+    """Command tree printing based on `https://github.com/whwright/click-command-
+    tree`.
+    """
+
+    def __init__(
+        self,
+        command: Optional[click.Command] = None,
+        _children: Optional[list[click.Command]] = None,
+    ) -> None:
+        self.command = command
+        self.children: list[_CommandWrapper] = []
+
+    @property
+    def name(self) -> str:
+        assert self.command is not None
+        assert self.command.name is not None
+        return self.command.name
+
+    def __repr__(self) -> str:
+        return f"{{_CommandWrapper {self.name}}}"
+
+
+def _build_command_tree(click_command: click.Command) -> _CommandWrapper:
+    wrapper = _CommandWrapper(click_command)
+
+    if isinstance(click_command, click.core.Group):
+        for _, cmd in click_command.commands.items():
+            if not getattr(cmd, "hidden", False):
+                wrapper.children.append(_build_command_tree(cmd))
+
+    return wrapper
+
+
+def _print_tree(
+    command: _CommandWrapper,
+    depth: int = 0,
+    *,
+    is_last_item: bool = False,
+    is_last_parent: bool = False,
+) -> None:
+    if depth == 0:
+        prefix = ""
+        tree_item = ""
+    else:
+        prefix = "    " if is_last_parent else "│   "
+        tree_item = "└── " if is_last_item else "├── "
+
+    doc = command.command.__doc__
+    first_line = " - " + doc.split("\n")[0] if doc else ""
+
+    line = f"{prefix * (depth - 1) + tree_item + command.name:<30}{first_line}"
+
+    click.echo(line)
+
+    for i, child in enumerate(sorted(command.children, key=lambda x: x.name)):
+        _print_tree(
+            child,
+            depth=(depth + 1),
+            is_last_item=(i == (len(command.children) - 1)),
+            is_last_parent=is_last_item,
+        )
+
+
+@main.command("create-new-project")
 @click.option("--author", default=None, help="Author metadata field value.")
 @click.option("--email", default=None, help="Email metadata field value.")
 @click.option("--name", default=None, help="Name metadata field value.")
@@ -132,17 +184,55 @@ def _project_new(
     create_new_project(author, email, name, description, project_version)
 
 
-@_project.group("task")
-def _task() -> None:
-    """Group of commands to operate on tasks."""
+@main.group("project")
+@click.pass_context
+def _project(ctx: click.Context) -> None:
+    """Group of commands for interaction with projects."""
+    ctx.obj.project_path = Path.cwd().as_posix()
 
 
-@_task.group("add")
-def _add() -> None:
-    """Command for adding new tasks."""
+@_project.command("inspect")
+@click.pass_obj
+def _inspect(ctx: Ctx) -> None:
+    """Load and display project."""
+    from cssfinder.cssfproject import CSSFProject
+
+    if ctx.project_path is None:
+        reason = "ctx.project_path shall not be None."
+        raise RuntimeError(reason)
+
+    project = CSSFProject.load_project(ctx.project_path)
+    rich.print_json(project.json(indent=4))
 
 
-@_add.command("gilbert")
+@_project.command("inspect-output")
+@click.argument("task_pattern")
+@click.pass_obj
+def _inspect_output(ctx: Ctx, task_pattern: str) -> None:
+    """Load and display project."""
+    import json
+
+    from cssfinder.cssfproject import CSSFProject
+
+    if ctx.project_path is None:
+        reason = "ctx.project_path shall not be None."
+        raise RuntimeError(reason)
+
+    project = CSSFProject.load_project(ctx.project_path)
+    tasks = project.select_tasks([task_pattern])
+    for i, task in enumerate(tasks):
+        corrections = json.loads(
+            task.output_corrections_file.read_text(encoding="utf-8")
+        )
+        print("First correction: ", corrections[0])
+        print("Middle correction:", corrections[len(corrections) // 2 - 1])
+        print("Last correction:  ", corrections[-1])
+
+        if i < (len(tasks) - 1):
+            print("-" * 70)
+
+
+@_project.command("add-gilbert-task")
 @click.pass_obj
 @click.option("--name", default=None, help="Name for the task.")
 @click.option("--mode", default=None, help="Algorithm mode.")
@@ -200,7 +290,7 @@ def _add() -> None:
     default=None,
     help="Path to file containing projection matrix.",
 )
-def _gilbert(  # noqa: PLR0913
+def _add_gilbert_task(  # noqa: PLR0913
     ctx: Ctx,
     name: Optional[str],
     mode: Optional[str],
@@ -252,7 +342,7 @@ def _gilbert(  # noqa: PLR0913
     )
 
 
-@_task.command("run")
+@_project.command("run-tasks")
 @click.option(
     "--match",
     "-m",
@@ -276,7 +366,7 @@ def _gilbert(  # noqa: PLR0913
     "changes execution scheme, thus code won't be executed in main thread.",
 )
 @click.pass_obj
-def _run(
+def _run_tasks(
     ctx: Ctx, match_: list[str] | None, *, force_sequential: bool, max_parallel: int
 ) -> None:
     """Run tasks from the project."""
@@ -327,7 +417,7 @@ def _run(
     raise SystemExit(0)
 
 
-@_task.command("report")
+@_project.command("create-task-report")
 @click.argument(
     "task",
 )
@@ -346,6 +436,13 @@ def _run(
     help="Include PDF report.",
 )
 @click.option(
+    "--json",
+    "--no-json",
+    is_flag=True,
+    default=False,
+    help="Include JSON report.",
+)
+@click.option(
     "--open",
     "--no-open",
     "open_",
@@ -354,7 +451,9 @@ def _run(
     help="Automatically open report in web browser.",
 )
 @click.pass_obj
-def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> None:
+def _create_task_report(
+    ctx: Ctx, task: str, *, html: bool, pdf: bool, json: bool, open_: bool
+) -> None:
     """Create short report for task.
 
     TASK - name pattern matching exactly one task, for which report should be created.
@@ -372,6 +471,9 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> 
 
     if pdf:
         include_report_types.append(ReportType.PDF)
+
+    if json:
+        include_report_types.append(ReportType.JSON)
 
     if len(include_report_types) == 0:
         logging.critical(
@@ -392,30 +494,40 @@ def _task_report(ctx: Ctx, task: str, *, html: bool, pdf: bool, open_: bool) -> 
 
 
 def _log_exit(code: int) -> None:
-    logging.exception("Exit with code code.")
+    logging.exception("Exit with code %d.", code)
     raise SystemExit(code)
 
 
-@main.group("backend")
-def _backend() -> None:
-    """Group of commands for inspecting available backends."""
+@_project.command("create-json-summary")
+@click.argument("task_pattern")
+@click.pass_obj
+def _create_json_summary(ctx: Ctx, task_pattern: str) -> None:
+    """Load and display project."""
+    import json
+
+    assert ctx.project_path is not None
+    output = []
+
+    for report in create_report_from(
+        ctx.project_path, task=task_pattern, reports=[ReportType.JSON]
+    ):
+        content = json.loads(report.content)
+        output.append(content)
+
+    dest = Path(ctx.project_path) / "output" / "summary.json"
+    dest.write_text(json.dumps(output, indent=4))
 
 
-@_backend.command("list")
-def _backend_list() -> None:
+@main.command("list-backends")
+def _list_backends() -> None:
     """List available backends."""
     from cssfinder.algorithm.backend.loader import Loader
 
     rich.get_console().print(Loader.new().get_rich_table())
 
 
-@main.group("examples")
-def _examples() -> None:
-    """Group of commands for accessing bundled examples."""
-
-
-@_examples.command("list")
-def _examples_list() -> None:
+@main.command("list-examples")
+def _list_examples() -> None:
     """Show list of all available example projects."""
     from cssfinder import examples
 
@@ -443,19 +555,9 @@ def validate_mutually_exclusive(
     return _
 
 
-@_examples.command("clone")
-@click.option(
-    "--sha",
-    default=None,
-    help="SHA of example. Mutually exclusive with `--name`.",
-    expose_value=True,
-)
-@click.option(
-    "--name",
-    default=None,
-    help="Name of example. Mutually exclusive with `--sha`.",
-    expose_value=True,
-    callback=validate_mutually_exclusive("name", "sha"),
+@main.command("clone-example")
+@click.argument(
+    "sha_or_name",
 )
 @click.option(
     "-o",
@@ -485,22 +587,26 @@ def validate_mutually_exclusive(
     help="When set, automatically open new explorer window in example directory.",
 )
 def _examples_clone(
-    sha: Optional[str],
-    name: Optional[str],
+    sha_or_name: str,
     out: Optional[str],
     *,
     force_overwrite: bool,
     do_open_terminal: bool,
     do_open_explorer: bool,
 ) -> None:
-    """Clone one of examples to specific location."""
+    """Clone one of examples to specific location.
+
+    SHA_OR_NAME - or name of example. to select by sha, use 'sha:000000', otherwise this
+                    parameter will be considered a example name.
+
+    """
     from cssfinder.crossplatform import open_file_explorer, open_terminal
     from cssfinder.cssfproject import ProjectFileNotFoundError
     from cssfinder.enums import ExitCode
 
     destination = Path.cwd() if out is None else Path(out).expanduser().resolve()
 
-    example = _select_example(sha, name)
+    example = _select_example(sha_or_name)
     try:
         project = example.get_project()
     except ProjectFileNotFoundError as exc:
@@ -520,6 +626,7 @@ def _examples_clone(
     )
     try:
         example.clone(destination)
+        rich.print(f"Cloned example to {destination.as_posix()!r}")
 
     except FileNotFoundError as exc:
         logging.critical(str(exc))
@@ -560,26 +667,23 @@ def _get_validated_destination(
     return destination_project_folder
 
 
-def _select_example(sha: Optional[str], name: Optional[str]) -> examples.Example:
+def _select_example(sha_or_name: str) -> examples.Example:
     from cssfinder import examples
     from cssfinder.enums import ExitCode
 
-    if name is not None:
+    if sha_or_name.startswith("sha:"):
+        sha_or_name = sha_or_name[4:]
         try:
-            example = examples.Example.select_by_name(name)
-        except examples.ExampleNotFoundError as exc:
-            logging.critical("%s", exc)
-            raise SystemExit(ExitCode.EXAMPLE_WITH_NAME_NOT_FOUND) from exc
-
-    elif sha is not None:
-        try:
-            example = examples.Example.select_by_sha256(sha)
+            example = examples.Example.select_by_sha256(sha_or_name)
         except examples.ExampleNotFoundError as exc:
             logging.critical("%s", exc)
             raise SystemExit(ExitCode.EXAMPLE_WITH_SHA_NOT_FOUND) from exc
 
     else:
-        logging.critical("Neither `--name` not `--sha` given, no example was selected.")
-        raise SystemExit(ExitCode.EXAMPLE_SHA_NOR_NAME_GIVEN)
+        try:
+            example = examples.Example.select_by_name(sha_or_name)
+        except examples.ExampleNotFoundError as exc:
+            logging.critical("%s", exc)
+            raise SystemExit(ExitCode.EXAMPLE_WITH_NAME_NOT_FOUND) from exc
 
     return example

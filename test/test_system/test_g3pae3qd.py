@@ -19,16 +19,24 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""Report generation tools."""
+"""Module groups system level test of G3PaE3qD mode of Gilbert algorithm."""
 
 from __future__ import annotations
 
-from cssfinder.reports.html import HTMLRenderer
-from cssfinder.reports.json import JSONRenderer
-from cssfinder.reports.manager import PreparedReportManager
-from cssfinder.reports.pdf import PDFRenderer
-from cssfinder.reports.renderer import ReportType
+from test.test_system.base import ModeTest
 
-PreparedReportManager.register_renderer(HTMLRenderer, ReportType.HTML)
-PreparedReportManager.register_renderer(PDFRenderer, ReportType.PDF)
-PreparedReportManager.register_renderer(JSONRenderer, ReportType.JSON)
+from cssfinder.examples import Example
+
+
+class Test_G3PaE3qD(ModeTest):  # noqa: N801  # Underscore used for readability.
+    """Test behavior of G3PaE3qD mode of Gilbert algorithm."""
+
+    EXPECTED_MINIMAL_NUMBER_OF_CORRECTIONS: int = 100
+    PROJECT_PATH = Example.GHZ3_json.get_path()
+    TEST_TASK_NAME: str = "test_g3pae3qd"
+
+    OUT_STATE_ROW_COUNT: int = 8
+    OUT_STATE_COL_COUNT: int = 8
+
+    MIN_CORRECTION_VALUE: float = 0.001
+    MIN_MAX_FIRST_CORRECTION_RANGE: ModeTest.MinMax = ModeTest.MinMax(0.001, 0.120)

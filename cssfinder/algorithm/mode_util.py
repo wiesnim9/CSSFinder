@@ -90,6 +90,9 @@ class ModeUtil(ABC):
         if mode == AlgoMode.SBiPa:
             return SBiPaUtil()
 
+        if mode == AlgoMode.G3PaE3qD:
+            return G3PaE3qDUtil()
+
         msg = f"Unsupported mode {mode.name}"
         raise NotImplementedError(msg)
 
@@ -112,7 +115,15 @@ class ModeUtil(ABC):
             When depth and quantity can't be determined.
 
         """
-        return self.detect_depth_and_quantity(len(state))
+        dim = self.detect_depth_and_quantity(len(state))
+
+        logging.debug(
+            "Deduced quantity %r and depth %r when given total size %r",
+            dim.depth,
+            dim.quantity,
+            len(state),
+        )
+        return dim
 
     @abstractmethod
     def detect_depth_and_quantity(self, total: int) -> Dimensions:
@@ -166,12 +177,6 @@ class FSnQdUtil(ModeUtil):
             quantity = int(math.log(total, depth))
 
             if quantity == int(quantity):
-                logging.debug(
-                    "Deduced quantity %r and depth %r when given total size %r",
-                    depth,
-                    quantity,
-                    total,
-                )
                 return Dimensions(depth, quantity)
 
         reason = "prime number range exceeded"
@@ -213,12 +218,6 @@ class SBiPaUtil(ModeUtil):
         for depth in PRIMES:
             if total % depth == 0:
                 quantity = int(total / depth)
-                logging.debug(
-                    "Deduced quantity %r and depth %r when given total size %r",
-                    depth,
-                    quantity,
-                    total,
-                )
                 return Dimensions(depth, quantity)
 
         reason = "prime number range exceeded"
@@ -230,3 +229,36 @@ class UndefinedSystemSizeError(ValueError):
 
     def __init__(self, reason: str) -> None:
         super().__init__(f"Couldn't determine size of system: {reason}.")
+
+
+class G3PaE3qDUtil(ModeUtil):
+    """G3PaE3q specific implementation of utilities eg.
+
+    shape deduction.
+
+    """
+
+    def detect_depth_and_quantity(self, total: int) -> Dimensions:
+        """Detect both system depth and system quantity.
+
+        Parameters
+        ----------
+        total : int
+            Dimension along one of axes. Matrix is expected to be square.
+
+        Returns
+        -------
+        Dimensions
+            System dimensions within dedicated container.
+
+        Raises
+        ------
+        ValueError
+            When depth and quantity can't be determined.
+
+        """
+        if round(total ** (1.0 / 3), 3) == round(total ** (1.0 / 3), 0):
+            return Dimensions(depth=int(total ** (1.0 / 3)), quantity=3)
+
+        reason = "prime number range exceeded"
+        raise UndefinedSystemSizeError(reason)

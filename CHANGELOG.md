@@ -2,6 +2,15 @@
 
 NOTE: CSSFinder follows the [semver](https://semver.org/) versioning standard.
 
+### 0.7.0 - May 19, 2023
+
+- Added G3PaE3qD mode support.
+- Changed CLI structure to be flatter.
+- Added command allowing for inspecting projects and outputs.
+- Added command for batch calculation of summaries for task outputs.
+- Bumped version of cssfinder-backend-rust to 0.1.1
+- Bumped version of cssfinder-backend-numpy to 0.5.0
+
 ### 0.6.0 - April 27, 2023
 
 - Added 32x32 matrix FSnQd example `benchmark_32x32`.

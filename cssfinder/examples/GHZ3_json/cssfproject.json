@@ -46,6 +46,30 @@
                     "projection": null
                 }
             }
+        },
+        "test_g3pae3qd": {
+            "gilbert": {
+                "mode": "G3PaE3qD",
+                "backend": {
+                    "name": "numpy",
+                    "precision": "single"
+                },
+                "runtime": {
+                    "visibility": 0.4,
+                    "max_epochs": 1000,
+                    "iters_per_epoch": 1000,
+                    "max_corrections": 1000
+                },
+                "state": {
+                    "file": "{project.project_directory}/GHZ3_in.mtx",
+                    "depth": null,
+                    "quantity": null
+                },
+                "resources": {
+                    "symmetries": null,
+                    "projection": null
+                }
+            }
         }
     }
 }
